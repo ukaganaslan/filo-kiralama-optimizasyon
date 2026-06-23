@@ -58,7 +58,6 @@
             <th>Rezervasyon Sayısı</th>
             <th>Kullanıcı Durumu</th>
             <th></th>
-            
           </tr>
         </thead>
         <tbody>
@@ -72,10 +71,10 @@
             <td>
                 <span :class="u.is_active ? 'badge-active' : 'badge-passive'">
                 {{ u.is_active ? 'Aktif' : 'Pasif' }}
-                </span>         
+                </span>
             </td>
             <td class="actions">
-              <button class="btn-edit" @click="openEdit(u)">Düzenle</button>
+              <button class="btn-edit" @click="openEdit(u)">✏️</button>
               <button class="btn-toggle" @click="toggleActive(u)">{{ u.is_active ? 'Pasife Al' : 'Aktife Al' }}</button>
             </td>
           </tr>

@@ -68,8 +68,8 @@
             <td>{{ v.branch_name || '—' }}</td>
             <td><span :class="'badge-status badge-' + v.status">{{ statusLabel(v.status) }}</span></td>
             <td class="actions">
-              <button class="btn-edit" @click="openEdit(v)">Düzenle</button>
-              <button class="btn-delete" @click="confirmDelete(v)">Sil</button>
+              <button class="btn-edit" @click="openEdit(v)">✏️</button>
+              <button class="btn-delete" @click="confirmDelete(v)">🗑️</button>
             </td>
           </tr>
           <tr v-if="vehicles.length === 0">

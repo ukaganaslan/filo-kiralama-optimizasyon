@@ -59,7 +59,7 @@
             <td class="name">{{ b.title || '—' }}</td>
             <td class="city">{{ b.name }}</td>
             <td><span class="count">{{ b.vehicle_count }}</span></td>
-            <td><button class="btn-edit" @click="openEdit(b)">Düzenle</button></td>
+            <td><button class="btn-edit" @click="openEdit(b)">✏️</button></td>
           </tr>
           <tr v-if="branches.length === 0">
             <td colspan="5" class="empty">Şube bulunamadı.</td>
