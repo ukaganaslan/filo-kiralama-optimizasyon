@@ -333,7 +333,7 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 .modal h3 { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; }
-.field input, .field select { padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; background: white; }
+.field input, .field select { padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; background: white; color: #1e293b; color-scheme: light; }
 .field input:focus, .field select:focus { border-color: #6366f1; }
 .field input:disabled { background: #f8f9fa; color: #94a3b8; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
