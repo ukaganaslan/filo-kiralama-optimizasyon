@@ -47,6 +47,9 @@
         <thead>
           <tr>
             <th>Araç ID</th>
+            <th>Marka</th>
+            <th>Model</th>
+            <th>Plaka</th>
             <th>Grup</th>
             <th>Şube</th>
             <th>Durum</th>
@@ -56,6 +59,9 @@
         <tbody>
           <tr v-for="v in vehicles" :key="v.id">
             <td class="vehicle-id">{{ v.vehicle_id }}</td>
+            <td>{{ v.brand || '—' }}</td>
+            <td>{{ v.model || '—' }}</td>
+            <td>{{ v.plate || '—' }}</td>
             <td><span :class="'badge-group badge-' + v.group">{{ groupLabel(v.group) }}</span></td>
             <td>{{ v.branch_name }}</td>
             <td><span :class="'badge-status badge-' + v.status">{{ statusLabel(v.status) }}</span></td>
@@ -75,6 +81,18 @@
     <div v-if="formModal" class="modal-overlay" @click.self="formModal = false">
       <div class="modal">
         <h3>{{ editingId ? 'Araç Düzenle' : 'Yeni Araç Ekle' }}</h3>
+        <div class="field">
+          <label>Marka</label>
+          <input v-model="form.brand" type="text" placeholder="Toyota, Ford..." />
+        </div>
+        <div class="field">
+          <label>Model</label>
+          <input v-model="form.model" type="text" placeholder="Corolla, Focus..." />
+        </div>
+        <div class="field">
+          <label>Plaka</label>
+          <input v-model="form.plate" type="text" placeholder="06ABC123" />
+        </div>
         <div class="field">
           <label>Grup</label>
           <select v-model="form.group">
@@ -144,7 +162,7 @@ const branches = ref([])
 
 const formModal = ref(false)
 const editingId = ref(null)
-const form = ref({ group: '', branch: '', status: 'available' })
+const form = ref({ brand: '', model: '', plate: '', group: '', branch: '', status: 'available' })
 const formError = ref('')
 
 const deleteModal = ref(false)
@@ -175,14 +193,14 @@ function statusLabel(s) {
 
 function openAdd() {
   editingId.value = null
-  form.value = { group: '', branch: '', status: 'available' }
+  form.value = { brand: '', model: '', plate: '', group: '', branch: '', status: 'available' }
   formError.value = ''
   formModal.value = true
 }
 
 function openEdit(v) {
   editingId.value = v.id
-  form.value = { group: v.group, branch: v.branch, status: v.status }
+  form.value = { brand: v.brand || '', model: v.model || '', plate: v.plate || '', group: v.group, branch: v.branch, status: v.status }
   formError.value = ''
   formModal.value = true
 }
