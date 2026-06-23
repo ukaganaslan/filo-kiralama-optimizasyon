@@ -24,8 +24,13 @@
         <router-link to="/operator" class="brand">Araç Kiralama</router-link>
       </div>
       <div class="right">
-        <span class="role-badge">Operatör</span>
-        <button class="btn-logout" @click="handleLogout">Çıkış Yap</button>
+        <div class="user-menu" ref="menuRef">
+          <span class="role-badge" @click="menuOpen = !menuOpen">Operatör</span>
+          <div v-if="menuOpen" class="dropdown">
+            <router-link to="/operator/profil" class="dropdown-item" @click="menuOpen = false">Profil Ayarları</router-link>
+            <button class="dropdown-item dropdown-logout" @click="handleLogout">Çıkış Yap</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -82,7 +87,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
@@ -90,6 +95,13 @@ import { useAuthStore } from '../stores/auth'
 const auth = useAuthStore()
 const router = useRouter()
 const sidebarOpen = ref(false)
+const menuOpen = ref(false)
+const menuRef = ref(null)
+function handleClickOutside(e) {
+  if (menuRef.value && !menuRef.value.contains(e.target)) menuOpen.value = false
+}
+onMounted(() => document.addEventListener('click', handleClickOutside))
+onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 const branches = ref([])
 const editModal = ref(false)
 const editForm = ref({ id: null, name: '', title: '' })
@@ -186,10 +198,28 @@ async function handleLogout() {
 .hamburger:hover { color: #1e293b; }
 .brand { font-size: 18px; font-weight: 700; color: #1e293b; text-decoration: none; }
 .right { display: flex; align-items: center; gap: 12px; }
+.user-menu { position: relative; }
 .role-badge {
   padding: 4px 12px; background: #ede9fe; color: #6366f1;
   border-radius: 50px; font-size: 12px; font-weight: 700;
+  cursor: pointer; user-select: none;
 }
+.role-badge:hover { background: #ddd6fe; }
+.dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  background: white; border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  border: 1px solid #e5e7eb; min-width: 160px;
+  overflow: hidden; z-index: 50;
+}
+.dropdown-item {
+  display: block; width: 100%; padding: 10px 16px;
+  font-size: 14px; color: #1e293b; text-decoration: none;
+  text-align: left; background: none; border: none;
+  cursor: pointer; box-sizing: border-box;
+}
+.dropdown-item:hover { background: #f1f5f9; }
+.dropdown-logout { color: #dc2626; }
 .btn-logout {
   padding: 6px 14px; background: #dc2626; color: white;
   border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
