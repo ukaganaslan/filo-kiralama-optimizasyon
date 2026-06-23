@@ -83,15 +83,15 @@
         <h3>{{ editingId ? 'Araç Düzenle' : 'Yeni Araç Ekle' }}</h3>
         <div class="field">
           <label>Marka</label>
-          <input v-model="form.brand" type="text" placeholder="Toyota, Ford..." />
+          <input v-model="form.brand" type="text" placeholder="Araç Markası" />
         </div>
         <div class="field">
           <label>Model</label>
-          <input v-model="form.model" type="text" placeholder="Corolla, Focus..." />
+          <input v-model="form.model" type="text" placeholder="Araç Modeli" />
         </div>
         <div class="field">
           <label>Plaka</label>
-          <input v-model="form.plate" type="text" placeholder="06ABC123" />
+          <input v-model="form.plate" type="text" placeholder="Plaka" />
         </div>
         <div class="field">
           <label>Grup</label>

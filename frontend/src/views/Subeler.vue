@@ -73,7 +73,7 @@
         <h3>Yeni Şube Ekle</h3>
         <div class="field">
           <label>Şube İsmi</label>
-          <input v-model="addForm.title" type="text" placeholder="İstanbul Merkez" />
+          <input v-model="addForm.title" type="text" placeholder="Şube İsmi" />
         </div>
         <div class="field">
           <label>Şehir</label>
