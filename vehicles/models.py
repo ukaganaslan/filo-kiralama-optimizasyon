@@ -35,9 +35,9 @@ class Vehicle(models.Model):
 
     vehicle_id = models.CharField(max_length=10, unique=True)
     group = models.CharField(max_length=20, choices=GROUP_CHOICES)
-    brand = models.CharField(max_length=50, blank=True, default='')
-    model = models.CharField(max_length=50, blank=True, default='')
-    plate = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    brand = models.CharField(max_length=50, default='')
+    model = models.CharField(max_length=50, default='')
+    plate = models.CharField(max_length=20, unique=True)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='vehicles')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available')
 

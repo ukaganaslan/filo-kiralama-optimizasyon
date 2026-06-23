@@ -26,6 +26,10 @@ export const useAuthStore = defineStore('auth', {
             localStorage.removeItem('isStaff')
             delete axios.defaults.headers.common['Authorization']
         },
+        setUsername(username) {
+            this.username = username
+            localStorage.setItem('username', username)
+        },
         init() {
             const token = localStorage.getItem('token')
             if (token) {

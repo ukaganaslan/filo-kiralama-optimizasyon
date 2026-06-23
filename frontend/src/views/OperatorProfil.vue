@@ -14,7 +14,7 @@
 
         <div class="field">
           <label>Kullanıcı Adı</label>
-          <input :value="form.username" disabled />
+          <input v-model="form.username" type="text" />
         </div>
         <div class="field">
           <label>Ad Soyad</label>
@@ -48,6 +48,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useAuthStore } from '../stores/auth'
+const auth = useAuthStore()
 
 const form = ref({ username: '', full_name: '', email: '', phone: '', new_password: '' })
 const success = ref('')
@@ -62,7 +64,8 @@ async function handleSave() {
   success.value = ''
   error.value = ''
   try {
-    await axios.patch('http://127.0.0.1:8000/api/profile/', {
+    const res = await axios.patch('http://127.0.0.1:8000/api/profile/', {
+      username: form.value.username,
       email: form.value.email,
       full_name: form.value.full_name,
       phone: form.value.phone,
@@ -70,8 +73,12 @@ async function handleSave() {
     })
     success.value = 'Profil güncellendi.'
     form.value.new_password = ''
-  } catch {
-    error.value = 'Güncelleme başarısız.'
+    auth.setUsername(form.value.username)
+    if (res.data.token) {
+      auth.login(res.data.token, form.value.username, auth.isStaff)
+    }
+  } catch (e) {
+    error.value = e.response?.data?.error || 'Güncelleme başarısız.'
   }
 }
 </script>

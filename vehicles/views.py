@@ -258,6 +258,10 @@ def profile_view(request):
             'phone': profile.phone if profile else '',
         })
     data = request.data
+    if 'username' in data and data['username']:
+        if User.objects.exclude(pk=user.pk).filter(username=data['username']).exists():
+            return Response({'error': 'Bu kullanıcı adı alınmış'}, status=400)
+        user.username = data['username']
     if 'email' in data:
         user.email = data['email']
     if 'full_name' in data or 'phone' in data:
@@ -268,10 +272,16 @@ def profile_view(request):
         if 'phone' in data:
             profile.phone = data['phone']
         profile.save()
+    new_token = None
     if 'new_password' in data and data['new_password']:
         user.set_password(data['new_password'])
+        user.auth_token.delete()
+        new_token = Token.objects.create(user=user).key
     user.save()
-    return Response({'message': 'Profil güncellendi'})
+    response = {'message': 'Profil güncellendi'}
+    if new_token:
+        response['token'] = new_token
+    return Response(response)
 
 
 @api_view(['POST'])

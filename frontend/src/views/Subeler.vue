@@ -36,8 +36,11 @@
 
     <div class="content">
       <div class="section-header">
-        <h2>Şube Yönetimi</h2>
-        <span class="count-badge">{{ branches.length }} şube</span>
+        <div class="header-left">
+          <h2>Şube Yönetimi</h2>
+          <span class="count-badge">{{ branches.length }} şube</span>
+        </div>
+        <button class="btn-add" @click="openAdd">+ Şube Ekle</button>
       </div>
 
       <table>
@@ -65,6 +68,28 @@
       </table>
     </div>
 
+    <div v-if="addModal" class="modal-overlay" @click.self="addModal = false">
+      <div class="modal">
+        <h3>Yeni Şube Ekle</h3>
+        <div class="field">
+          <label>Şube İsmi</label>
+          <input v-model="addForm.title" type="text" placeholder="İstanbul Merkez" />
+        </div>
+        <div class="field">
+          <label>Şehir</label>
+          <select v-model="addForm.name">
+            <option value="">Seçin</option>
+            <option v-for="sehir in sehirler" :key="sehir" :value="sehir">{{ sehir }}</option>
+          </select>
+        </div>
+        <p v-if="addError" class="error">{{ addError }}</p>
+        <div class="modal-actions">
+          <button class="btn-cancel-modal" @click="addModal = false">Vazgeç</button>
+          <button class="btn-save" @click="saveAdd">Kaydet</button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="editModal" class="modal-overlay" @click.self="editModal = false">
       <div class="modal">
         <h3>Şube Düzenle</h3>
@@ -74,7 +99,10 @@
         </div>
         <div class="field">
           <label>Şehir</label>
-          <input v-model="editForm.name" type="text" placeholder="IST" />
+          <select v-model="editForm.name">
+            <option value="">Seçin</option>
+            <option v-for="sehir in sehirler" :key="sehir" :value="sehir">{{ sehir }}</option>
+          </select>
         </div>
         <p v-if="editError" class="error">{{ editError }}</p>
         <div class="modal-actions">
@@ -102,10 +130,47 @@ function handleClickOutside(e) {
 }
 onMounted(() => document.addEventListener('click', handleClickOutside))
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
+const sehirler = [
+  'Adana','Adıyaman','Afyonkarahisar','Ağrı','Amasya','Ankara','Antalya','Artvin',
+  'Aydın','Balıkesir','Bilecik','Bingöl','Bitlis','Bolu','Burdur','Bursa',
+  'Çanakkale','Çankırı','Çorum','Denizli','Diyarbakır','Edirne','Elazığ',
+  'Erzincan','Erzurum','Eskişehir','Gaziantep','Giresun','Gümüşhane','Hakkâri',
+  'Hatay','Isparta','Mersin','İstanbul','İzmir','Kars','Kastamonu','Kayseri',
+  'Kırklareli','Kırşehir','Kocaeli','Konya','Kütahya','Malatya','Manisa',
+  'Kahramanmaraş','Mardin','Muğla','Muş','Nevşehir','Niğde','Ordu','Rize',
+  'Sakarya','Samsun','Siirt','Sinop','Sivas','Tekirdağ','Tokat','Trabzon',
+  'Tunceli','Şanlıurfa','Uşak','Van','Yozgat','Zonguldak','Aksaray','Bayburt',
+  'Karaman','Kırıkkale','Batman','Şırnak','Bartın','Ardahan','Iğdır','Yalova',
+  'Karabük','Kilis','Osmaniye','Düzce',
+]
+
 const branches = ref([])
+const addModal = ref(false)
+const addForm = ref({ name: '', title: '' })
+const addError = ref('')
 const editModal = ref(false)
 const editForm = ref({ id: null, name: '', title: '' })
 const editError = ref('')
+
+function openAdd() {
+  addForm.value = { name: '', title: '' }
+  addError.value = ''
+  addModal.value = true
+}
+
+async function saveAdd() {
+  if (!addForm.value.name || !addForm.value.title) {
+    addError.value = 'Tüm alanları doldurun.'
+    return
+  }
+  try {
+    await axios.post('http://127.0.0.1:8000/api/branches/', addForm.value)
+    addModal.value = false
+    await loadBranches()
+  } catch {
+    addError.value = 'Kaydetme başarısız.'
+  }
+}
 
 async function loadBranches() {
   const [branchRes, vehicleRes] = await Promise.all([
@@ -226,8 +291,14 @@ async function handleLogout() {
 }
 .content { max-width: 800px; margin: 0 auto; padding: 40px; }
 .section-header {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
 }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.btn-add {
+  padding: 8px 18px; background: #6366f1; color: white;
+  border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.btn-add:hover { background: #4f46e5; }
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .count-badge {
   padding: 3px 10px; background: #f1f5f9; color: #64748b;
@@ -274,11 +345,11 @@ td:nth-child(4), th:nth-child(4) { text-align: center; }
 .modal h3 { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; }
-.field input {
+.field input, .field select {
   padding: 10px 14px; border: 1px solid #e2e8f0;
   border-radius: 8px; font-size: 14px; outline: none;
 }
-.field input:focus { border-color: #6366f1; }
+.field input:focus, .field select:focus { border-color: #6366f1; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
 .btn-cancel-modal {
   padding: 8px 16px; background: white; color: #64748b;
