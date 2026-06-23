@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from vehicles.views import BranchViewSet, VehicleViewSet, ReservationViewSet, optimize, latest_optimization, login_view, logout_view, register_view, availability, cancel_reservation, user_list, toggle_user_active, profile_view
+from vehicles.views import BranchViewSet, VehicleViewSet, ReservationViewSet, optimize, latest_optimization, login_view, logout_view, register_view, availability, cancel_reservation, user_list, toggle_user_active, profile_view, create_user, update_user
 
 router = DefaultRouter()
 router.register(r'branches', BranchViewSet)
@@ -21,4 +21,6 @@ urlpatterns = [
     path('api/users/', user_list),
     path('api/users/<int:user_id>/toggle-active/', toggle_user_active),
     path('api/profile/', profile_view),
+    path('api/users/create/', create_user),
+    path('api/users/<int:user_id>/update/', update_user),
 ]

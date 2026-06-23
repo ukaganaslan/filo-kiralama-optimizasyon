@@ -210,6 +210,55 @@ def cancel_reservation(request, reservation_id):
     return Response({'message': 'Rezervasyon iptal edildi'})
 
 
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def create_user(request):
+    if not request.user.is_staff:
+        return Response({'error': 'Yetkisiz'}, status=403)
+    username = request.data.get('username')
+    password = request.data.get('password')
+    email = request.data.get('email', '')
+    full_name = request.data.get('full_name', '')
+    phone = request.data.get('phone', '')
+    if not username or not password:
+        return Response({'error': 'Kullanıcı adı ve şifre zorunlu'}, status=400)
+    if User.objects.filter(username=username).exists():
+        return Response({'error': 'Bu kullanıcı adı alınmış'}, status=400)
+    user = User.objects.create_user(username=username, password=password, email=email)
+    CustomerProfile.objects.create(user=user, full_name=full_name, phone=phone)
+    return Response({'id': user.id, 'username': user.username}, status=201)
+
+
+@api_view(['PATCH'])
+@permission_classes([permissions.IsAuthenticated])
+def update_user(request, user_id):
+    if not request.user.is_staff:
+        return Response({'error': 'Yetkisiz'}, status=403)
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'Kullanıcı bulunamadı'}, status=404)
+    data = request.data
+    if 'username' in data and data['username']:
+        if User.objects.exclude(pk=user.pk).filter(username=data['username']).exists():
+            return Response({'error': 'Bu kullanıcı adı alınmış'}, status=400)
+        user.username = data['username']
+    if 'email' in data:
+        user.email = data['email']
+    if 'password' in data and data['password']:
+        user.set_password(data['password'])
+    user.save()
+    profile = getattr(user, 'profile', None)
+    if not profile:
+        profile = CustomerProfile.objects.create(user=user)
+    if 'full_name' in data:
+        profile.full_name = data['full_name']
+    if 'phone' in data:
+        profile.phone = data['phone']
+    profile.save()
+    return Response({'message': 'Kullanıcı güncellendi'})
+
+
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def user_list(request):
