@@ -47,6 +47,7 @@
         <thead>
           <tr>
             <th>Araç ID</th>
+            <th>Sasi Kodu</th>
             <th>Marka</th>
             <th>Model</th>
             <th>Plaka</th>
@@ -59,11 +60,12 @@
         <tbody>
           <tr v-for="v in vehicles" :key="v.id">
             <td class="vehicle-id">{{ v.vehicle_id }}</td>
+            <td>{{ v.sasi || '—' }}</td>
             <td>{{ v.brand || '—' }}</td>
             <td>{{ v.model || '—' }}</td>
             <td>{{ v.plate || '—' }}</td>
             <td><span :class="'badge-group badge-' + v.group">{{ groupLabel(v.group) }}</span></td>
-            <td>{{ v.branch_name }}</td>
+            <td>{{ v.branch_name || '—' }}</td>
             <td><span :class="'badge-status badge-' + v.status">{{ statusLabel(v.status) }}</span></td>
             <td class="actions">
               <button class="btn-edit" @click="openEdit(v)">Düzenle</button>
@@ -71,7 +73,7 @@
             </td>
           </tr>
           <tr v-if="vehicles.length === 0">
-            <td colspan="7" class="empty">Araç bulunamadı.</td>
+            <td colspan="9" class="empty">Araç bulunamadı.</td>
           </tr>
         </tbody>
       </table>
@@ -92,6 +94,10 @@
         <div class="field">
           <label>Plaka</label>
           <input v-model="form.plate" type="text" placeholder="Plaka" />
+        </div>
+        <div class="field">
+          <label>Sasi Kodu</label>
+          <input v-model="form.sasi" type="text" placeholder="Sasi Kodu" />
         </div>
         <div class="field">
           <label>Grup</label>
@@ -193,14 +199,14 @@ function statusLabel(s) {
 
 function openAdd() {
   editingId.value = null
-  form.value = { brand: '', model: '', plate: '', group: '', branch: '', status: 'available' }
+  form.value = { brand: '', model: '', plate: '', sasi: '', group: '', branch: '', status: 'available' }
   formError.value = ''
   formModal.value = true
 }
 
 function openEdit(v) {
   editingId.value = v.id
-  form.value = { brand: v.brand || '', model: v.model || '', plate: v.plate || '', group: v.group, branch: v.branch, status: v.status }
+  form.value = { brand: v.brand || '', model: v.model || '', plate: v.plate || '', sasi: v.sasi || '', group: v.group, branch: v.branch, status: v.status }
   formError.value = ''
   formModal.value = true
 }
@@ -218,8 +224,14 @@ async function saveForm() {
     }
     formModal.value = false
     await loadData()
-  } catch {
-    formError.value = 'Kaydetme başarısız.'
+  } catch (e) {
+    const data = e.response?.data
+    if (data && typeof data === 'object') {
+      const messages = Object.entries(data).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ')
+      formError.value = messages
+    } else {
+      formError.value = 'Kaydetme başarısız.'
+    }
   }
 }
 

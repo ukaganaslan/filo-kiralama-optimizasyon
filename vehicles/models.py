@@ -34,6 +34,7 @@ class Vehicle(models.Model):
     ]
 
     vehicle_id = models.CharField(max_length=10, unique=True)
+    sasi = models.CharField(max_length=20, unique=True)
     group = models.CharField(max_length=20, choices=GROUP_CHOICES)
     brand = models.CharField(max_length=50, default='')
     model = models.CharField(max_length=50, default='')
