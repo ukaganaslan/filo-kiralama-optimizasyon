@@ -245,6 +245,35 @@ def toggle_user_active(request, user_id):
     return Response({'is_active': user.is_active})
 
 
+@api_view(['GET', 'PATCH'])
+@permission_classes([permissions.IsAuthenticated])
+def profile_view(request):
+    user = request.user
+    profile = getattr(user, 'profile', None)
+    if request.method == 'GET':
+        return Response({
+            'username': user.username,
+            'email': user.email,
+            'full_name': profile.full_name if profile else '',
+            'phone': profile.phone if profile else '',
+        })
+    data = request.data
+    if 'email' in data:
+        user.email = data['email']
+    if 'full_name' in data or 'phone' in data:
+        if not profile:
+            profile = CustomerProfile.objects.create(user=user)
+        if 'full_name' in data:
+            profile.full_name = data['full_name']
+        if 'phone' in data:
+            profile.phone = data['phone']
+        profile.save()
+    if 'new_password' in data and data['new_password']:
+        user.set_password(data['new_password'])
+    user.save()
+    return Response({'message': 'Profil güncellendi'})
+
+
 @api_view(['POST'])
 def login_view(request):
     username = request.data.get('username')

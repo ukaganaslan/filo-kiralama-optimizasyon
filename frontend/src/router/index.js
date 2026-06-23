@@ -7,12 +7,14 @@ const routes = [
     { path: '/register', component: RegisterView },
     { path: '/dashboard', component: () => import('../views/CustomerDashboard.vue'), meta: { requiresAuth: true } },
     { path: '/dashboard/rezervasyonlar', component: () => import('../views/MyReservations.vue'), meta: { requiresAuth: true } },
+    { path: '/dashboard/profil', component: () => import('../views/CustomerProfil.vue'), meta: { requiresAuth: true } },
     { path: '/operator', component: () => import('../views/OperatorDashboard.vue'), meta: { requiresAuth: true, requiresStaff: true } },
     { path: '/operator/araclar', component: () => import('../views/Araclar.vue'), meta: { requiresAuth: true, requiresStaff: true } },
     { path: '/operator/kullanıcılar', component: () => import('../views/Kullanıcılar.vue'), meta: { requiresAuth: true, requiresStaff: true } },
     { path: '/operator/subeler', component: () => import('../views/Subeler.vue'), meta: { requiresAuth: true, requiresStaff: true } },
     { path: '/operator/karsılanamayan-rez', component: () => import('../views/Karşılanamayan Rezervasyonlar.vue'), meta: { requiresAuth: true, requiresStaff: true } },
     { path: '/operator/optimizasyon-sonuc', component: () => import('../views/Optimizasyon Sonucu.vue'), meta: { requiresAuth: true, requiresStaff: true } },
+    { path: '/operator/profil', component: () => import('../views/OperatorProfil.vue'), meta: { requiresAuth: true, requiresStaff: true } },
 ]
 
 const router = createRouter({
