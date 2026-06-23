@@ -1,0 +1,37 @@
+[
+  {"model": "vehicles.branch", "pk": 1, "fields": {"name": "Ankara", "title": "Ankara x Şubesi"}},
+  {"model": "vehicles.branch", "pk": 2, "fields": {"name": "İstanbul", "title": "İstanbul x Şubesi"}},
+  {"model": "vehicles.branch", "pk": 3, "fields": {"name": "İzmir", "title": "İzmir x Şubesi"}},
+
+  {"model": "vehicles.transfercost", "pk": 1, "fields": {"from_branch": 1, "to_branch": 2, "cost": "100.00"}},
+  {"model": "vehicles.transfercost", "pk": 2, "fields": {"from_branch": 2, "to_branch": 1, "cost": "100.00"}},
+  {"model": "vehicles.transfercost", "pk": 3, "fields": {"from_branch": 1, "to_branch": 3, "cost": "120.00"}},
+  {"model": "vehicles.transfercost", "pk": 4, "fields": {"from_branch": 3, "to_branch": 1, "cost": "120.00"}},
+  {"model": "vehicles.transfercost", "pk": 5, "fields": {"from_branch": 2, "to_branch": 3, "cost": "80.00"}},
+  {"model": "vehicles.transfercost", "pk": 6, "fields": {"from_branch": 3, "to_branch": 2, "cost": "80.00"}},
+
+  {"model": "vehicles.vehicle", "pk": 1,  "fields": {"vehicle_id": "E1", "group": "economy", "branch": 1, "status": "available",    "total_reservations": 0, "total_km": 0,    "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": null, "service_end_date": null}},
+  {"model": "vehicles.vehicle", "pk": 2,  "fields": {"vehicle_id": "E2", "group": "economy", "branch": 1, "status": "available",    "total_reservations": 0, "total_km": 0,    "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": null, "service_end_date": null}},
+  {"model": "vehicles.vehicle", "pk": 3,  "fields": {"vehicle_id": "E3", "group": "economy", "branch": 2, "status": "available",    "total_reservations": 0, "total_km": 0,    "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": null, "service_end_date": null}},
+  {"model": "vehicles.vehicle", "pk": 4,  "fields": {"vehicle_id": "E4", "group": "economy", "branch": 3, "status": "available",    "total_reservations": 0, "total_km": 0,    "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": null, "service_end_date": null}},
+  {"model": "vehicles.vehicle", "pk": 5,  "fields": {"vehicle_id": "E5", "group": "economy", "branch": 3, "status": "available",    "total_reservations": 0, "total_km": 0,    "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": null, "service_end_date": null}},
+  {"model": "vehicles.vehicle", "pk": 6,  "fields": {"vehicle_id": "M1", "group": "mid",     "branch": 1, "status": "available",    "total_reservations": 0, "total_km": 0,    "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": null, "service_end_date": null}},
+  {"model": "vehicles.vehicle", "pk": 7,  "fields": {"vehicle_id": "M2", "group": "mid",     "branch": 2, "status": "available",    "total_reservations": 0, "total_km": 0,    "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": null, "service_end_date": null}},
+  {"model": "vehicles.vehicle", "pk": 8,  "fields": {"vehicle_id": "M3", "group": "mid",     "branch": 3, "status": "available",    "total_reservations": 0, "total_km": 0,    "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": null, "service_end_date": null}},
+  {"model": "vehicles.vehicle", "pk": 9,  "fields": {"vehicle_id": "S1", "group": "suv",     "branch": 1, "status": "available",    "total_reservations": 0, "total_km": 0,    "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": null, "service_end_date": null}},
+  {"model": "vehicles.vehicle", "pk": 10, "fields": {"vehicle_id": "S2", "group": "suv",     "branch": 2, "status": "available",    "total_reservations": 0, "total_km": 0,    "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": null, "service_end_date": null}},
+
+  {"model": "vehicles.vehicle", "pk": 11, "fields": {"vehicle_id": "E6", "group": "economy", "branch": 1, "status": "maintenance",  "total_reservations": 7, "total_km": 4200, "maintenance_due": true,  "maintenance_start_date": "2026-07-15", "maintenance_end_date": "2026-07-20", "service_start_date": null, "service_end_date": null}},
+  {"model": "vehicles.vehicle", "pk": 12, "fields": {"vehicle_id": "S3", "group": "suv",     "branch": 2, "status": "service",      "total_reservations": 3, "total_km": 1800, "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": "2026-07-01", "service_end_date": "2026-08-15"}},
+  {"model": "vehicles.vehicle", "pk": 13, "fields": {"vehicle_id": "M4", "group": "mid",     "branch": 1, "status": "available",    "total_reservations": 9, "total_km": 0,    "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": null, "service_end_date": null}},
+  {"model": "vehicles.vehicle", "pk": 14, "fields": {"vehicle_id": "E7", "group": "economy", "branch": 3, "status": "available",    "total_reservations": 0, "total_km": 9500, "maintenance_due": false, "maintenance_start_date": null,         "maintenance_end_date": null,         "service_start_date": null, "service_end_date": null}},
+
+  {"model": "vehicles.reservation", "pk": 1, "fields": {"reservation_id": "R001", "branch": 1, "vehicle_group": "economy", "start_date": "2026-08-01", "end_date": "2026-08-03", "km_driven": 320}},
+  {"model": "vehicles.reservation", "pk": 2, "fields": {"reservation_id": "R002", "branch": 1, "vehicle_group": "economy", "start_date": "2026-08-02", "end_date": "2026-08-04", "km_driven": null}},
+  {"model": "vehicles.reservation", "pk": 3, "fields": {"reservation_id": "R003", "branch": 1, "vehicle_group": "suv",     "start_date": "2026-08-01", "end_date": "2026-08-05", "km_driven": null}},
+  {"model": "vehicles.reservation", "pk": 4, "fields": {"reservation_id": "R004", "branch": 2, "vehicle_group": "mid",     "start_date": "2026-08-03", "end_date": "2026-08-06", "km_driven": 210}},
+  {"model": "vehicles.reservation", "pk": 5, "fields": {"reservation_id": "R005", "branch": 3, "vehicle_group": "economy", "start_date": "2026-08-02", "end_date": "2026-08-03", "km_driven": 480}},
+
+  {"model": "vehicles.reservation", "pk": 6, "fields": {"reservation_id": "R006", "branch": 3, "vehicle_group": "suv",     "start_date": "2026-08-10", "end_date": "2026-08-12", "km_driven": null}},
+  {"model": "vehicles.reservation", "pk": 7, "fields": {"reservation_id": "R007", "branch": 1, "vehicle_group": "economy", "start_date": "2026-08-01", "end_date": "2026-08-02", "km_driven": null}}
+]

@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Django
+db.sqlite3
+*.log
+media/
+staticfiles/
+local_settings.py
+.env
+
+# Node / Vue
+node_modules/
+dist/
+.env.local
+.env.production
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Proje dokümantasyonu
+ILERLEME.md
+KARARLAR.md
+EGITIM.md
+GREEDY_ACIKLAMA.md
+*.pdf
+
+# Django migrations
+*/migrations/
