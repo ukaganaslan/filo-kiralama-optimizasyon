@@ -77,6 +77,7 @@
           <option value="maintenance">Bakımda</option>
           <option value="service">Serviste</option>
           <option value="inactive">Pasif</option>
+          <option value="reserved">Rezerve Edildi</option>
         </select>
       </div>
       <p v-if="formError" class="error">{{ formError }}</p>
@@ -145,17 +146,17 @@ function groupLabel(g) {
 }
 
 function statusLabel(s) {
-  return { available: 'Müsait', rented: 'Kirada', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif' }[s] || s
+  return { available: 'Müsait', rented: 'Kirada', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif', reserved: 'Rezerve Edildi' }[s] || s
 }
 </script>
 
 <style scoped>
-.content { max-width: 1100px; margin: 0 auto; padding: 40px; }
+.content { padding: 32px 40px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .header-left { display: flex; align-items: center; gap: 12px; }
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .count-badge { padding: 3px 10px; background: #f1f5f9; color: #64748b; border-radius: 50px; font-size: 12px; font-weight: 600; }
-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+table { width: 100%; border-collapse: collapse; background: white; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
 td { border-top: 1px solid #f1f5f9; color: #374151; }
@@ -171,6 +172,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .badge-maintenance { background: #fee2e2; color: #991b1b; }
 .badge-service { background: #fee2e2; color: #991b1b; }
 .badge-inactive { background: #f1f5f9; color: #94a3b8; }
+.badge-reserved { background: #ede9fe; color: #4f46e5; }
 .badge-group, .badge-status { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .badge-economy { background: #dbeafe; color: #1d4ed8; }
 .badge-mid { background: #fef3c7; color: #92400e; }
@@ -181,7 +183,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .btn-delete { padding: 4px 12px; background: white; color: #dc2626; border: 1px solid #dc2626; border-radius: 50px; font-size: 12px; cursor: pointer; }
 .btn-delete:hover { background: #fee2e2; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; }
-.modal { background: white; border-radius: 12px; padding: 32px; width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 14px; }
+.modal { background: white; border-radius: 14px; padding: 32px; width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 14px; }
 .modal h3 { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; }

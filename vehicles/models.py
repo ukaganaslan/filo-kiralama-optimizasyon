@@ -25,6 +25,7 @@ class Vehicle(models.Model):
         ('maintenance', 'Bakımda'),
         ('service', 'Serviste'),
         ('inactive', 'Pasif'),
+        ('reserved', 'Rezerve Edildi'),
     ]
 
     GROUP_CHOICES = [
