@@ -57,8 +57,8 @@
               {{ auth.username }} <span class="chevron">▾</span>
             </button>
             <div v-if="menuOpen" class="dropdown">
-              <router-link to="/operator/profil" class="dropdown-item" @click="menuOpen = false">⚙️ Profil Ayarları</router-link>
-              <button class="dropdown-item dropdown-logout" @click="handleLogout">Çıkış Yap</button>
+              <router-link to="/operator/profil" class="dropdown-item" @click="menuOpen = false">⚙️ Profil Ayarları </router-link>
+              <button class="dropdown-item dropdown-logout" @click="handleLogout">➜] Çıkış Yap </button>
             </div>
           </div>
         </div>

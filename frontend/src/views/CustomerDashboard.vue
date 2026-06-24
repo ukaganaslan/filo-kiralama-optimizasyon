@@ -241,8 +241,9 @@ async function handleCreate() {
     availableDates.value = []
     differentReturn.value = false
     transferCost.value = null
-  } catch {
-    formError.value = 'Rezervasyon oluşturulamadı.'
+  } catch (e) {
+    const msg = e.response?.data?.non_field_errors?.[0]
+    formError.value = msg || 'Rezervasyon oluşturulamadı.'
   }
 }
 </script>

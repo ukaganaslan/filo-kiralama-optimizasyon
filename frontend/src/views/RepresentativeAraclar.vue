@@ -5,6 +5,7 @@
         <h2>Şube Araçları</h2>
         <span class="count-badge">{{ vehicles.length }} araç</span>
       </div>
+      <button class="btn-add" @click="openAdd">+ Araç Ekle</button>
     </div>
 
     <table>
@@ -41,8 +42,8 @@
 
   <div v-if="editModal" class="modal-overlay" @click.self="editModal = false">
     <div class="modal">
-      <h3>Araç Düzenle</h3>
-      <div class="field">
+      <h3>{{ editingId ? 'Araç Düzenle' : 'Yeni Araç Ekle' }}</h3>
+      <div v-if="editingId" class="field">
         <label>Araç ID</label>
         <input :value="editForm.vehicle_id" type="text" disabled class="disabled" />
       </div>
@@ -108,15 +109,26 @@ const vehicles = ref([])
 const editModal = ref(false)
 const formError = ref('')
 const editForm = ref({})
+const editingId = ref(null)
 const deleteModal = ref(false)
 const deletingVehicle = ref(null)
 
-onMounted(async () => {
+onMounted(loadVehicles)
+
+async function loadVehicles() {
   const res = await axios.get('http://127.0.0.1:8000/api/vehicles/')
   vehicles.value = res.data
-})
+}
+
+function openAdd() {
+  editingId.value = null
+  editForm.value = { brand: '', model: '', plate: '', sasi: '', group: 'economy', status: 'available' }
+  formError.value = ''
+  editModal.value = true
+}
 
 function openEdit(v) {
+  editingId.value = v.id
   editForm.value = { id: v.id, vehicle_id: v.vehicle_id, brand: v.brand, model: v.model, plate: v.plate, sasi: v.sasi, group: v.group, status: v.status }
   formError.value = ''
   editModal.value = true
@@ -125,19 +137,45 @@ function openEdit(v) {
 async function saveEdit() {
   formError.value = ''
   try {
-    await axios.patch(`http://127.0.0.1:8000/api/vehicles/${editForm.value.id}/`, {
-      brand: editForm.value.brand,
-      model: editForm.value.model,
-      plate: editForm.value.plate,
-      sasi: editForm.value.sasi,
-      group: editForm.value.group,
-      status: editForm.value.status,
-    })
+    if (editingId.value) {
+      await axios.patch(`http://127.0.0.1:8000/api/vehicles/${editingId.value}/`, {
+        brand: editForm.value.brand,
+        model: editForm.value.model,
+        plate: editForm.value.plate,
+        sasi: editForm.value.sasi,
+        group: editForm.value.group,
+        status: editForm.value.status,
+      })
+    } else {
+      await axios.post('http://127.0.0.1:8000/api/vehicles/', {
+        brand: editForm.value.brand,
+        model: editForm.value.model,
+        plate: editForm.value.plate,
+        sasi: editForm.value.sasi,
+        group: editForm.value.group,
+        status: editForm.value.status,
+      })
+    }
     editModal.value = false
-    const res = await axios.get('http://127.0.0.1:8000/api/vehicles/')
-    vehicles.value = res.data
+    await loadVehicles()
   } catch (e) {
     formError.value = e.response?.data?.detail || e.response?.data?.plate?.[0] || 'Kaydetme başarısız.'
+  }
+}
+
+function confirmDelete(v) {
+  deletingVehicle.value = v
+  deleteModal.value = true
+}
+
+async function doDelete() {
+  try {
+    await axios.delete(`http://127.0.0.1:8000/api/vehicles/${deletingVehicle.value.id}/`)
+    deleteModal.value = false
+    deletingVehicle.value = null
+    await loadVehicles()
+  } catch {
+    deleteModal.value = false
   }
 }
 
@@ -153,6 +191,8 @@ function statusLabel(s) {
 <style scoped>
 .content { padding: 32px 40px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.btn-add { padding: 8px 18px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-add:hover { background: #4f46e5; }
 .header-left { display: flex; align-items: center; gap: 12px; }
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .count-badge { padding: 3px 10px; background: #f1f5f9; color: #64748b; border-radius: 50px; font-size: 12px; font-weight: 600; }

@@ -316,8 +316,9 @@ async function handleCreate() {
     form.value = { customer_id: '', vehicle_group: '' }
     dateRange.value = { start: null, end: null }
     availableDates.value = []
-  } catch {
-    formError.value = 'Rezervasyon oluşturulamadı.'
+  } catch (e) {
+    const msg = e.response?.data?.non_field_errors?.[0]
+    formError.value = msg || 'Rezervasyon oluşturulamadı.'
   }
 }
 </script>
