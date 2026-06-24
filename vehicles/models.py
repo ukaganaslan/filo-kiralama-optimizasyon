@@ -76,6 +76,7 @@ class Reservation(models.Model):
     ]
 
     customer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
+    return_branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name='return_reservations')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     def __str__(self):

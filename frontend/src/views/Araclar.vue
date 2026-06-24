@@ -13,8 +13,7 @@
         <tr>
           <th>Araç ID</th>
           <th>Sasi Kodu</th>
-          <th>Marka</th>
-          <th>Model</th>
+          <th>Marka / Model</th>
           <th>Plaka</th>
           <th>Grup</th>
           <th>Şube</th>
@@ -26,8 +25,7 @@
         <tr v-for="v in vehicles" :key="v.id">
           <td class="vehicle-id">{{ v.vehicle_id }}</td>
           <td>{{ v.sasi || '—' }}</td>
-          <td>{{ v.brand || '—' }}</td>
-          <td>{{ v.model || '—' }}</td>
+          <td>{{ v.brand }} {{ v.model }}</td>
           <td>{{ v.plate || '—' }}</td>
           <td><span :class="'badge-group badge-' + v.group">{{ groupLabel(v.group) }}</span></td>
           <td>{{ v.branch_name || '—' }}</td>
@@ -211,7 +209,7 @@ th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
 td { border-top: 1px solid #f1f5f9; color: #374151; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
-td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7), td:nth-child(8), th:nth-child(8) { text-align: center; }
+td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }
 .vehicle-id { font-weight: 700; color: #1e293b; font-family: monospace; }
 .actions { display: flex; gap: 8px; }
 .badge-group, .badge-status { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }

@@ -33,9 +33,20 @@ class VehicleViewSet(viewsets.ModelViewSet):
         return Vehicle.objects.all()
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'update', 'partial_update']:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAdminUser()]
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        profile = getattr(user, 'profile', None)
+        if not user.is_staff and profile and profile.role == 'representative':
+            if serializer.instance.branch != profile.branch:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied('Bu araca erişim yetkiniz yok.')
+            serializer.save(branch=serializer.instance.branch)
+        else:
+            serializer.save()
 
     def perform_create(self, serializer):
         group = serializer.validated_data.get('group')
@@ -194,6 +205,23 @@ def latest_optimization(request):
         'assignments': assignments,
         'unassigned': unassigned,
     })
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def transfer_cost_view(request):
+    from_id = request.query_params.get('from')
+    to_id = request.query_params.get('to')
+    if not from_id or not to_id or str(from_id) == str(to_id):
+        return Response({'cost': 0})
+    from .models import TransferCost
+    try:
+        tc = TransferCost.objects.get(from_branch_id=from_id, to_branch_id=to_id)
+    except TransferCost.DoesNotExist:
+        try:
+            tc = TransferCost.objects.get(from_branch_id=to_id, to_branch_id=from_id)
+        except TransferCost.DoesNotExist:
+            return Response({'cost': None})
+    return Response({'cost': str(tc.cost)})
 
 @api_view(['GET'])
 def availability(request):
