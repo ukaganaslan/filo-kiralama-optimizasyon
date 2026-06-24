@@ -39,7 +39,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
         return Vehicle.objects.all()
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'update', 'partial_update']:
+        if self.action in ['list', 'retrieve', 'update', 'partial_update', 'create']:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAdminUser()]
 
@@ -55,6 +55,15 @@ class VehicleViewSet(viewsets.ModelViewSet):
             serializer.save()
 
     def perform_create(self, serializer):
+        from rest_framework.exceptions import PermissionDenied
+        user = self.request.user
+        profile = getattr(user, 'profile', None)
+        if not user.is_staff and profile and profile.role == 'representative':
+            if not profile.branch:
+                raise PermissionDenied('Şubeniz tanımlı değil.')
+            branch = profile.branch
+        else:
+            branch = serializer.validated_data.get('branch')
         group = serializer.validated_data.get('group')
         prefix = {'economy': 'E', 'mid': 'M', 'suv': 'S'}.get(group, 'X')
         suffix = 'GEN'
@@ -66,7 +75,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
                 numbers.append(int(mid))
         next_num = max(numbers, default=0) + 1
         vehicle_id = f"{prefix}{next_num:02d}{suffix}"
-        serializer.save(vehicle_id=vehicle_id)
+        serializer.save(vehicle_id=vehicle_id, branch=branch)
 
 
 class ReservationViewSet(viewsets.ModelViewSet):
