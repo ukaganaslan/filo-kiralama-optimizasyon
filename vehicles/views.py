@@ -26,6 +26,12 @@ class VehicleViewSet(viewsets.ModelViewSet):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
 
+    def get_queryset(self):
+        profile = getattr(self.request.user, 'profile', None)
+        if profile and profile.role == 'representative' and profile.branch:
+            return Vehicle.objects.filter(branch=profile.branch)
+        return Vehicle.objects.all()
+
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [permissions.IsAuthenticated()]
@@ -302,9 +308,14 @@ def update_user(request, user_id):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def user_list(request):
-    if not request.user.is_staff:
+    profile = getattr(request.user, 'profile', None)
+    is_representative = profile and profile.role == 'representative'
+    if not request.user.is_staff and not is_representative:
         return Response({'error': 'Yetkisiz'}, status=403)
-    users = User.objects.filter(is_superuser=False).select_related('profile')
+    if is_representative:
+        users = User.objects.filter(is_superuser=False, profile__role='customer').select_related('profile')
+    else:
+        users = User.objects.filter(is_superuser=False).select_related('profile')
     data = []
     for u in users:
         profile = getattr(u, 'profile', None)

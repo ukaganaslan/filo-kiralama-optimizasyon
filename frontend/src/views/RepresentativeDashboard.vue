@@ -33,6 +33,7 @@
         </tr>
       </tbody>
     </table>
+
   </div>
 
   <div v-if="createModal" class="modal-overlay" @click.self="createModal = false">
@@ -41,12 +42,31 @@
 
       <div class="field">
         <label>Müşteri</label>
-        <select v-model="form.customer_id">
-          <option value="">Seçin</option>
-          <option v-for="u in customers" :key="u.id" :value="u.id">
-            {{ u.full_name || u.username }} ({{ u.username }})
-          </option>
-        </select>
+        <div class="customer-search" ref="customerSearchRef">
+          <input
+            v-model="customerQuery"
+            type="text"
+            :placeholder="selectedCustomer ? selectedCustomer : 'İsim veya kullanıcı adı ara...'"
+            :class="['customer-input', { 'has-value': selectedCustomer }]"
+            @input="customerDropdownOpen = true"
+            @focus="customerDropdownOpen = true"
+          />
+          <button v-if="selectedCustomer" class="customer-clear" @click="clearCustomer">✕</button>
+          <div v-if="customerDropdownOpen && filteredCustomers.length > 0" class="customer-dropdown">
+            <div
+              v-for="u in filteredCustomers"
+              :key="u.id"
+              class="customer-option"
+              @mousedown.prevent="selectCustomer(u)"
+            >
+              <span class="customer-name">{{ u.full_name || u.username }}</span>
+              <span class="customer-username">@{{ u.username }}</span>
+            </div>
+          </div>
+          <div v-if="customerDropdownOpen && customerQuery && filteredCustomers.length === 0" class="customer-dropdown">
+            <div class="customer-empty">Kullanıcı bulunamadı.</div>
+          </div>
+        </div>
       </div>
 
       <div class="field">
@@ -88,7 +108,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 
 const reservations = ref([])
@@ -102,6 +122,41 @@ const availableDates = ref([])
 const availabilityLoading = ref(false)
 const formError = ref('')
 const formSuccess = ref('')
+
+const customerQuery = ref('')
+const selectedCustomer = ref('')
+const customerDropdownOpen = ref(false)
+const customerSearchRef = ref(null)
+
+const filteredCustomers = computed(() => {
+  const q = customerQuery.value.toLowerCase().trim()
+  if (!q) return customers.value.slice(0, 10)
+  return customers.value.filter(u =>
+    u.username.toLowerCase().includes(q) ||
+    (u.full_name || '').toLowerCase().includes(q)
+  ).slice(0, 10)
+})
+
+function selectCustomer(u) {
+  form.value.customer_id = u.id
+  selectedCustomer.value = `${u.full_name || u.username} (@${u.username})`
+  customerQuery.value = ''
+  customerDropdownOpen.value = false
+}
+
+function clearCustomer() {
+  form.value.customer_id = ''
+  selectedCustomer.value = ''
+  customerQuery.value = ''
+}
+
+function handleOutsideClick(e) {
+  if (customerSearchRef.value && !customerSearchRef.value.contains(e.target)) {
+    customerDropdownOpen.value = false
+  }
+}
+onMounted(() => document.addEventListener('click', handleOutsideClick))
+onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 const canCreate = computed(() =>
   form.value.customer_id && form.value.vehicle_group && dateRange.value.start && dateRange.value.end
@@ -162,6 +217,9 @@ function openCreate() {
   availableDates.value = []
   formError.value = ''
   formSuccess.value = ''
+  customerQuery.value = ''
+  selectedCustomer.value = ''
+  customerDropdownOpen.value = false
   createModal.value = true
 }
 
@@ -213,6 +271,18 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 .field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; }
 .field select { padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; background: white; color: #1e293b; }
 .field select:focus { border-color: #6366f1; }
+.customer-search { position: relative; }
+.customer-input { width: 100%; padding: 10px 36px 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; color: #1e293b; }
+.customer-input:focus { border-color: #6366f1; }
+.customer-input.has-value { color: #6366f1; font-weight: 500; }
+.customer-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 13px; padding: 0; line-height: 1; }
+.customer-clear:hover { color: #dc2626; }
+.customer-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); z-index: 50; overflow: hidden; }
+.customer-option { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; cursor: pointer; }
+.customer-option:hover { background: #f1f5f9; }
+.customer-name { font-size: 14px; color: #1e293b; font-weight: 500; }
+.customer-username { font-size: 12px; color: #94a3b8; }
+.customer-empty { padding: 12px 14px; font-size: 14px; color: #94a3b8; }
 .calendar-section { display: flex; flex-direction: column; gap: 8px; }
 .calendar-section label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; }
 .loading-hint { font-size: 13px; color: #94a3b8; }

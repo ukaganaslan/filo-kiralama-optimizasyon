@@ -24,6 +24,7 @@ const routes = [
         meta: { requiresAuth: true, requiresRepresentative: true },
         children: [
             { path: '', component: () => import('../views/RepresentativeDashboard.vue') },
+            { path: 'araclar', component: () => import('../views/RepresentativeAraclar.vue') },
             { path: 'profil', component: () => import('../views/RepresentativeProfil.vue') },
         ]
     },

@@ -9,6 +9,7 @@
       </div>
       <nav class="sidebar-nav">
         <router-link to="/representative" class="sidebar-item" exact-active-class="sidebar-item--active" active-class="" @click="sidebarOpen = false">Rezervasyonlar</router-link>
+        <router-link to="/representative/araclar" class="sidebar-item" exact-active-class="sidebar-item--active" active-class="" @click="sidebarOpen = false">Araçlar</router-link>
       </nav>
     </div>
 
