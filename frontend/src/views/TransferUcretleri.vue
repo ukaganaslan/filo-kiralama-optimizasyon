@@ -168,7 +168,7 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .count-badge { padding: 3px 10px; background: #f1f5f9; color: #64748b; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .btn-add { padding: 8px 18px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .btn-add:hover { background: #4f46e5; }
-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+table { width: 100%; border-collapse: collapse; background: white; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
 tr:not(:last-child) td { border-bottom: 1px solid #f1f5f9; }
@@ -180,7 +180,7 @@ tr:not(:last-child) td { border-bottom: 1px solid #f1f5f9; }
 .btn-delete:hover { background: #fee2e2; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal { background: white; border-radius: 12px; padding: 28px; width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+.modal { background: white; border-radius: 14px; padding: 28px; width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
 .modal-sm { width: 340px; }
 h3 { font-size: 17px; font-weight: 700; color: #1e293b; margin: 0 0 20px; }
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }

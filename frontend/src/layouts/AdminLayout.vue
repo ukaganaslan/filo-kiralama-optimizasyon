@@ -1,40 +1,69 @@
 <template>
   <div class="layout">
-    <div v-if="sidebarOpen" class="sidebar-overlay" @click="sidebarOpen = false"></div>
+    <div v-if="mobileOpen" class="overlay" @click="mobileOpen = false"></div>
 
-    <div :class="['sidebar', { open: sidebarOpen }]">
-      <div class="sidebar-header">
-        <span class="sidebar-title">Menü</span>
-        <button class="sidebar-close" @click="sidebarOpen = false">✕</button>
-      </div>
-      <nav class="sidebar-nav">
-        <router-link to="/operator" class="sidebar-item" exact-active-class="sidebar-item--active" active-class="" @click="sidebarOpen = false">Rezervasyonlar</router-link>
-        <router-link to="/operator/araclar" class="sidebar-item" active-class="sidebar-item--active" @click="sidebarOpen = false">Araçlar</router-link>
-        <router-link to="/operator/subeler" class="sidebar-item" active-class="sidebar-item--active" @click="sidebarOpen = false">Şubeler</router-link>
-        <router-link to="/operator/kullanıcılar" class="sidebar-item" active-class="sidebar-item--active" @click="sidebarOpen = false">Kullanıcılar</router-link>
-        <router-link to="/operator/optimizasyon-sonuc" class="sidebar-item" active-class="sidebar-item--active" @click="sidebarOpen = false">Optimizasyon Sonucu</router-link>
-        <router-link to="/operator/karsılanamayan-rez" class="sidebar-item" active-class="sidebar-item--active" @click="sidebarOpen = false">Karşılanamayan Rezervasyonlar</router-link>
-        <router-link to="/operator/transfer-ucretleri" class="sidebar-item" active-class="sidebar-item--active" @click="sidebarOpen = false">Transfer Ücretleri</router-link>
-      </nav>
-    </div>
-
-    <div class="topbar">
-      <div class="brand-group">
-        <button class="hamburger" @click="sidebarOpen = true">&#9776;</button>
-        <router-link to="/operator" class="brand">Araç Kiralama</router-link>
-      </div>
-      <div class="right">
-        <div class="user-menu" ref="menuRef">
-          <span class="role-badge" @click="menuOpen = !menuOpen">Operatör</span>
-          <div v-if="menuOpen" class="dropdown">
-            <router-link to="/operator/profil" class="dropdown-item" @click="menuOpen = false">Profil Ayarları</router-link>
-            <button class="dropdown-item dropdown-logout" @click="handleLogout">Çıkış Yap</button>
+    <aside :class="['sidebar', { open: mobileOpen }]">
+      <div class="sidebar-brand">
+        <router-link to="/operator" class="brand-link" @click="mobileOpen = false">
+          <div class="brand-icon">K</div>
+          <div>
+            <div class="brand-name">Araç Kiralama</div>
+            <div class="brand-role">Admin Paneli</div>
           </div>
+        </router-link>
+        <button class="close-btn" @click="mobileOpen = false">✕</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <router-link to="/operator" class="nav-item" exact-active-class="nav-item--active" active-class="" @click="mobileOpen = false">
+          <span class="nav-icon">📋</span> Rezervasyonlar
+        </router-link>
+        <router-link to="/operator/araclar" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
+          <span class="nav-icon">🚗</span> Araçlar
+        </router-link>
+        <router-link to="/operator/subeler" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
+          <span class="nav-icon">🏢</span> Şubeler
+        </router-link>
+        <router-link to="/operator/kullanıcılar" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
+          <span class="nav-icon">👥</span> Kullanıcılar
+        </router-link>
+        <router-link to="/operator/transfer-ucretleri" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
+          <span class="nav-icon">💸</span> Transfer Ücretleri
+        </router-link>
+        <div class="nav-divider"></div>
+        <router-link to="/operator/optimizasyon-sonuc" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
+          <span class="nav-icon">📊</span> Optimizasyon
+        </router-link>
+        <router-link to="/operator/karsılanamayan-rez" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
+          <span class="nav-icon">⚠️</span> Karşılanamayan
+        </router-link>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="footer-user">
+          <div class="footer-username">{{ auth.username }}</div>
+          <span class="footer-badge">Admin</span>
         </div>
       </div>
-    </div>
+    </aside>
 
-    <router-view />
+    <div class="main">
+      <header class="topbar">
+        <button class="hamburger" @click="mobileOpen = true">&#9776;</button>
+        <div class="topbar-right">
+          <div class="user-menu" ref="menuRef">
+            <button class="user-btn" @click="menuOpen = !menuOpen">
+              {{ auth.username }} <span class="chevron">▾</span>
+            </button>
+            <div v-if="menuOpen" class="dropdown">
+              <router-link to="/operator/profil" class="dropdown-item" @click="menuOpen = false">Profil Ayarları</router-link>
+              <button class="dropdown-item dropdown-logout" @click="handleLogout">Çıkış Yap</button>
+            </div>
+          </div>
+        </div>
+      </header>
+      <router-view />
+    </div>
   </div>
 </template>
 
@@ -46,7 +75,7 @@ import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
-const sidebarOpen = ref(false)
+const mobileOpen = ref(false)
 const menuOpen = ref(false)
 const menuRef = ref(null)
 
@@ -65,77 +94,221 @@ async function handleLogout() {
 
 <style scoped>
 .layout {
+  display: flex;
   min-height: 100vh;
-  background: #f8f9fa;
-  font-family: sans-serif;
+  background: #f8fafc;
 }
-.sidebar-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.3); z-index: 100;
-}
+
+/* ── Sidebar ── */
 .sidebar {
-  position: fixed; top: 0; left: 0;
-  height: 100vh; width: 260px;
-  background: white; z-index: 101;
-  box-shadow: 4px 0 16px rgba(0,0,0,0.12);
-  transform: translateX(-100%);
-  transition: transform 0.25s ease;
-  display: flex; flex-direction: column;
+  width: 240px;
+  flex-shrink: 0;
+  background: #1e293b;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
-.sidebar.open { transform: translateX(0); }
-.sidebar-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 20px 24px; border-bottom: 1px solid #e5e7eb;
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
 }
-.sidebar-title { font-size: 15px; font-weight: 700; color: #1e293b; }
-.sidebar-close {
-  background: none; border: none;
-  font-size: 18px; color: #94a3b8; cursor: pointer; line-height: 1;
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
 }
-.sidebar-close:hover { color: #1e293b; }
-.sidebar-nav { display: flex; flex-direction: column; padding: 12px; gap: 2px; }
-.sidebar-item {
-  display: flex; align-items: center;
-  padding: 10px 12px; border-radius: 8px;
-  font-size: 14px; font-weight: 500;
-  color: #1e293b; text-decoration: none;
+.brand-icon {
+  width: 34px;
+  height: 34px;
+  background: #6366f1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  color: white;
+  flex-shrink: 0;
 }
-.sidebar-item:hover { background: #f1f5f9; }
-.sidebar-item--active {
-  background: #ede9fe; color: #6366f1; font-weight: 600;
+.brand-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  line-height: 1.2;
+}
+.brand-role {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+.close-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+.close-btn:hover { color: white; }
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 10px;
+  gap: 2px;
+  flex: 1;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #94a3b8;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-item:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+.nav-item--active { background: rgba(99,102,241,0.2); color: #a5b4fc; font-weight: 600; }
+.nav-icon { font-size: 15px; width: 20px; text-align: center; }
+.nav-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 8px 4px; }
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.footer-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.footer-username {
+  font-size: 13px;
+  color: #cbd5e1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.footer-badge {
+  padding: 2px 8px;
+  background: rgba(99,102,241,0.25);
+  color: #a5b4fc;
+  border-radius: 50px;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Main ── */
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 .topbar {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 16px 40px; background: white; border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 32px;
+  height: 56px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
-.brand-group { display: flex; align-items: center; gap: 12px; }
 .hamburger {
-  background: none; border: none;
-  font-size: 20px; color: #475569; cursor: pointer; padding: 0; line-height: 1;
+  display: none;
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #475569;
+  cursor: pointer;
+  margin-right: auto;
+  padding: 0;
+  line-height: 1;
 }
-.hamburger:hover { color: #1e293b; }
-.brand { font-size: 18px; font-weight: 700; color: #1e293b; text-decoration: none; }
-.right { display: flex; align-items: center; gap: 12px; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
 .user-menu { position: relative; }
-.role-badge {
-  padding: 4px 12px; background: #ede9fe; color: #6366f1;
-  border-radius: 50px; font-size: 12px; font-weight: 700;
-  cursor: pointer; user-select: none;
+.user-btn {
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
-.role-badge:hover { background: #ddd6fe; }
+.user-btn:hover { background: #f1f5f9; }
+.chevron { font-size: 10px; color: #94a3b8; }
 .dropdown {
-  position: absolute; top: calc(100% + 8px); right: 0;
-  background: white; border-radius: 10px;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: white;
+  border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-  border: 1px solid #e5e7eb; min-width: 160px;
-  overflow: hidden; z-index: 50;
+  border: 1px solid #e2e8f0;
+  min-width: 160px;
+  overflow: hidden;
+  z-index: 50;
 }
 .dropdown-item {
-  display: block; width: 100%; padding: 10px 16px;
-  font-size: 14px; color: #1e293b; text-decoration: none;
-  text-align: left; background: none; border: none;
-  cursor: pointer; box-sizing: border-box;
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  color: #1e293b;
+  text-decoration: none;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  box-sizing: border-box;
 }
 .dropdown-item:hover { background: #f1f5f9; }
 .dropdown-logout { color: #dc2626; }
+
+/* ── Mobile ── */
+.overlay { display: none; }
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    z-index: 101;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .close-btn { display: block; }
+  .overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+  }
+  .hamburger { display: block; }
+  .topbar { justify-content: space-between; }
+}
 </style>
