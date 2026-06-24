@@ -7,8 +7,8 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
-from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig
-from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer
+from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost
+from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
 
@@ -20,6 +20,12 @@ class BranchViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAdminUser()]
+
+
+class TransferCostViewSet(viewsets.ModelViewSet):
+    queryset = TransferCost.objects.select_related('from_branch', 'to_branch').all()
+    serializer_class = TransferCostSerializer
+    permission_classes = [permissions.IsAdminUser]
 
 
 class VehicleViewSet(viewsets.ModelViewSet):

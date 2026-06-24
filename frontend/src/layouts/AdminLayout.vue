@@ -14,6 +14,7 @@
         <router-link to="/operator/kullanıcılar" class="sidebar-item" active-class="sidebar-item--active" @click="sidebarOpen = false">Kullanıcılar</router-link>
         <router-link to="/operator/optimizasyon-sonuc" class="sidebar-item" active-class="sidebar-item--active" @click="sidebarOpen = false">Optimizasyon Sonucu</router-link>
         <router-link to="/operator/karsılanamayan-rez" class="sidebar-item" active-class="sidebar-item--active" @click="sidebarOpen = false">Karşılanamayan Rezervasyonlar</router-link>
+        <router-link to="/operator/transfer-ucretleri" class="sidebar-item" active-class="sidebar-item--active" @click="sidebarOpen = false">Transfer Ücretleri</router-link>
       </nav>
     </div>
 

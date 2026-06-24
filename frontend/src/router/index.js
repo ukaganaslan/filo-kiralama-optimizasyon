@@ -39,6 +39,7 @@ const routes = [
             { path: 'kullanıcılar', component: () => import('../views/Kullanıcılar.vue') },
             { path: 'optimizasyon-sonuc', component: () => import('../views/Optimizasyon Sonucu.vue') },
             { path: 'karsılanamayan-rez', component: () => import('../views/Karşılanamayan Rezervasyonlar.vue') },
+            { path: 'transfer-ucretleri', component: () => import('../views/TransferUcretleri.vue') },
             { path: 'profil', component: () => import('../views/OperatorProfil.vue') },
         ]
     },
