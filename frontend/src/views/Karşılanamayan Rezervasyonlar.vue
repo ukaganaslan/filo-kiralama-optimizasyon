@@ -55,7 +55,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.content { max-width: 1100px; margin: 0 auto; padding: 40px; }
+.content { padding: 32px 40px; }
 .empty-state { text-align: center; padding: 80px 40px; color: #94a3b8; font-size: 15px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .btn-go { padding: 10px 24px; background: #6366f1; color: white; border-radius: 50px; text-decoration: none; font-size: 14px; font-weight: 600; }
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 20px; }

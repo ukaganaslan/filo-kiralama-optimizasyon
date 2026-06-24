@@ -87,9 +87,7 @@ const calendarOptions = computed(() => ({
 
 <style scoped>
 .content {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 40px;
+  padding: 32px 40px;
 }
 .section-header {
   display: flex;

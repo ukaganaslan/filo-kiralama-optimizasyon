@@ -323,7 +323,7 @@ async function handleCreate() {
 </script>
 
 <style scoped>
-.content { max-width: 1100px; margin: 0 auto; padding: 40px; }
+.content { padding: 32px 40px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .header-left { display: flex; align-items: center; gap: 12px; }
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }

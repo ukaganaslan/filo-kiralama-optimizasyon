@@ -159,7 +159,7 @@ async function saveEdit() {
 </script>
 
 <style scoped>
-.content { max-width: 800px; margin: 0 auto; padding: 40px; }
+.content { padding: 32px 40px; }
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .header-left { display: flex; align-items: center; gap: 12px; }
 .btn-add { padding: 8px 18px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }

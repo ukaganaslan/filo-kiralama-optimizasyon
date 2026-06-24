@@ -83,7 +83,7 @@ async function handleCancel(reservationId) {
 </script>
 
 <style scoped>
-.content { max-width: 1000px; margin: 0 auto; padding: 40px 32px; }
+.content { padding: 32px 40px; }
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .section-title { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 800; color: #0f172a; }
 .count-badge { background: #ede9fe; color: #6366f1; font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 50px; }
