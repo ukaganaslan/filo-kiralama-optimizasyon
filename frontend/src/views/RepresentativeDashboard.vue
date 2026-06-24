@@ -70,6 +70,32 @@
       </div>
 
       <div class="field">
+        <label>Alış Yeri (Şube)</label>
+        <select v-model="form.branch" @change="onPickupChange">
+          <option value="">Seçin</option>
+          <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="differentReturn" @change="onDifferentReturnChange" />
+          Farklı bir noktaya teslim
+        </label>
+      </div>
+
+      <div v-if="differentReturn" class="field">
+        <label>İade Yeri</label>
+        <select v-model="form.return_branch" @change="fetchTransferCost">
+          <option value="">Seçin</option>
+          <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
+        </select>
+        <span v-if="transferCost !== null" class="transfer-hint">
+          Transfer ücreti: {{ transferCost > 0 ? transferCost + ' ₺' : 'Ücretsiz' }}
+        </span>
+      </div>
+
+      <div class="field">
         <label>Araç Grubu</label>
         <select v-model="form.vehicle_group" @change="fetchAvailability">
           <option value="">Seçin</option>
@@ -113,10 +139,13 @@ import axios from 'axios'
 
 const reservations = ref([])
 const customers = ref([])
+const branches = ref([])
 const branchId = ref(null)
 
 const createModal = ref(false)
-const form = ref({ customer_id: '', vehicle_group: '' })
+const form = ref({ customer_id: '', vehicle_group: '', branch: '', return_branch: '' })
+const differentReturn = ref(false)
+const transferCost = ref(null)
 const dateRange = ref({ start: null, end: null })
 const availableDates = ref([])
 const availabilityLoading = ref(false)
@@ -177,28 +206,52 @@ const disabledDates = computed(() => {
 })
 
 onMounted(async () => {
-  const [rezRes, profileRes, usersRes] = await Promise.all([
+  const [rezRes, profileRes, usersRes, branchRes] = await Promise.all([
     axios.get('http://127.0.0.1:8000/api/reservations/'),
     axios.get('http://127.0.0.1:8000/api/profile/'),
     axios.get('http://127.0.0.1:8000/api/users/'),
+    axios.get('http://127.0.0.1:8000/api/branches/'),
   ])
   reservations.value = rezRes.data
   branchId.value = profileRes.data.branch_id
   customers.value = usersRes.data
+  branches.value = branchRes.data
 })
 
 function statusLabel(s) {
   return { pending: 'Bekliyor', assigned: 'Atandı', cancelled: 'İptal' }[s] || s
 }
 
+function onPickupChange() {
+  form.value.return_branch = ''
+  transferCost.value = null
+  fetchAvailability()
+}
+
+function onDifferentReturnChange() {
+  form.value.return_branch = ''
+  transferCost.value = null
+}
+
+async function fetchTransferCost() {
+  const from = form.value.branch || branchId.value
+  if (!from || !form.value.return_branch) { transferCost.value = null; return }
+  const res = await axios.get('http://127.0.0.1:8000/api/transfer-cost/', {
+    params: { from, to: form.value.return_branch }
+  })
+  transferCost.value = res.data.cost
+}
+
 async function fetchAvailability() {
-  if (!branchId.value || !form.value.vehicle_group) return
+  const pickupBranch = form.value.branch || branchId.value
+  if (!pickupBranch || !form.value.vehicle_group) return
   availabilityLoading.value = true
   availableDates.value = []
   dateRange.value = { start: null, end: null }
   try {
+    const pickupBranch = form.value.branch || branchId.value
     const res = await axios.get('http://127.0.0.1:8000/api/availability/', {
-      params: { branch: branchId.value, group: form.value.vehicle_group }
+      params: { branch: pickupBranch, group: form.value.vehicle_group }
     })
     availableDates.value = res.data.available_dates
   } finally {
@@ -212,7 +265,7 @@ function toLocalDateStr(date) {
 }
 
 function openCreate() {
-  form.value = { customer_id: '', vehicle_group: '' }
+  form.value = { customer_id: '', vehicle_group: '', branch: '', return_branch: '' }
   dateRange.value = { start: null, end: null }
   availableDates.value = []
   formError.value = ''
@@ -220,6 +273,8 @@ function openCreate() {
   customerQuery.value = ''
   selectedCustomer.value = ''
   customerDropdownOpen.value = false
+  differentReturn.value = false
+  transferCost.value = null
   createModal.value = true
 }
 
@@ -228,11 +283,12 @@ async function handleCreate() {
   formSuccess.value = ''
   try {
     await axios.post('http://127.0.0.1:8000/api/reservations/', {
-      branch: branchId.value,
+      branch: form.value.branch || branchId.value,
       vehicle_group: form.value.vehicle_group,
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
       customer_id: form.value.customer_id,
+      return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
     })
     formSuccess.value = 'Rezervasyon oluşturuldu.'
     const res = await axios.get('http://127.0.0.1:8000/api/reservations/')
@@ -289,6 +345,9 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .calendar-section label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; }
 .loading-hint { font-size: 13px; color: #94a3b8; }
 .no-avail { font-size: 13px; color: #dc2626; }
+.checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #475569; cursor: pointer; font-weight: normal; letter-spacing: normal; text-transform: none; }
+.checkbox-label input { accent-color: #6366f1; width: 15px; height: 15px; }
+.transfer-hint { font-size: 12px; color: #6366f1; font-weight: 600; margin-top: 4px; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
 .btn-cancel-modal { padding: 8px 16px; background: white; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }

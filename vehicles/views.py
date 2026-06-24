@@ -207,6 +207,23 @@ def latest_optimization(request):
     })
 
 @api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def transfer_cost_view(request):
+    from_id = request.query_params.get('from')
+    to_id = request.query_params.get('to')
+    if not from_id or not to_id or str(from_id) == str(to_id):
+        return Response({'cost': 0})
+    from .models import TransferCost
+    try:
+        tc = TransferCost.objects.get(from_branch_id=from_id, to_branch_id=to_id)
+    except TransferCost.DoesNotExist:
+        try:
+            tc = TransferCost.objects.get(from_branch_id=to_id, to_branch_id=from_id)
+        except TransferCost.DoesNotExist:
+            return Response({'cost': None})
+    return Response({'cost': str(tc.cost)})
+
+@api_view(['GET'])
 def availability(request):
     branch_id = request.query_params.get('branch')
     group = request.query_params.get('group')
