@@ -175,7 +175,7 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 .city { color: #35455e; font-family: monospace; font-size: 13px; }
 .count { display: inline-block; padding: 2px 10px; background: #ede9fe; color: #35455e; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
-td:nth-child(4), th:nth-child(4) { text-align: center; }
+td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4) { text-align: center; }
 .btn-edit { padding: 4px 12px; background: white; color: #6366f1; border: 1px solid #6366f1; border-radius: 50px; font-size: 12px; cursor: pointer; }
 .btn-edit:hover { background: #ede9fe; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; }

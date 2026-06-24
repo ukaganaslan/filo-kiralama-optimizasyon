@@ -78,15 +78,16 @@ class ReservationViewSet(viewsets.ModelViewSet):
                     pass
         reservation_id = 'R' + uuid.uuid4().hex[:6].upper()
         serializer.save(customer=customer, status='pending', reservation_id=reservation_id)
+        _run_optimization()
 
-@api_view(['POST'])
-def optimize(request):
+def _run_optimization():
     reservations = list(Reservation.objects.exclude(status='cancelled'))
     vehicles = list(Vehicle.objects.all())
 
     assignments, unassigned = greedy_solver_güncel.solve(reservations, vehicles)
     score = calculate_score(assignments, unassigned, vehicles)
 
+    Reservation.objects.exclude(status='cancelled').update(status='pending')
     for a in assignments:
         a['reservation'].status = 'assigned'
         a['reservation'].save()
@@ -108,6 +109,11 @@ def optimize(request):
             is_upgrade=a['is_upgrade'],
         )
     run.unassigned_reservations.set(unassigned)
+    return run, assignments, unassigned
+
+@api_view(['POST'])
+def optimize(request):
+    run, assignments, unassigned = _run_optimization()
 
     result = _build_result(run, assignments, unassigned)
     return Response(result)
