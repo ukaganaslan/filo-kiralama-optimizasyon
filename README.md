@@ -1,10 +1,6 @@
 # Araç Kiralama Rezervasyon ve Optimizasyon Sistemi
 
-Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo optimizasyonu sağlayan tam yığın web uygulaması.
-
-## Proje Hakkında
-
-Müşteriler online rezervasyon oluşturur; operatör, greedy optimizasyon algoritması ile araçları rezervasyonlara otomatik atar. Sistem hangi aracın nereye, ne zaman atanacağını transfer maliyetlerini ve araç gruplarını göz önünde bulundurarak hesaplar.
+Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo optimizasyonu sağlayan tam yığın web uygulaması. Üç farklı kullanıcı rolüne (müşteri, temsilci, operatör) sahip panel sistemi içerir.
 
 ## Teknolojiler
 
@@ -17,47 +13,61 @@ Müşteriler online rezervasyon oluşturur; operatör, greedy optimizasyon algor
 - Vue 3 (Composition API)
 - Vite
 - Pinia (state management)
-- Vue Router
+- Vue Router (nested routes + layout inheritance)
 - Axios
+- FullCalendar (ResourceTimeline — Gantt görünümü)
+- V-Calendar (tarih seçici)
+- Inter font (Google Fonts)
 
-## Özellikler
+## Kullanıcı Rolleri ve Özellikler
 
 ### Müşteri
-- Şube ve araç grubu (Ekonomi / Orta Sınıf / SUV) seçerek rezervasyon oluşturma
+- Şube seçerek araç grubu (Ekonomi / Orta Sınıf / SUV) bazlı rezervasyon oluşturma
+- Farklı iade şubesi seçimi ve transfer ücreti önizlemesi
 - Müsait günleri takvim üzerinde görme
 - Rezervasyonları listeleme ve iptal etme
 - Profil bilgilerini düzenleme (ad soyad, e-posta, telefon, şifre)
 
-### Operatör
-- Tüm rezervasyonları liste veya Gantt takviminde görme
+### Temsilci
+- Kendi şubesine ait rezervasyonları liste veya Gantt takviminde görme
+- Müşteri adına rezervasyon oluşturma (yalnızca kendi şubesi için)
+- Şubesine ait araç listesini görme ve araç durumu takibi
+- Profil bilgilerini düzenleme
+
+### Operatör (Admin)
+- Tüm şubelerdeki rezervasyonları liste veya Gantt takviminde görme
 - Tek tıkla greedy optimizasyonu çalıştırma
 - Optimizasyon sonuçlarını (skor, atamalar, karşılanamayan rezervasyonlar) inceleme
-- Araç yönetimi: ekleme, düzenleme, silme (marka/model/plaka/grup/şube/durum)
+- Araç yönetimi: ekleme, düzenleme, silme (marka/model/plaka/şasi/grup/şube/durum)
 - Şube yönetimi: ekleme, düzenleme (81 il dropdown)
-- Kullanıcı yönetimi: listeleme, aktif/pasif toggle
+- Kullanıcı yönetimi: listeleme, rol atama, aktif/pasif toggle
+- Şubeler arası transfer ücreti tanımlama ve yönetimi
 
 ## Optimizasyon Algoritması
 
 Akıllı Greedy algoritması + post-swap iyileştirmesi:
 
 1. Rezervasyonları bitiş tarihine göre sırala (EDF)
-2. Her rezervasyon için uygun araçları bul (grup + müsait + tarih çakışması yok)
-3. En düşük maliyetli aracı seç (aynı şube → 0, transfer → gerçek maliyet, upgrade → +10)
-4. Atama yapılamayan rezervasyonlar için post-swap: mevcut atamaları takasa sokarak yeni slot aç
+2. Her rezervasyon için uygun araçları bul — **yalnızca aynı şubedeki araçlar** adaydır
+3. En düşük maliyetli aracı seç (aynı grup → 0 puan, upgrade → -10 puan)
+4. Transfer maliyeti yalnızca **iade şubesi** farklıysa uygulanır (alış şubesi ≠ iade şubesi)
+5. Atama yapılamayan rezervasyonlar için post-swap: mevcut atamaları takasa sokarak yeni slot aç
 
-**Ceza sistemi:**
+**Puan sistemi:**
+
 | Durum | Puan |
 |-------|------|
 | Karşılanan rezervasyon | +100 |
 | Karşılanamayan rezervasyon | -200 |
-| Transfer maliyeti | gerçek maliyet |
-| Upgrade | -10 |
+| Transfer maliyeti (iade şubesi farkı) | gerçek maliyet |
+| Upgrade (üst gruba atama) | -10 |
 
 ## Kurulum
 
 ### Gereksinimler
 - Python 3.9+
 - Node.js 18+
+- PostgreSQL
 
 ### Backend
 
@@ -80,11 +90,13 @@ npm run dev
 
 Uygulama `http://localhost:5173` adresinde açılır.
 
-### Operatör hesabı oluşturma
+### Admin hesabı oluşturma
 
 ```bash
 python manage.py createsuperuser
 ```
+
+Superuser oluşturulduktan sonra `/api/admin/` panelinden kullanıcılara `admin` / `representative` rolü atanabilir. Temsilcilere şube bağlamak için de aynı panel kullanılır.
 
 ## Proje Yapısı
 
@@ -92,22 +104,23 @@ python manage.py createsuperuser
 ├── core/
 │   ├── optimizer/
 │   │   ├── solvers/
-│   │   │   └── greedy_solver_güncel.py   # Ana algoritma
+│   │   │   └── greedy_solver_güncel.py   # Ana algoritma (şube kısıtlı)
 │   │   ├── objective.py                  # Skor hesaplama
 │   │   └── validator.py                  # Kısıt kontrolü
 │   ├── settings.py
 │   └── urls.py
 ├── vehicles/
-│   ├── models.py                         # Branch, Vehicle, Reservation...
+│   ├── models.py           # Branch, Vehicle, Reservation, TransferCost, UserProfile
 │   ├── serializers.py
-│   ├── views.py                          # API endpoint'leri
+│   ├── views.py            # API endpoint'leri
 │   └── fixtures/
-│       └── initial_data.json             # Test verisi
+│       └── initial_data.json
 └── frontend/
     └── src/
-        ├── views/                        # Tüm sayfalar
-        ├── stores/                       # Pinia store'ları
-        └── router/                       # Vue Router
+        ├── layouts/        # AdminLayout, RepresentativeLayout, CustomerLayout
+        ├── views/          # Tüm sayfa bileşenleri
+        ├── stores/         # auth, optimization (Pinia)
+        └── router/         # Rol tabanlı route koruması
 ```
 
 ## API Endpoint'leri
@@ -116,10 +129,13 @@ python manage.py createsuperuser
 |--------|-----|----------|
 | POST | `/api/login/` | Giriş |
 | POST | `/api/register/` | Kayıt |
+| GET/PATCH | `/api/profile/` | Profil görüntüle / güncelle |
 | GET | `/api/branches/` | Şube listesi |
-| GET/POST | `/api/vehicles/` | Araç listesi / ekleme |
+| GET/POST/PATCH/DELETE | `/api/vehicles/` | Araç CRUD |
 | GET/POST | `/api/reservations/` | Rezervasyon listesi / oluşturma |
-| GET | `/api/availability/` | Müsait günler |
+| POST | `/api/reservations/{id}/cancel/` | Rezervasyon iptal |
+| GET | `/api/availability/` | Şube + grup bazlı müsait günler |
+| GET | `/api/transfer-cost/` | İki şube arası transfer ücreti |
+| GET/POST/PATCH/DELETE | `/api/transfer-costs/` | Transfer ücreti CRUD (admin) |
 | POST | `/api/optimize/` | Optimizasyon çalıştır |
 | GET | `/api/optimize/latest/` | Son optimizasyon sonucu |
-| GET/PATCH | `/api/profile/` | Profil görüntüle / güncelle |
