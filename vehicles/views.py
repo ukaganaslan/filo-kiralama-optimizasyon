@@ -304,7 +304,7 @@ def update_user(request, user_id):
 def user_list(request):
     if not request.user.is_staff:
         return Response({'error': 'Yetkisiz'}, status=403)
-    users = User.objects.filter(is_staff=False).select_related('profile')
+    users = User.objects.filter(is_superuser=False).select_related('profile')
     data = []
     for u in users:
         profile = getattr(u, 'profile', None)
