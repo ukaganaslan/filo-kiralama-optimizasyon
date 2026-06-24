@@ -74,7 +74,7 @@ async function handleSave() {
 </script>
 
 <style scoped>
-.content { max-width: 560px; margin: 0 auto; padding: 40px 24px; }
+.content { padding: 32px 40px; }
 .card { background: white; border-radius: 14px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); }
 h2 { font-size: 16px; font-weight: 700; color: #1e293b; margin: 0 0 20px; }
 h3 { font-size: 14px; font-weight: 700; color: #1e293b; margin: 0 0 16px; }

@@ -4,7 +4,6 @@
     <!-- Hero -->
     <div class="hero">
       <div class="hero-content">
-        <p class="hero-eyebrow">Hızlı ve Kolay</p>
         <h1>Aracınızı Hemen Kiralayın</h1>
         <p class="hero-sub">Şubenizi seçin, grubu belirleyin, tarihleri ayarlayın.</p>
       </div>
@@ -253,12 +252,12 @@ async function handleCreate() {
 
 /* Hero */
 .hero {
-  background: linear-gradient(135deg, #1e293b 0%, #312e81 100%);
-  padding: 52px 40px 48px;
+  background: #f8fafc;
+  padding: 52px 0 48px;
 }
-.hero-content { max-width: 680px; }
+.hero-content { max-width: 760px; margin: 0 auto; padding: 0 24px; }
 .hero-eyebrow { font-size: 12px; font-weight: 700; color: #a5b4fc; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
-.hero h1 { font-size: 36px; font-weight: 800; color: white; margin: 0 0 10px; line-height: 1.15; }
+.hero h1 { font-size: 36px; font-weight: 800; color: #312e81; margin: 0 0 10px; line-height: 1.15; }
 .hero-sub { font-size: 15px; color: #94a3b8; margin: 0; }
 
 /* Form wrap */

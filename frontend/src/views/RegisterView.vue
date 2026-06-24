@@ -2,17 +2,14 @@
   <div class="auth-layout">
     <div class="auth-left">
       <div class="auth-brand">
-        <div class="brand-icon">A</div>
-        <span>Araç Kiralama</span>
+        <div class="brand-icon">K</div>
+        <span>Filo Yönetimi</span>
       </div>
       <div class="auth-tagline">
-        <h1>Hızlı kayıt, anında rezervasyon.</h1>
-        <p>Üye olun, şubenizi seçin ve aracınızı dakikalar içinde kiralayın.</p>
+        <h1>Araç Kiralama</h1>
+        <p></p>
       </div>
       <ul class="feature-list">
-        <li><span class="feat-icon">✓</span> Ücretsiz hesap oluşturma</li>
-        <li><span class="feat-icon">✓</span> Anlık müsaitlik görüntüleme</li>
-        <li><span class="feat-icon">✓</span> Kolay iptal ve değişiklik</li>
       </ul>
     </div>
 

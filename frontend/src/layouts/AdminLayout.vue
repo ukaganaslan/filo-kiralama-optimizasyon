@@ -50,13 +50,14 @@
     <div class="main">
       <header class="topbar">
         <button class="hamburger" @click="mobileOpen = true">&#9776;</button>
+        <span class="topbar-title">{{ pageTitle }}</span>
         <div class="topbar-right">
           <div class="user-menu" ref="menuRef">
             <button class="user-btn" @click="menuOpen = !menuOpen">
               {{ auth.username }} <span class="chevron">▾</span>
             </button>
             <div v-if="menuOpen" class="dropdown">
-              <router-link to="/operator/profil" class="dropdown-item" @click="menuOpen = false">Profil Ayarları</router-link>
+              <router-link to="/operator/profil" class="dropdown-item" @click="menuOpen = false">⚙️ Profil Ayarları</router-link>
               <button class="dropdown-item dropdown-logout" @click="handleLogout">Çıkış Yap</button>
             </div>
           </div>
@@ -68,16 +69,29 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const mobileOpen = ref(false)
 const menuOpen = ref(false)
 const menuRef = ref(null)
+
+const pageTitles = {
+  '/operator': 'Rezervasyonlar',
+  '/operator/araclar': 'Araç Yönetimi',
+  '/operator/subeler': 'Şube Yönetimi',
+  '/operator/kullanıcılar': 'Kullanıcı Yönetimi',
+  '/operator/transfer-ucretleri': 'Transfer Ücretleri',
+  '/operator/optimizasyon-sonuc': 'Optimizasyon Sonucu',
+  '/operator/karsılanamayan-rez': 'Karşılanamayan Rezervasyonlar',
+  '/operator/profil': 'Profil Ayarları',
+}
+const pageTitle = computed(() => pageTitles[route.path] || '')
 
 function handleClickOutside(e) {
   if (menuRef.value && !menuRef.value.contains(e.target)) menuOpen.value = false
@@ -221,7 +235,6 @@ async function handleLogout() {
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   padding: 0 32px;
   height: 56px;
   background: white;
@@ -229,6 +242,7 @@ async function handleLogout() {
   position: sticky;
   top: 0;
   z-index: 10;
+  gap: 16px;
 }
 .hamburger {
   display: none;
@@ -237,11 +251,12 @@ async function handleLogout() {
   font-size: 20px;
   color: #475569;
   cursor: pointer;
-  margin-right: auto;
   padding: 0;
   line-height: 1;
+  flex-shrink: 0;
 }
-.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-title { font-size: 15px; font-weight: 700; color: #0f172a; flex: 1; }
+.topbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
 .user-menu { position: relative; }
 .user-btn {
   background: none;
