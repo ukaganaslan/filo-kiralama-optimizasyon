@@ -88,7 +88,10 @@ class ReservationViewSet(viewsets.ModelViewSet):
                 except User.DoesNotExist:
                     pass
         reservation_id = 'R' + uuid.uuid4().hex[:6].upper()
-        serializer.save(customer=customer, status='pending', reservation_id=reservation_id)
+        save_kwargs = {'customer': customer, 'status': 'pending', 'reservation_id': reservation_id}
+        if profile and profile.role == 'representative' and profile.branch:
+            save_kwargs['branch'] = profile.branch
+        serializer.save(**save_kwargs)
         _run_optimization()
 
 def _run_optimization():
