@@ -9,13 +9,21 @@ def get_transfer_cost(from_branch, to_branch):
         tc = TransferCost.objects.get(from_branch=from_branch, to_branch=to_branch)
         return float(tc.cost)
     except TransferCost.DoesNotExist:
-        return float('inf')
+        return 0
+
+
+def return_transfer_cost(reservation):
+    """Transfer cost only when return branch differs from pickup branch."""
+    if not reservation.return_branch_id:
+        return 0
+    if reservation.return_branch_id == reservation.branch_id:
+        return 0
+    return get_transfer_cost(reservation.branch, reservation.return_branch)
 
 
 def score_vehicle(vehicle, reservation):
-    transfer_cost = get_transfer_cost(vehicle.branch, reservation.branch)
     upgrade_penalty = 0 if vehicle.group == reservation.vehicle_group else 10
-    return transfer_cost + upgrade_penalty
+    return upgrade_penalty
 
 
 def has_memory_conflict(vehicle, start_date, end_date, occupied):
@@ -34,10 +42,12 @@ def post_swap(assignments, unassigned, all_vehicles, occupied):
             rez_y = assignment['reservation']
             rez_y_dates = (rez_y.start_date, rez_y.end_date)
 
+            # Vehicle must be at rez_x's branch (no cross-branch swap)
+            if vehicle.branch_id != rez_x.branch_id:
+                continue
 
             if not check_group(vehicle.group, rez_x.vehicle_group):
                 continue
-
 
             temp = [d for d in occupied.get(vehicle.vehicle_id, []) if d != rez_y_dates]
             if any(s <= rez_x.end_date and rez_x.start_date <= e for s, e in temp):
@@ -48,6 +58,7 @@ def post_swap(assignments, unassigned, all_vehicles, occupied):
             alt_candidates = [
                 v for v in all_vehicles
                 if v.vehicle_id != vehicle.vehicle_id
+                and v.branch_id == rez_y.branch_id
                 and check_group(v.group, rez_y.vehicle_group)
                 and check_status(v)
                 and not has_memory_conflict(v, rez_y.start_date, rez_y.end_date, alt_occupied)
@@ -63,16 +74,16 @@ def post_swap(assignments, unassigned, all_vehicles, occupied):
             occupied.setdefault(vehicle.vehicle_id, []).append((rez_x.start_date, rez_x.end_date))
 
             assignment['vehicle'] = best_alt
-            assignment['transfer_cost'] = get_transfer_cost(best_alt.branch, rez_y.branch)
+            assignment['transfer_cost'] = return_transfer_cost(rez_y)
             assignment['is_upgrade'] = best_alt.group != rez_y.vehicle_group
 
             assignments.append({
                 'reservation': rez_x,
                 'vehicle': vehicle,
-                'transfer_cost': get_transfer_cost(vehicle.branch, rez_x.branch),
+                'transfer_cost': return_transfer_cost(rez_x),
                 'is_upgrade': vehicle.group != rez_x.vehicle_group,
             })
- 
+
             rescued.append(rez_x)
             break
 
@@ -92,7 +103,8 @@ def solve(reservations, all_vehicles):
     for reservation in reservations:
         candidates = [
             v for v in all_vehicles
-            if check_group(v.group, reservation.vehicle_group)
+            if v.branch_id == reservation.branch_id
+            and check_group(v.group, reservation.vehicle_group)
             and check_status(v)
             and check_date_conflict(v, reservation.start_date, reservation.end_date)
             and not has_memory_conflict(v, reservation.start_date, reservation.end_date, occupied)
@@ -103,12 +115,11 @@ def solve(reservations, all_vehicles):
             continue
 
         best = min(candidates, key=lambda v: score_vehicle(v, reservation))
-        transfer_cost = get_transfer_cost(best.branch, reservation.branch)
 
         assignments.append({
             'reservation': reservation,
             'vehicle': best,
-            'transfer_cost': transfer_cost,
+            'transfer_cost': return_transfer_cost(reservation),
             'is_upgrade': best.group != reservation.vehicle_group,
         })
 

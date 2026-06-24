@@ -2,6 +2,15 @@ from rest_framework import serializers
 from .models import Branch, Vehicle, Reservation, Assignment, TransferCost
 
 
+class TransferCostSerializer(serializers.ModelSerializer):
+    from_branch_name = serializers.CharField(source='from_branch.name', read_only=True)
+    to_branch_name = serializers.CharField(source='to_branch.name', read_only=True)
+
+    class Meta:
+        model = TransferCost
+        fields = ['id', 'from_branch', 'from_branch_name', 'to_branch', 'to_branch_name', 'cost']
+
+
 class BranchSerializer(serializers.ModelSerializer):
     class Meta:
         model = Branch
