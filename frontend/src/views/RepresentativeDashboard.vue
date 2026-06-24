@@ -5,10 +5,16 @@
         <h2>Şube Rezervasyonları</h2>
         <span class="count-badge">{{ reservations.length }} rezervasyon</span>
       </div>
+        <select v-model="activeView" class="view-select">
+          <option value="list">Liste Görünümü</option>
+          <option value="calendar">Takvim Görünümü</option>
+        </select>
       <button class="btn-add" @click="openCreate">+ Rezervasyon Oluştur</button>
     </div>
 
-    <table>
+    <FullCalendar v-if="activeView === 'calendar'" :options="calendarOptions" />
+
+    <table v-if="activeView === 'list'">
       <thead>
         <tr>
           <th>ID</th>
@@ -124,15 +130,19 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
+import FullCalendar from '@fullcalendar/vue3'
+import ResourceTimelinePlugin from '@fullcalendar/resource-timeline'
+import trLocale from '@fullcalendar/core/locales/tr'
 
 const reservations = ref([])
+const vehicles = ref([])
 const customers = ref([])
 const branches = ref([])
 const branchId = ref(null)
+const activeView = ref('list')
 
 const createModal = ref(false)
 const form = ref({ customer_id: '', vehicle_group: '', branch: '', return_branch: '' })
@@ -148,6 +158,30 @@ const customerQuery = ref('')
 const selectedCustomer = ref('')
 const customerDropdownOpen = ref(false)
 const customerSearchRef = ref(null)
+
+const calendarOptions = computed(() => ({
+  plugins: [ResourceTimelinePlugin],
+  initialView: 'resourceTimelineMonth',
+  schedulerLicenseKey: 'non-commercial-and-evaluation',
+  locale: trLocale,
+  height: 'auto',
+  slotDuration: { days: 1 },
+  resourceAreaWidth: '210px',
+  slotLabelFormat: [{ month: 'long', year: 'numeric' }, { day: 'numeric' }],
+  headerToolbar: { left: 'prev,next', right: '' },
+  resources: vehicles.value.map(v => ({
+    id: v.vehicle_id,
+    title: `${v.vehicle_id} (${v.group})`,
+  })),
+  events: reservations.value
+    .filter(r => r.assigned_vehicle_id && r.status !== 'cancelled')
+    .map(r => ({
+      resourceId: r.assigned_vehicle_id,
+      title: r.reservation_id,
+      start: r.start_date,
+      end: r.end_date,
+    })),
+}))
 
 const filteredCustomers = computed(() => {
   const q = customerQuery.value.toLowerCase().trim()
@@ -176,8 +210,6 @@ function handleOutsideClick(e) {
     customerDropdownOpen.value = false
   }
 }
-onMounted(() => document.addEventListener('click', handleOutsideClick))
-onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 const canCreate = computed(() =>
   form.value.customer_id && form.value.vehicle_group && dateRange.value.start && dateRange.value.end
@@ -198,17 +230,22 @@ const disabledDates = computed(() => {
 })
 
 onMounted(async () => {
-  const [rezRes, profileRes, usersRes, branchRes] = await Promise.all([
+  document.addEventListener('click', handleOutsideClick)
+  const [rezRes, profileRes, usersRes, branchRes, vehicleRes] = await Promise.all([
     axios.get('http://127.0.0.1:8000/api/reservations/'),
     axios.get('http://127.0.0.1:8000/api/profile/'),
     axios.get('http://127.0.0.1:8000/api/users/'),
     axios.get('http://127.0.0.1:8000/api/branches/'),
+    axios.get('http://127.0.0.1:8000/api/vehicles/'),
   ])
   reservations.value = rezRes.data
   branchId.value = profileRes.data.branch_id
   customers.value = usersRes.data
   branches.value = branchRes.data
+  vehicles.value = vehicleRes.data
 })
+
+onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 function statusLabel(s) {
   return { pending: 'Bekliyor', assigned: 'Atandı', cancelled: 'İptal' }[s] || s
@@ -291,6 +328,7 @@ async function handleCreate() {
 .header-left { display: flex; align-items: center; gap: 12px; }
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .count-badge { padding: 3px 10px; background: #f1f5f9; color: #64748b; border-radius: 50px; font-size: 12px; font-weight: 600; }
+.view-select { padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; color: #475569; outline: none; cursor: pointer; }
 .btn-add { padding: 8px 18px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .btn-add:hover { background: #4f46e5; }
 table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
