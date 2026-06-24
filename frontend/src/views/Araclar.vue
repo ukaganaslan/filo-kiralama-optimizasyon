@@ -84,6 +84,7 @@
           <option value="maintenance">Bakımda</option>
           <option value="service">Serviste</option>
           <option value="inactive">Pasif</option>
+          <option value="reserved">Rezerve Edildi</option>
         </select>
       </div>
       <p v-if="formError" class="error">{{ formError }}</p>
@@ -139,7 +140,7 @@ function groupLabel(g) {
 }
 
 function statusLabel(s) {
-  return { available: 'Müsait', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif' }[s] || s
+  return { available: 'Müsait', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif', reserved: 'Rezerve Edildi' }[s] || s
 }
 
 function openAdd() {
@@ -220,6 +221,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .badge-maintenance { background: #fef3c7; color: #92400e; }
 .badge-service { background: #fee2e2; color: #991b1b; }
 .badge-inactive { background: #f1f5f9; color: #64748b; }
+.badge-reserved { background: #ede9fe; color: #4f46e5; }
 .btn-edit { padding: 4px 10px; background: white; color: #6366f1; border: 1px solid #6366f1; border-radius: 50px; font-size: 12px; cursor: pointer; }
 .btn-edit:hover { background: #ede9fe; }
 .btn-delete { padding: 4px 12px; background: white; color: #dc2626; border: 1px solid #dc2626; border-radius: 50px; font-size: 12px; cursor: pointer; }

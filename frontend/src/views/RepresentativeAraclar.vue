@@ -77,6 +77,7 @@
           <option value="maintenance">Bakımda</option>
           <option value="service">Serviste</option>
           <option value="inactive">Pasif</option>
+          <option value="reserved">Rezerve Edildi</option>
         </select>
       </div>
       <p v-if="formError" class="error">{{ formError }}</p>
@@ -145,7 +146,7 @@ function groupLabel(g) {
 }
 
 function statusLabel(s) {
-  return { available: 'Müsait', rented: 'Kirada', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif' }[s] || s
+  return { available: 'Müsait', rented: 'Kirada', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif', reserved: 'Rezerve Edildi' }[s] || s
 }
 </script>
 
@@ -171,6 +172,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .badge-maintenance { background: #fee2e2; color: #991b1b; }
 .badge-service { background: #fee2e2; color: #991b1b; }
 .badge-inactive { background: #f1f5f9; color: #94a3b8; }
+.badge-reserved { background: #ede9fe; color: #4f46e5; }
 .badge-group, .badge-status { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .badge-economy { background: #dbeafe; color: #1d4ed8; }
 .badge-mid { background: #fef3c7; color: #92400e; }
