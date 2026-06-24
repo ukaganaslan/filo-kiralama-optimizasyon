@@ -7,9 +7,6 @@
           <option value="list">Liste Görünümü</option>
           <option value="calendar">Takvim Görünümü</option>
         </select>
-        <button class="btn-optimize" @click="handleOptimize" :disabled="optimizing">
-          {{ optimizing ? 'Çalışıyor...' : 'Optimize Et →' }}
-        </button>
       </div>
     </div>
 
@@ -45,14 +42,11 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
-import { useOptimizationStore } from '../stores/optimization'
 import FullCalendar from '@fullcalendar/vue3'
 import ResourceTimelinePlugin from '@fullcalendar/resource-timeline'
 import trLocale from '@fullcalendar/core/locales/tr'
 
-const optimizationStore = useOptimizationStore()
 const reservations = ref([])
-const optimizing = ref(false)
 const activeView = ref('list')
 const vehicles = ref([])
 
@@ -65,17 +59,6 @@ onMounted(async () => {
   vehicles.value = vehicleRes.data
 })
 
-async function handleOptimize() {
-  optimizing.value = true
-  try {
-    const res = await axios.post('http://127.0.0.1:8000/api/optimize/')
-    optimizationStore.setResult(res.data)
-    const rezRes = await axios.get('http://127.0.0.1:8000/api/reservations/')
-    reservations.value = rezRes.data
-  } finally {
-    optimizing.value = false
-  }
-}
 
 const calendarOptions = computed(() => ({
   plugins: [ResourceTimelinePlugin],
@@ -164,6 +147,8 @@ td { border-top: 1px solid #f1f5f9; }
 .badge-pending { background: #fef3c7; color: #92400e; }
 .badge-assigned { background: #d1fae5; color: #065f46; }
 .badge-cancelled { background: #fee2e2; color: #991b1b; }
+.empty { text-align: center; color: #94a3b8; padding: 32px !important; }
+td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }
 </style>
 
 <style>

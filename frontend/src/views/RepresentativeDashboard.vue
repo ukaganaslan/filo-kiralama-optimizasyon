@@ -258,6 +258,8 @@ table { width: 100%; border-collapse: collapse; background: white; border-radius
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
 td { border-top: 1px solid #f1f5f9; color: #374151; }
+.empty { text-align: center; color: #94a3b8; padding: 32px !important; }
+td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6) { text-align: center; }
 .id { font-family: monospace; font-weight: 600; color: #1e293b; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 .badge { padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
