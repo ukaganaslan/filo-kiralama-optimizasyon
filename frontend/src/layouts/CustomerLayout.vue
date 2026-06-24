@@ -34,14 +34,15 @@
     <div class="main">
       <header class="topbar">
         <button class="hamburger" @click="mobileOpen = true">&#9776;</button>
+        <span class="topbar-title">{{ pageTitle }}</span>
         <div class="topbar-right">
           <div class="user-menu" ref="menuRef">
             <button class="user-btn" @click="menuOpen = !menuOpen">
               {{ auth.username }} <span class="chevron">▾</span>
             </button>
             <div v-if="menuOpen" class="dropdown">
-              <router-link to="/dashboard/profil" class="dropdown-item" @click="menuOpen = false">Profil Ayarları</router-link>
-              <button class="dropdown-item dropdown-logout" @click="handleLogout">Çıkış Yap</button>
+              <router-link to="/dashboard/profil" class="dropdown-item" @click="menuOpen = false">⚙️ Profil Ayarları </router-link>
+              <button class="dropdown-item dropdown-logout" @click="handleLogout">➜] Çıkış Yap </button>
             </div>
           </div>
         </div>
@@ -52,16 +53,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const mobileOpen = ref(false)
 const menuOpen = ref(false)
 const menuRef = ref(null)
+
+const pageTitles = {
+  '/dashboard': 'Yeni Rezervasyon',
+  '/dashboard/rezervasyonlar': 'Rezervasyonlarım',
+  '/dashboard/profil': 'Profil Ayarları',
+}
+const pageTitle = computed(() => pageTitles[route.path] || '')
 
 function handleClickOutside(e) {
   if (menuRef.value && !menuRef.value.contains(e.target)) menuOpen.value = false
@@ -113,9 +122,10 @@ async function handleLogout() {
 .footer-username { font-size: 13px; color: #475569; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .footer-badge { padding: 2px 8px; background: #ede9fe; color: #6366f1; border-radius: 50px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.topbar { display: flex; align-items: center; justify-content: flex-end; padding: 0 32px; height: 56px; background: white; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10; }
-.hamburger { display: none; background: none; border: none; font-size: 20px; color: #475569; cursor: pointer; margin-right: auto; padding: 0; line-height: 1; }
-.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar { display: flex; align-items: center; padding: 0 32px; height: 56px; background: white; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10; gap: 16px; }
+.hamburger { display: none; background: none; border: none; font-size: 20px; color: #475569; cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0; }
+.topbar-title { font-size: 15px; font-weight: 700; color: #0f172a; flex: 1; }
+.topbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
 .user-menu { position: relative; }
 .user-btn { background: none; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: #1e293b; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .user-btn:hover { background: #f1f5f9; }
