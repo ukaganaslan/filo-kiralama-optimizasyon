@@ -83,6 +83,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         return Reservation.objects.filter(customer=user)
 
     def perform_create(self, serializer):
+        from rest_framework.exceptions import ValidationError
         user = self.request.user
         profile = getattr(user, 'profile', None)
         customer = user
@@ -93,6 +94,16 @@ class ReservationViewSet(viewsets.ModelViewSet):
                     customer = User.objects.get(id=customer_id)
                 except User.DoesNotExist:
                     pass
+        start_date = serializer.validated_data.get('start_date')
+        end_date = serializer.validated_data.get('end_date')
+        overlap = Reservation.objects.filter(
+            customer=customer,
+            status__in=['pending', 'assigned'],
+            start_date__lt=end_date,
+            end_date__gt=start_date,
+        ).exists()
+        if overlap:
+            raise ValidationError({'non_field_errors': ['Seçilen tarih aralığında aktif bir rezervasyon var.']})
         reservation_id = 'R' + uuid.uuid4().hex[:6].upper()
         save_kwargs = {'customer': customer, 'status': 'pending', 'reservation_id': reservation_id}
         if profile and profile.role == 'representative' and profile.branch:
