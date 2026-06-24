@@ -33,9 +33,20 @@ class VehicleViewSet(viewsets.ModelViewSet):
         return Vehicle.objects.all()
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'update', 'partial_update']:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAdminUser()]
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        profile = getattr(user, 'profile', None)
+        if not user.is_staff and profile and profile.role == 'representative':
+            if serializer.instance.branch != profile.branch:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied('Bu araca erişim yetkiniz yok.')
+            serializer.save(branch=serializer.instance.branch)
+        else:
+            serializer.save()
 
     def perform_create(self, serializer):
         group = serializer.validated_data.get('group')
