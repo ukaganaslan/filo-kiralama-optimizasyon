@@ -211,7 +211,7 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }
 .vehicle-id { font-weight: 700; color: #1e293b; font-family: monospace; }
-.actions { display: flex; gap: 8px; }
+.actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .badge-group, .badge-status { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .badge-economy { background: #dbeafe; color: #1d4ed8; }
 .badge-mid { background: #fef3c7; color: #92400e; }
@@ -220,7 +220,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .badge-maintenance { background: #fef3c7; color: #92400e; }
 .badge-service { background: #fee2e2; color: #991b1b; }
 .badge-inactive { background: #f1f5f9; color: #64748b; }
-.btn-edit { padding: 4px 12px; background: white; color: #6366f1; border: 1px solid #6366f1; border-radius: 50px; font-size: 12px; cursor: pointer; }
+.btn-edit { padding: 4px 10px; background: white; color: #6366f1; border: 1px solid #6366f1; border-radius: 50px; font-size: 12px; cursor: pointer; }
 .btn-edit:hover { background: #ede9fe; }
 .btn-delete { padding: 4px 12px; background: white; color: #dc2626; border: 1px solid #dc2626; border-radius: 50px; font-size: 12px; cursor: pointer; }
 .btn-delete:hover { background: #fee2e2; }

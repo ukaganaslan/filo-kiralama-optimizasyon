@@ -70,14 +70,6 @@
       </div>
 
       <div class="field">
-        <label>Alış Yeri (Şube)</label>
-        <select v-model="form.branch" @change="onPickupChange">
-          <option value="">Seçin</option>
-          <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
-        </select>
-      </div>
-
-      <div class="field">
         <label class="checkbox-label">
           <input type="checkbox" v-model="differentReturn" @change="onDifferentReturnChange" />
           Farklı bir noktaya teslim
@@ -222,36 +214,27 @@ function statusLabel(s) {
   return { pending: 'Bekliyor', assigned: 'Atandı', cancelled: 'İptal' }[s] || s
 }
 
-function onPickupChange() {
-  form.value.return_branch = ''
-  transferCost.value = null
-  fetchAvailability()
-}
-
 function onDifferentReturnChange() {
   form.value.return_branch = ''
   transferCost.value = null
 }
 
 async function fetchTransferCost() {
-  const from = form.value.branch || branchId.value
-  if (!from || !form.value.return_branch) { transferCost.value = null; return }
+  if (!branchId.value || !form.value.return_branch) { transferCost.value = null; return }
   const res = await axios.get('http://127.0.0.1:8000/api/transfer-cost/', {
-    params: { from, to: form.value.return_branch }
+    params: { from: branchId.value, to: form.value.return_branch }
   })
   transferCost.value = res.data.cost
 }
 
 async function fetchAvailability() {
-  const pickupBranch = form.value.branch || branchId.value
-  if (!pickupBranch || !form.value.vehicle_group) return
+  if (!branchId.value || !form.value.vehicle_group) return
   availabilityLoading.value = true
   availableDates.value = []
   dateRange.value = { start: null, end: null }
   try {
-    const pickupBranch = form.value.branch || branchId.value
     const res = await axios.get('http://127.0.0.1:8000/api/availability/', {
-      params: { branch: pickupBranch, group: form.value.vehicle_group }
+      params: { branch: branchId.value, group: form.value.vehicle_group }
     })
     availableDates.value = res.data.available_dates
   } finally {
@@ -283,7 +266,7 @@ async function handleCreate() {
   formSuccess.value = ''
   try {
     await axios.post('http://127.0.0.1:8000/api/reservations/', {
-      branch: form.value.branch || branchId.value,
+      branch: branchId.value,
       vehicle_group: form.value.vehicle_group,
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),

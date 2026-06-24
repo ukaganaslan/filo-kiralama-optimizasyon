@@ -27,7 +27,10 @@
           <td>{{ v.plate || '—' }}</td>
           <td><span :class="'badge-group badge-' + v.group">{{ groupLabel(v.group) }}</span></td>
           <td><span :class="'badge-status badge-' + v.status">{{ statusLabel(v.status) }}</span></td>
-          <td class="actions"><button class="btn-edit" @click="openEdit(v)">✏️</button></td>
+          <td class="actions">
+            <button class="btn-edit" @click="openEdit(v)">✏️</button>
+            <button class="btn-delete" @click="confirmDelete(v)">🗑️</button>
+          </td>
         </tr>
         <tr v-if="vehicles.length === 0">
           <td colspan="8" class="empty">Bu şubede araç bulunamadı.</td>
@@ -83,6 +86,17 @@
       </div>
     </div>
   </div>
+
+    <div v-if="deleteModal" class="modal-overlay" @click.self="deleteModal = false">
+    <div class="modal modal-sm">
+      <h3>Aracı Sil</h3>
+      <p class="confirm-text"><strong>{{ deletingVehicle?.vehicle_id }}</strong> aracını silmek istediğinize emin misiniz?</p>
+      <div class="modal-actions">
+        <button class="btn-cancel-modal" @click="deleteModal = false">Vazgeç</button>
+        <button class="btn-delete-confirm" @click="doDelete">Sil</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -93,6 +107,8 @@ const vehicles = ref([])
 const editModal = ref(false)
 const formError = ref('')
 const editForm = ref({})
+const deleteModal = ref(false)
+const deletingVehicle = ref(null)
 
 onMounted(async () => {
   const res = await axios.get('http://127.0.0.1:8000/api/vehicles/')
@@ -162,6 +178,8 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .actions { width: 60px; }
 .btn-edit { padding: 4px 10px; background: white; color: #6366f1; border: 1px solid #6366f1; border-radius: 50px; font-size: 12px; cursor: pointer; }
 .btn-edit:hover { background: #ede9fe; }
+.btn-delete { padding: 4px 12px; background: white; color: #dc2626; border: 1px solid #dc2626; border-radius: 50px; font-size: 12px; cursor: pointer; }
+.btn-delete:hover { background: #fee2e2; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; }
 .modal { background: white; border-radius: 12px; padding: 32px; width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 14px; }
 .modal h3 { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; }
