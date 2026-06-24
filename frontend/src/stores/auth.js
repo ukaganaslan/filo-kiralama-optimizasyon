@@ -5,25 +5,31 @@ export const useAuthStore = defineStore('auth', {
     state: () => ({
         token: localStorage.getItem('token') || null,
         username: localStorage.getItem('username') || null,
-        isStaff: localStorage.getItem('isStaff') === 'true',
+        role: localStorage.getItem('role') || null,
     }),
+    getters: {
+        isAdmin: (state) => state.role === 'admin',
+        isRepresentative: (state) => state.role === 'representative',
+        isCustomer: (state) => state.role === 'customer',
+        isStaff: (state) => state.role === 'admin',
+    },
     actions: {
-        login(token, username, isStaff) {
+        login(token, username, role) {
             this.token = token
             this.username = username
-            this.isStaff = isStaff
+            this.role = role
             localStorage.setItem('token', token)
             localStorage.setItem('username', username)
-            localStorage.setItem('isStaff', isStaff)
+            localStorage.setItem('role', role)
             axios.defaults.headers.common['Authorization'] = `Token ${token}`
         },
         logout() {
             this.token = null
             this.username = null
-            this.isStaff = false
+            this.role = null
             localStorage.removeItem('token')
             localStorage.removeItem('username')
-            localStorage.removeItem('isStaff')
+            localStorage.removeItem('role')
             delete axios.defaults.headers.common['Authorization']
         },
         setUsername(username) {

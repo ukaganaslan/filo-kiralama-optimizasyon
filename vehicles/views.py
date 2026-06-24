@@ -26,6 +26,12 @@ class VehicleViewSet(viewsets.ModelViewSet):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
 
+    def get_queryset(self):
+        profile = getattr(self.request.user, 'profile', None)
+        if profile and profile.role == 'representative' and profile.branch:
+            return Vehicle.objects.filter(branch=profile.branch)
+        return Vehicle.objects.all()
+
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [permissions.IsAuthenticated()]
@@ -51,13 +57,27 @@ class ReservationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        if self.request.user.is_staff:
+        user = self.request.user
+        if user.is_staff:
             return Reservation.objects.all()
-        return Reservation.objects.filter(customer=self.request.user)
+        profile = getattr(user, 'profile', None)
+        if profile and profile.role == 'representative':
+            return Reservation.objects.filter(branch=profile.branch)
+        return Reservation.objects.filter(customer=user)
 
     def perform_create(self, serializer):
+        user = self.request.user
+        profile = getattr(user, 'profile', None)
+        customer = user
+        if profile and profile.role in ['representative', 'admin']:
+            customer_id = self.request.data.get('customer_id')
+            if customer_id:
+                try:
+                    customer = User.objects.get(id=customer_id)
+                except User.DoesNotExist:
+                    pass
         reservation_id = 'R' + uuid.uuid4().hex[:6].upper()
-        serializer.save(customer=self.request.user, status='pending', reservation_id=reservation_id)
+        serializer.save(customer=customer, status='pending', reservation_id=reservation_id)
 
 @api_view(['POST'])
 def optimize(request):
@@ -224,9 +244,22 @@ def create_user(request):
         return Response({'error': 'Kullanıcı adı ve şifre zorunlu'}, status=400)
     if User.objects.filter(username=username).exists():
         return Response({'error': 'Bu kullanıcı adı alınmış'}, status=400)
+    role = request.data.get('role', 'customer')
+    branch_id = request.data.get('branch', None)
+    if role not in ['customer', 'representative', 'admin']:
+        return Response({'error': 'Geçersiz rol'}, status=400)
     user = User.objects.create_user(username=username, password=password, email=email)
-    CustomerProfile.objects.create(user=user, full_name=full_name, phone=phone)
-    return Response({'id': user.id, 'username': user.username}, status=201)
+    if role == 'admin':
+        user.is_staff = True
+        user.save()
+    profile = CustomerProfile.objects.create(user=user, full_name=full_name, phone=phone, role=role)
+    if branch_id and role == 'representative':
+        try:
+            profile.branch = Branch.objects.get(id=branch_id)
+            profile.save()
+        except Branch.DoesNotExist:
+            pass
+    return Response({'id': user.id, 'username': user.username, 'role': role}, status=201)
 
 
 @api_view(['PATCH'])
@@ -255,6 +288,19 @@ def update_user(request, user_id):
         profile.full_name = data['full_name']
     if 'phone' in data:
         profile.phone = data['phone']
+    if 'role' in data and data['role'] in ['customer', 'representative', 'admin']:
+        profile.role = data['role']
+        if data['role'] == 'admin':
+            user.is_staff = True
+            user.save()
+        elif user.is_staff:
+            user.is_staff = False
+            user.save()
+    if 'branch_id' in data:
+        try:
+            profile.branch = Branch.objects.get(id=data['branch_id']) if data['branch_id'] else None
+        except Branch.DoesNotExist:
+            pass
     profile.save()
     return Response({'message': 'Kullanıcı güncellendi'})
 
@@ -262,9 +308,14 @@ def update_user(request, user_id):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def user_list(request):
-    if not request.user.is_staff:
+    profile = getattr(request.user, 'profile', None)
+    is_representative = profile and profile.role == 'representative'
+    if not request.user.is_staff and not is_representative:
         return Response({'error': 'Yetkisiz'}, status=403)
-    users = User.objects.filter(is_staff=False).select_related('profile')
+    if is_representative:
+        users = User.objects.filter(is_superuser=False, profile__role='customer').select_related('profile')
+    else:
+        users = User.objects.filter(is_superuser=False).select_related('profile')
     data = []
     for u in users:
         profile = getattr(u, 'profile', None)
@@ -274,9 +325,11 @@ def user_list(request):
             'email': u.email,
             'full_name': profile.full_name if profile else '',
             'phone': profile.phone if profile else '',
+            'role': profile.role if profile else 'customer',
+            'branch_id': profile.branch_id if profile else None,
             'reservation_count': u.reservations.count(),
             'date_joined': u.date_joined.strftime('%Y-%m-%d'),
-            'is_active' : u.is_active,
+            'is_active': u.is_active,
         })
     return Response(data)
 
@@ -305,6 +358,8 @@ def profile_view(request):
             'email': user.email,
             'full_name': profile.full_name if profile else '',
             'phone': profile.phone if profile else '',
+            'role': profile.role if profile else ('admin' if user.is_staff else 'customer'),
+            'branch_id': profile.branch_id if profile else None,
         })
     data = request.data
     if 'username' in data and data['username']:
@@ -342,11 +397,18 @@ def login_view(request):
     if not user:
         return Response({'error': 'Kullanıcı adı veya şifre yanlış'}, status=status.HTTP_401_UNAUTHORIZED)
     
-    token, _= Token.objects.get_or_create(user=user)
+    token, _ = Token.objects.get_or_create(user=user)
+    profile = getattr(user, 'profile', None)
+    if user.is_staff:
+        role = 'admin'
+    elif profile:
+        role = profile.role
+    else:
+        role = 'customer'
     return Response({
         'token': token.key,
         'username': user.username,
-        'is_staff': user.is_staff,
+        'role': role,
     })
 
 @api_view(['POST'])
@@ -367,11 +429,11 @@ def register_view(request):
         return Response({'error': 'Bu kullanıcı adı alınmış'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects.create_user(username=username, password=password, email=email)
-    CustomerProfile.objects.create(user=user, full_name=full_name, phone=phone)
+    CustomerProfile.objects.create(user=user, full_name=full_name, phone=phone, role='customer')
 
     token, _ = Token.objects.get_or_create(user=user)
     return Response({
         'token': token.key,
         'username': user.username,
-        'is_staff': user.is_staff,
+        'role': 'customer',
     })
