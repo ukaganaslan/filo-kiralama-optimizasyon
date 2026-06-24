@@ -398,8 +398,6 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
   background: #ede9fe; color: #35455e;
   border-radius: 50px; font-size: 12px; font-weight: 600;
 }
-.empty {
-  text-align: center; color: #94a3b8;
-  padding: 32px !important;
-}
+.empty { text-align: center; color: #94a3b8; padding: 32px !important; }
+td:nth-child(6), th:nth-child(6) { text-align: center; }
 </style>
