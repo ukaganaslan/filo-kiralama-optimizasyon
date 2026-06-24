@@ -103,9 +103,17 @@ class MaintenanceLog(models.Model):
 
 
 class CustomerProfile(models.Model):
+    ROLE_CHOICES = [
+        ('customer', 'Müşteri'),
+        ('representative', 'Temsilci'),
+        ('admin', 'Admin'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone = models.CharField(max_length=20, blank=True)
     full_name = models.CharField(max_length=100, blank=True)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')
+    branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name='representatives')
 
     def __str__(self):
         return self.full_name

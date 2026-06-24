@@ -42,9 +42,12 @@ async function handleLogin() {
       username: username.value,
       password: password.value,
     })
-    auth.login(response.data.token, response.data.username, response.data.is_staff)
-    if (response.data.is_staff) {
+    const { token, username: uname, role } = response.data
+    auth.login(token, uname, role)
+    if (role === 'admin') {
       router.push('/operator')
+    } else if (role === 'representative') {
+      router.push('/representative')
     } else {
       router.push('/dashboard')
     }
