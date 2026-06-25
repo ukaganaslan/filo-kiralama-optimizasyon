@@ -18,6 +18,7 @@
       <thead>
         <tr>
           <th>ID</th>
+          <th>Araç</th>
           <th>Müşteri</th>
           <th>Grup</th>
           <th>Başlangıç</th>
@@ -29,6 +30,7 @@
       <tbody>
         <tr v-for="r in reservations" :key="r.id">
           <td class="id">{{ r.reservation_id }}</td>
+          <td>{{ r.assigned_vehicle_id }}</td>
           <td>{{ r.customer_username }}</td>
           <td>{{ r.vehicle_group }}</td>
           <td>{{ r.start_date }}</td>
