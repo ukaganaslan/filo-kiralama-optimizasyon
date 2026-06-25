@@ -53,10 +53,23 @@ class ReservationSerializer(serializers.ModelSerializer):
     reservation_id = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
     assigned_vehicle_id = serializers.SerializerMethodField()
+    current_status = serializers.SerializerMethodField()
 
     def get_assigned_vehicle_id(self, obj):
         result = obj.assignmentresult_set.order_by('-run__created_at').first()
         return result.vehicle.vehicle_id if result else None
+    
+    def get_current_status(self, obj):
+        from datetime import date
+        today = date.today()
+        if obj.status == 'cancelled':
+            return 'cancelled'
+        if obj.status == 'assigned':
+            if obj.start_date <= today and obj.end_date >= today:
+                return 'active'
+            if obj.end_date < today:
+                return 'completed'
+        return obj.status
 
     class Meta:
         model = Reservation
@@ -64,7 +77,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             'id', 'reservation_id', 'branch', 'branch_name', 'branch_title',
             'return_branch', 'return_branch_name', 'return_branch_title',
             'vehicle_group', 'start_date', 'end_date', 'status',
-            'customer_username', 'assigned_vehicle_id',
+            'customer_username', 'assigned_vehicle_id', 'current_status',
             'guest_name', 'guest_phone', 'guest_email',
         ]
 

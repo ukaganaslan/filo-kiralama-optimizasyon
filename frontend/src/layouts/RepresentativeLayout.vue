@@ -21,6 +21,9 @@
         <router-link to="/representative/araclar" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
           <span class="nav-icon">🚗</span> Araçlar
         </router-link>
+        <router-link to="/representative/logs" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
+          <span class="nav-icon">📋</span> Teslimat Logları
+        </router-link>
       </nav>
 
       <div class="sidebar-footer">

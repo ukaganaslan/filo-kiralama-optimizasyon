@@ -27,6 +27,7 @@ const routes = [
             { path: '', component: () => import('../views/RepresentativeDashboard.vue') },
             { path: 'araclar', component: () => import('../views/RepresentativeAraclar.vue') },
             { path: 'profil', component: () => import('../views/RepresentativeProfil.vue') },
+            {path: 'logs', component: () => import('../views/DeliveryLogs.vue')},
         ]
     },
     {
@@ -42,6 +43,7 @@ const routes = [
             { path: 'karsılanamayan-rez', component: () => import('../views/Karşılanamayan Rezervasyonlar.vue') },
             { path: 'transfer-ucretleri', component: () => import('../views/TransferUcretleri.vue') },
             { path: 'profil', component: () => import('../views/OperatorProfil.vue') },
+            { path: 'logs', component: () => import('../views/DeliveryLogs.vue') },
         ]
     },
 ]

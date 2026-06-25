@@ -37,6 +37,9 @@
         <router-link to="/operator/karsılanamayan-rez" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
           <span class="nav-icon">⚠️</span> Karşılanamayan
         </router-link>
+        <router-link to="/operator/logs" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
+          <span class="nav-icon">📋</span> Teslimat Logları
+        </router-link>
       </nav>
 
       <div class="sidebar-footer">

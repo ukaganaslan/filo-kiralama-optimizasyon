@@ -36,7 +36,7 @@
             <td><span :class="'badge badge-' + r.status">{{ statusLabel(r.status) }}</span></td>
             <td>
               <button
-                v-if="r.status !== 'cancelled'"
+                v-if="r.status !== 'cancelled' && new Date(r.start_date + 'T00:00:00' ) > new Date()"
                 class="btn-cancel"
                 @click="handleCancel(r.reservation_id)"
               >İptal Et</button>
