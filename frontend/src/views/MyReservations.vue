@@ -98,10 +98,6 @@ th { background: #f8fafc; font-weight: 700; color: #64748b; font-size: 11px; tex
 td { border-top: 1px solid #f8fafc; color: #1e293b; }
 tr:hover td { background: #fafbff; }
 .res-id { font-weight: 700; color: #6366f1; font-size: 13px; }
-.badge { padding: 4px 10px; border-radius: 50px; font-size: 12px; font-weight: 700; }
-.badge-pending { background: #fef3c7; color: #92400e; }
-.badge-assigned { background: #dcfce7; color: #15803d; }
-.badge-cancelled { background: #fee2e2; color: #991b1b; }
 .btn-cancel { padding: 5px 12px; background: white; color: #dc2626; border: 1.5px solid #fca5a5; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
 .btn-cancel:hover { background: #fff1f2; border-color: #dc2626; }
 .error-msg { color: #dc2626; font-size: 13px; margin-top: 12px; background: #fff1f2; padding: 10px 14px; border-radius: 8px; }

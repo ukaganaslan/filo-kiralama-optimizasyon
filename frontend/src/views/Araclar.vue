@@ -29,7 +29,7 @@
           <td>{{ v.plate || '—' }}</td>
           <td><span :class="'badge-group badge-' + v.group">{{ groupLabel(v.group) }}</span></td>
           <td>{{ v.branch_name || '—' }}</td>
-          <td><span :class="'badge-status badge-' + v.status">{{ statusLabel(v.status) }}</span></td>
+          <td><span :class="'badge-status badge-' + v.current_status">{{ statusLabel(v.current_status) }}</span></td>
           <td class="actions">
             <button class="btn-edit" @click="openEdit(v)">✏️</button>
             <button class="btn-delete" @click="confirmDelete(v)">🗑️</button>
@@ -140,7 +140,7 @@ function groupLabel(g) {
 }
 
 function statusLabel(s) {
-  return { available: 'Müsait', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif', reserved: 'Rezerve Edildi' }[s] || s
+  return { available: 'Müsait', rented: 'Kiralandı', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif' }[s] || s
 }
 
 function openAdd() {
@@ -213,15 +213,6 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }
 .vehicle-id { font-weight: 700; color: #1e293b; font-family: monospace; }
 .actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-.badge-group, .badge-status { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.badge-economy { background: #dbeafe; color: #1d4ed8; }
-.badge-mid { background: #fef3c7; color: #92400e; }
-.badge-suv { background: #f3e8ff; color: #6b21a8; }
-.badge-available { background: #d1fae5; color: #065f46; }
-.badge-maintenance { background: #fef3c7; color: #92400e; }
-.badge-service { background: #fee2e2; color: #991b1b; }
-.badge-inactive { background: #f1f5f9; color: #64748b; }
-.badge-reserved { background: #ede9fe; color: #4f46e5; }
 .btn-edit { padding: 4px 10px; background: white; color: #6366f1; border: 1px solid #6366f1; border-radius: 50px; font-size: 12px; cursor: pointer; }
 .btn-edit:hover { background: #ede9fe; }
 .btn-delete { padding: 4px 12px; background: white; color: #dc2626; border: 1px solid #dc2626; border-radius: 50px; font-size: 12px; cursor: pointer; }
