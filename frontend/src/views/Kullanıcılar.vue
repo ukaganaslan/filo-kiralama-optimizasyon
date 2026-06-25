@@ -135,14 +135,14 @@ const addForm = ref({ username: '', password: '', full_name: '', email: '', phon
 const editForm = ref({ id: null, username: '', full_name: '', email: '', phone: '', password: '', role: 'customer', branch_id: '' })
 
 async function loadUsers() {
-  const res = await axios.get('http://127.0.0.1:8000/api/users/')
+  const res = await axios.get('/api/users/')
   users.value = res.data
 }
 
 onMounted(async () => {
   const [usersRes, branchRes] = await Promise.all([
-    axios.get('http://127.0.0.1:8000/api/users/'),
-    axios.get('http://127.0.0.1:8000/api/branches/'),
+    axios.get('/api/users/'),
+    axios.get('/api/branches/'),
   ])
   users.value = usersRes.data
   branches.value = branchRes.data
@@ -163,7 +163,7 @@ function openEdit(u) {
 async function saveAdd() {
   formError.value = ''
   try {
-    await axios.post('http://127.0.0.1:8000/api/users/create/', {
+    await axios.post('/api/users/create/', {
       ...addForm.value,
       branch: addForm.value.role === 'representative' ? addForm.value.branch : undefined,
     })
@@ -177,7 +177,7 @@ async function saveAdd() {
 async function saveEdit() {
   formError.value = ''
   try {
-    await axios.patch(`http://127.0.0.1:8000/api/users/${editForm.value.id}/update/`, {
+    await axios.patch(`/api/users/${editForm.value.id}/update/`, {
       username: editForm.value.username,
       full_name: editForm.value.full_name,
       email: editForm.value.email,
@@ -204,7 +204,7 @@ const filtered = computed(() => {
 })
 
 async function toggleActive(u) {
-  await axios.post(`http://127.0.0.1:8000/api/users/${u.id}/toggle-active/`)
+  await axios.post(`/api/users/${u.id}/toggle-active/`)
   u.is_active = !u.is_active
 }
 

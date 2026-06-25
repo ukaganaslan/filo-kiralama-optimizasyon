@@ -46,7 +46,7 @@ const success = ref('')
 const error = ref('')
 
 onMounted(async () => {
-  const res = await axios.get('http://127.0.0.1:8000/api/profile/')
+  const res = await axios.get('/api/profile/')
   form.value = { ...res.data, new_password: '' }
 })
 
@@ -54,7 +54,7 @@ async function handleSave() {
   success.value = ''
   error.value = ''
   try {
-    const res = await axios.patch('http://127.0.0.1:8000/api/profile/', {
+    const res = await axios.patch('/api/profile/', {
       username: form.value.username,
       email: form.value.email,
       full_name: form.value.full_name,

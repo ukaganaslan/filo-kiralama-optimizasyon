@@ -223,7 +223,7 @@ const disabledDates = computed(() => {
 })
 
 onMounted(async () => {
-  const res = await axios.get('http://127.0.0.1:8000/api/branches/')
+  const res = await axios.get('/api/branches/')
   branches.value = res.data
 })
 
@@ -251,7 +251,7 @@ function onPickupChange() {
 
 async function fetchTransferCost() {
   if (!form.value.branch || !form.value.return_branch) { transferCost.value = null; return }
-  const res = await axios.get('http://127.0.0.1:8000/api/transfer-cost/', {
+  const res = await axios.get('/api/transfer-cost/', {
     params: { from: form.value.branch, to: form.value.return_branch }
   })
   transferCost.value = res.data.cost
@@ -263,7 +263,7 @@ async function goStep2() {
   dateRange.value = { start: null, end: null }
   step.value = 2
   try {
-    const res = await axios.get('http://127.0.0.1:8000/api/availability/', {
+    const res = await axios.get('/api/availability/', {
       params: { branch: form.value.branch, group: form.value.vehicle_group }
     })
     availableDates.value = res.data.available_dates
@@ -284,7 +284,7 @@ async function handleCreate() {
     return
   }
   try {
-    const res = await axios.post('http://127.0.0.1:8000/api/guest-reservation/', {
+    const res = await axios.post('/api/guest-reservation/', {
       guest_name: guest.value.name,
       guest_phone: guest.value.phone,
       guest_email: guest.value.email,
@@ -322,7 +322,7 @@ async function handleQuery() {
     return
   }
   try {
-    const res = await axios.get('http://127.0.0.1:8000/api/guest-reservation/query/', {
+    const res = await axios.get('/api/guest-reservation/query/', {
       params: { code: query.value.code }
     })
     queryResult.value = res.data
@@ -339,7 +339,7 @@ async function handleCancel() {
     return
   }
   try {
-    await axios.post('http://127.0.0.1:8000/api/guest-reservation/cancel/', {
+    await axios.post('/api/guest-reservation/cancel/', {
       code: query.value.code,
       email: query.value.email,
     })

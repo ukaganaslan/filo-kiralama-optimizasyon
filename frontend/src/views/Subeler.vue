@@ -106,8 +106,8 @@ const editError = ref('')
 
 async function loadBranches() {
   const [branchRes, vehicleRes] = await Promise.all([
-    axios.get('http://127.0.0.1:8000/api/branches/'),
-    axios.get('http://127.0.0.1:8000/api/vehicles/'),
+    axios.get('/api/branches/'),
+    axios.get('/api/vehicles/'),
   ])
   const vehicles = vehicleRes.data
   branches.value = branchRes.data.map(b => ({
@@ -130,7 +130,7 @@ async function saveAdd() {
     return
   }
   try {
-    await axios.post('http://127.0.0.1:8000/api/branches/', addForm.value)
+    await axios.post('/api/branches/', addForm.value)
     addModal.value = false
     await loadBranches()
   } catch {
@@ -146,7 +146,7 @@ function openEdit(branch) {
 
 async function saveEdit() {
   try {
-    await axios.patch(`http://127.0.0.1:8000/api/branches/${editForm.value.id}/`, {
+    await axios.patch(`/api/branches/${editForm.value.id}/`, {
       name: editForm.value.name,
       title: editForm.value.title,
     })

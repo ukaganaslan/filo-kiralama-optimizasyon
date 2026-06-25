@@ -79,7 +79,7 @@ onMounted(() => document.addEventListener('click', handleClickOutside))
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
 async function handleLogout() {
-  await axios.post('http://127.0.0.1:8000/api/logout/')
+  await axios.post('/api/logout/')
   auth.logout()
   router.push('/')
 }

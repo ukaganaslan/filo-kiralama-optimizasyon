@@ -67,14 +67,14 @@ function statusLabel(s) {
 }
 
 onMounted(async () => {
-  const res = await axios.get('http://127.0.0.1:8000/api/reservations/')
+  const res = await axios.get('/api/reservations/')
   reservations.value = res.data
 })
 
 async function handleCancel(reservationId) {
   try {
-    await axios.post(`http://127.0.0.1:8000/api/reservations/${reservationId}/cancel/`)
-    const res = await axios.get('http://127.0.0.1:8000/api/reservations/')
+    await axios.post(`/api/reservations/${reservationId}/cancel/`)
+    const res = await axios.get('/api/reservations/')
     reservations.value = res.data
   } catch {
     error.value = 'İptal işlemi başarısız.'

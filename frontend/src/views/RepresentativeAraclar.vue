@@ -116,7 +116,7 @@ const deletingVehicle = ref(null)
 onMounted(loadVehicles)
 
 async function loadVehicles() {
-  const res = await axios.get('http://127.0.0.1:8000/api/vehicles/')
+  const res = await axios.get('/api/vehicles/')
   vehicles.value = res.data
 }
 
@@ -138,7 +138,7 @@ async function saveEdit() {
   formError.value = ''
   try {
     if (editingId.value) {
-      await axios.patch(`http://127.0.0.1:8000/api/vehicles/${editingId.value}/`, {
+      await axios.patch(`/api/vehicles/${editingId.value}/`, {
         brand: editForm.value.brand,
         model: editForm.value.model,
         plate: editForm.value.plate,
@@ -147,7 +147,7 @@ async function saveEdit() {
         status: editForm.value.status,
       })
     } else {
-      await axios.post('http://127.0.0.1:8000/api/vehicles/', {
+      await axios.post('/api/vehicles/', {
         brand: editForm.value.brand,
         model: editForm.value.model,
         plate: editForm.value.plate,
@@ -170,7 +170,7 @@ function confirmDelete(v) {
 
 async function doDelete() {
   try {
-    await axios.delete(`http://127.0.0.1:8000/api/vehicles/${deletingVehicle.value.id}/`)
+    await axios.delete(`/api/vehicles/${deletingVehicle.value.id}/`)
     deleteModal.value = false
     deletingVehicle.value = null
     await loadVehicles()

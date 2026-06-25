@@ -246,11 +246,11 @@ const disabledDates = computed(() => {
 onMounted(async () => {
   document.addEventListener('click', handleOutsideClick)
   const [rezRes, profileRes, usersRes, branchRes, vehicleRes] = await Promise.all([
-    axios.get('http://127.0.0.1:8000/api/reservations/'),
-    axios.get('http://127.0.0.1:8000/api/profile/'),
-    axios.get('http://127.0.0.1:8000/api/users/'),
-    axios.get('http://127.0.0.1:8000/api/branches/'),
-    axios.get('http://127.0.0.1:8000/api/vehicles/'),
+    axios.get('/api/reservations/'),
+    axios.get('/api/profile/'),
+    axios.get('/api/users/'),
+    axios.get('/api/branches/'),
+    axios.get('/api/vehicles/'),
   ])
   reservations.value = rezRes.data
   branchId.value = profileRes.data.branch_id
@@ -272,7 +272,7 @@ function onDifferentReturnChange() {
 
 async function fetchTransferCost() {
   if (!branchId.value || !form.value.return_branch) { transferCost.value = null; return }
-  const res = await axios.get('http://127.0.0.1:8000/api/transfer-cost/', {
+  const res = await axios.get('/api/transfer-cost/', {
     params: { from: branchId.value, to: form.value.return_branch }
   })
   transferCost.value = res.data.cost
@@ -284,7 +284,7 @@ async function fetchAvailability() {
   availableDates.value = []
   dateRange.value = { start: null, end: null }
   try {
-    const res = await axios.get('http://127.0.0.1:8000/api/availability/', {
+    const res = await axios.get('/api/availability/', {
       params: { branch: branchId.value, group: form.value.vehicle_group }
     })
     availableDates.value = res.data.available_dates
@@ -326,7 +326,7 @@ async function handleCreate() {
   formError.value = ''
   formSuccess.value = ''
   try {
-    await axios.post('http://127.0.0.1:8000/api/reservations/', {
+    await axios.post('/api/reservations/', {
       branch: branchId.value,
       vehicle_group: form.value.vehicle_group,
       start_date: toLocalDateStr(dateRange.value.start),
@@ -335,7 +335,7 @@ async function handleCreate() {
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
     })
     formSuccess.value = 'Rezervasyon oluşturuldu.'
-    const res = await axios.get('http://127.0.0.1:8000/api/reservations/')
+    const res = await axios.get('/api/reservations/')
     reservations.value = res.data
     form.value = { customer_id: '', vehicle_group: '' }
     dateRange.value = { start: null, end: null }

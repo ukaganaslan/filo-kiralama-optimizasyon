@@ -68,7 +68,7 @@ const auth = useAuthStore()
 
 async function handleRegister() {
   try {
-    const response = await axios.post('http://127.0.0.1:8000/api/register/', {
+    const response = await axios.post('/api/register/', {
       full_name: fullName.value,
       phone: phone.value,
       email: email.value,
