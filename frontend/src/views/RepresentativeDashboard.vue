@@ -167,7 +167,12 @@ const calendarOptions = computed(() => ({
   initialView: 'resourceTimelineMonth',
   selectable: true,
   select(info) {
-    openCreate()
+    const startStr = info.startStr
+    const endD = new Date(info.end)
+    endD.setDate(endD.getDate() - 1)
+    const endStr = toLocalDateStr(endD)
+    const vehicle = vehicles.value.find(v => v.vehicle_id === info.resource?.id)
+    openCreate({ startDate: startStr, endDate: endStr, vehicleGroup: vehicle?.group || '' })
   },
   schedulerLicenseKey: 'non-commercial-and-evaluation',
   locale: trLocale,
@@ -180,7 +185,6 @@ const calendarOptions = computed(() => ({
     id: v.vehicle_id,
     title: `${v.vehicle_id} (${v.group})`,
   })),
-  
   events: reservations.value
     .filter(r => r.assigned_vehicle_id && r.status !== 'cancelled')
     .map(r => ({
@@ -292,8 +296,8 @@ function toLocalDateStr(date) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
-function openCreate() {
-  form.value = { customer_id: '', vehicle_group: '', branch: '', return_branch: '' }
+async function openCreate({ startDate = null, endDate = null, vehicleGroup = '' } = {}) {
+  form.value = { customer_id: '', vehicle_group: vehicleGroup, branch: '', return_branch: '' }
   dateRange.value = { start: null, end: null }
   availableDates.value = []
   formError.value = ''
@@ -304,6 +308,16 @@ function openCreate() {
   differentReturn.value = false
   transferCost.value = null
   createModal.value = true
+
+  if (vehicleGroup) {
+    await fetchAvailability()
+    if (startDate && endDate) {
+      dateRange.value = {
+        start: new Date(startDate + 'T00:00:00'),
+        end: new Date(endDate + 'T00:00:00'),
+      }
+    }
+  }
 }
 
 async function handleCreate() {

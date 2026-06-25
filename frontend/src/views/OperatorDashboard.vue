@@ -1,5 +1,28 @@
 <template>
   <div class="content">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Aktif Rezervasyon</div>
+        <div class="stat-value">{{ activeCount }}</div>
+        <div class="stat-sub">{{ cancelledCount }} iptal</div>
+      </div>
+      <div class="stat-card stat-amber">
+        <div class="stat-label">Bekleyen</div>
+        <div class="stat-value">{{ pendingCount }}</div>
+        <div class="stat-sub">atama bekliyor</div>
+      </div>
+      <div class="stat-card stat-green">
+        <div class="stat-label">Atandı</div>
+        <div class="stat-value">{{ assignedCount }}</div>
+        <div class="stat-sub">aktif rezervasyon</div>
+      </div>
+      <div class="stat-card stat-blue">
+        <div class="stat-label">Araç Filosu</div>
+        <div class="stat-value">{{ availableVehicles }}<span class="stat-denom"> / {{ totalVehicles }}</span></div>
+        <div class="stat-sub">müsait araç</div>
+      </div>
+    </div>
+
     <div class="section-header">
       <h2>Tüm Rezervasyonlar</h2>
       <div class="header-actions">
@@ -54,6 +77,13 @@ const reservations = ref([])
 const activeView = ref('list')
 const vehicles = ref([])
 
+const activeCount = computed(() => reservations.value.filter(r => r.status !== 'cancelled').length)
+const pendingCount = computed(() => reservations.value.filter(r => r.status === 'pending').length)
+const assignedCount = computed(() => reservations.value.filter(r => r.status === 'assigned').length)
+const cancelledCount = computed(() => reservations.value.filter(r => r.status === 'cancelled').length)
+const totalVehicles = computed(() => vehicles.value.length)
+const availableVehicles = computed(() => vehicles.value.filter(v => v.status === 'available').length)
+
 onMounted(async () => {
   const [rezRes, vehicleRes] = await Promise.all([
     axios.get('http://127.0.0.1:8000/api/reservations/'),
@@ -98,6 +128,46 @@ const calendarOptions = computed(() => ({
 <style scoped>
 .content {
   padding: 32px 40px;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.stat-card {
+  background: white;
+  border-radius: 14px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  border-left: 4px solid #6366f1;
+}
+.stat-card.stat-amber { border-left-color: #f59e0b; }
+.stat-card.stat-green { border-left-color: #10b981; }
+.stat-card.stat-blue  { border-left-color: #3b82f6; }
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.stat-denom {
+  font-size: 18px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+.stat-sub {
+  font-size: 12px;
+  color: #94a3b8;
 }
 .section-header {
   display: flex;
