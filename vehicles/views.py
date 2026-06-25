@@ -18,7 +18,7 @@ class BranchViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
-            return [permissions.IsAuthenticated()]
+            return [permissions.AllowAny()]
         return [permissions.IsAdminUser()]
 
 
@@ -78,6 +78,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
         serializer.save(vehicle_id=vehicle_id, branch=branch)
 
 
+
 class ReservationViewSet(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -118,6 +119,10 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if profile and profile.role == 'representative' and profile.branch:
             save_kwargs['branch'] = profile.branch
         serializer.save(**save_kwargs)
+        _run_optimization()
+    
+    def perform_destroy(self, instance):
+        instance.delete()
         _run_optimization()
 
 def _run_optimization():
@@ -236,7 +241,7 @@ def latest_optimization(request):
     })
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny])
 def transfer_cost_view(request):
     from_id = request.query_params.get('from')
     to_id = request.query_params.get('to')
@@ -481,6 +486,47 @@ def logout_view(request):
     return Response({'message': 'Çıkış Yapıldı'})
 
 @api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def guest_reservation(request):
+    guest_name = request.data.get('guest_name')
+    guest_phone = request.data.get('guest_phone', '')
+    guest_email = request.data.get('guest_email')
+    branch_id = request.data.get('branch')
+    vehicle_group = request.data.get('vehicle_group')
+    start_date = request.data.get('start_date')
+    end_date = request.data.get('end_date')
+
+    if not all([guest_name, guest_email, branch_id, vehicle_group, start_date, end_date]):
+        return Response({'error': 'Tüm alanları doldurun'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        return Response({'error': 'Şube bulunamadı'}, status=status.HTTP_400_BAD_REQUEST)
+
+    reservation_id = 'G' + uuid.uuid4().hex[:7].upper()
+
+    reservation = Reservation.objects.create(
+        reservation_id=reservation_id,
+        customer=None,
+        guest_name=guest_name,
+        guest_phone=guest_phone,
+        guest_email=guest_email,
+        branch=branch,
+        vehicle_group=vehicle_group,
+        start_date=start_date,
+        end_date=end_date,
+        status='pending',
+    )
+
+    _run_optimization()
+
+    return Response({
+        'code': reservation.reservation_id[:8].upper(),
+        'message': 'Rezervasyonunuz alındı.',
+    }, status=status.HTTP_201_CREATED)
+
+@api_view(['POST'])
 def register_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
@@ -500,3 +546,56 @@ def register_view(request):
         'username': user.username,
         'role': 'customer',
     })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def guest_reservation_detail(request):
+    code = request.query_params.get('code', '').strip().upper()
+    if not code:
+        return Response({'error': 'Kod gerekli'}, status=status.HTTP_400_BAD_REQUEST)
+
+    reservation = Reservation.objects.filter(
+        reservation_id__istartswith=code,
+        customer=None,
+    ).first()
+
+    if not reservation:
+        return Response({'error': 'Rezervasyon bulunamadı'}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response({
+        'reservation_id': reservation.reservation_id,
+        'code': reservation.reservation_id[:8].upper(),
+        'guest_name': reservation.guest_name,
+        'branch': reservation.branch.title or reservation.branch.name,
+        'vehicle_group': reservation.vehicle_group,
+        'start_date': str(reservation.start_date),
+        'end_date': str(reservation.end_date),
+        'status': reservation.status,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def guest_cancel(request):
+    code = request.data.get('code', '').strip().upper()
+    email = request.data.get('email', '').strip().lower()
+
+    if not code or not email:
+        return Response({'error': 'Kod ve e-posta gerekli'}, status=status.HTTP_400_BAD_REQUEST)
+
+    reservation = Reservation.objects.filter(
+        reservation_id__istartswith=code,
+        customer=None,
+        guest_email__iexact=email,
+    ).first()
+
+    if not reservation:
+        return Response({'error': 'Rezervasyon bulunamadı'}, status=status.HTTP_404_NOT_FOUND)
+
+    if reservation.status == 'cancelled':
+        return Response({'error': 'Bu rezervasyon zaten iptal edilmiş'}, status=status.HTTP_400_BAD_REQUEST)
+
+    reservation.status = 'cancelled'
+    reservation.save()
+    return Response({'message': 'Rezervasyon iptal edildi'})

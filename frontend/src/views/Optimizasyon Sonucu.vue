@@ -39,7 +39,7 @@
         <tbody>
           <tr v-for="a in result.assignments" :key="a.reservation_id">
             <td>{{ a.reservation_id }}</td>
-            <td>{{ a.customer_username }}</td>
+            <td>{{ a.customer_username || `Misafir - ${a.guest_name}` }}</td>
             <td>{{ a.vehicle_id }}</td>
             <td>{{ a.start_date }}</td>
             <td>{{ a.end_date }}</td>

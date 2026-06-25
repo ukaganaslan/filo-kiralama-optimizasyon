@@ -8,6 +8,7 @@ import RepresentativeLayout from '../layouts/RepresentativeLayout.vue'
 const routes = [
     { path: '/', component: LoginView },
     { path: '/register', component: RegisterView },
+    {path: '/misafir', component: () => import('../views/NoneedLogin.vue')},
     {
         path: '/dashboard',
         component: CustomerLayout,

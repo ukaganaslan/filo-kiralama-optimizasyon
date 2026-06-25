@@ -22,6 +22,7 @@
           <th>Grup</th>
           <th>Başlangıç</th>
           <th>Bitiş</th>
+          <th>İade Şube</th>
           <th>Durum</th>
         </tr>
       </thead>
@@ -32,10 +33,11 @@
           <td>{{ r.vehicle_group }}</td>
           <td>{{ r.start_date }}</td>
           <td>{{ r.end_date }}</td>
+          <td>{{ r.return_branch_title || r.branch_title }}</td>
           <td><span :class="'badge badge-' + r.status">{{ statusLabel(r.status) }}</span></td>
         </tr>
         <tr v-if="reservations.length === 0">
-          <td colspan="6" class="empty">Bu şubeye ait rezervasyon bulunamadı.</td>
+          <td colspan="7" class="empty">Bu şubeye ait rezervasyon bulunamadı.</td>
         </tr>
       </tbody>
     </table>
@@ -136,6 +138,7 @@ import axios from 'axios'
 import FullCalendar from '@fullcalendar/vue3'
 import ResourceTimelinePlugin from '@fullcalendar/resource-timeline'
 import trLocale from '@fullcalendar/core/locales/tr'
+import interactionPlugin from '@fullcalendar/interaction'
 
 const reservations = ref([])
 const vehicles = ref([])
@@ -160,8 +163,12 @@ const customerDropdownOpen = ref(false)
 const customerSearchRef = ref(null)
 
 const calendarOptions = computed(() => ({
-  plugins: [ResourceTimelinePlugin],
+  plugins: [ResourceTimelinePlugin, interactionPlugin],
   initialView: 'resourceTimelineMonth',
+  selectable: true,
+  select(info) {
+    openCreate()
+  },
   schedulerLicenseKey: 'non-commercial-and-evaluation',
   locale: trLocale,
   height: 'auto',
@@ -173,6 +180,7 @@ const calendarOptions = computed(() => ({
     id: v.vehicle_id,
     title: `${v.vehicle_id} (${v.group})`,
   })),
+  
   events: reservations.value
     .filter(r => r.assigned_vehicle_id && r.status !== 'cancelled')
     .map(r => ({
@@ -337,7 +345,7 @@ th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
 td { border-top: 1px solid #f1f5f9; color: #374151; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
-td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6) { text-align: center; }
+td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }
 .id { font-family: monospace; font-weight: 600; color: #1e293b; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 .badge { padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }

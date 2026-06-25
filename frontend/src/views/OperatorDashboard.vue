@@ -18,21 +18,25 @@
           <th>ID</th>
           <th>Müşteri</th>
           <th>Şube</th>
+          <th>İade Şube</th>
           <th>Grup</th>
           <th>Başlangıç</th>
           <th>Bitiş</th>
           <th>Durum</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="r in reservations" :key="r.id">
           <td>{{ r.reservation_id }}</td>
-          <td>{{ r.customer_username }}</td>
-          <td>{{ r.branch_name }}</td>
+          <td>{{ r.customer_username || `Misafir - ${r.guest_name}` }}</td>
+          <td>{{ r.branch_title }}</td>
+          <td>{{ r.return_branch_title || r.branch_title }}</td>
           <td>{{ r.vehicle_group }}</td>
           <td>{{ r.start_date }}</td>
           <td>{{ r.end_date }}</td>
           <td><span :class="'badge badge-' + r.status">{{ r.status }}</span></td>
+          <td><button class="btn-del" @click="deleteReservation(r)">🗑️</button></td>
         </tr>
       </tbody>
     </table>
@@ -59,6 +63,12 @@ onMounted(async () => {
   vehicles.value = vehicleRes.data
 })
 
+
+async function deleteReservation(r) {
+  if (!confirm(`${r.reservation_id} silinsin mi?`)) return
+  await axios.delete(`http://127.0.0.1:8000/api/reservations/${r.id}/`)
+  reservations.value = reservations.value.filter(x => x.id !== r.id)
+}
 
 const calendarOptions = computed(() => ({
   plugins: [ResourceTimelinePlugin],
@@ -146,7 +156,9 @@ td { border-top: 1px solid #f1f5f9; }
 .badge-assigned { background: #d1fae5; color: #065f46; }
 .badge-cancelled { background: #fee2e2; color: #991b1b; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
-td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }
+.btn-del { background: none; border: none; cursor: pointer; font-size: 16px; opacity: 0.4; padding: 4px 8px; border-radius: 6px; }
+.btn-del:hover { opacity: 1; background: #fee2e2; }
+td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7), td:nth-child(8), th:nth-child(8), td:nth-child(9), th:nth-child(9) { text-align: center; }
 </style>
 
 <style>
