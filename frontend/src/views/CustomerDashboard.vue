@@ -167,7 +167,7 @@ const disabledDates = computed(() => {
 })
 
 onMounted(async () => {
-  const res = await axios.get('http://127.0.0.1:8000/api/branches/')
+  const res = await axios.get('/api/branches/')
   branches.value = res.data
 })
 
@@ -202,7 +202,7 @@ async function fetchAvailability() {
   availableDates.value = []
   dateRange.value = { start: null, end: null }
   try {
-    const res = await axios.get('http://127.0.0.1:8000/api/availability/', {
+    const res = await axios.get('/api/availability/', {
       params: { branch: form.value.branch, group: form.value.vehicle_group }
     })
     availableDates.value = res.data.available_dates
@@ -213,7 +213,7 @@ async function fetchAvailability() {
 
 async function fetchTransferCost() {
   if (!form.value.branch || !form.value.return_branch) { transferCost.value = null; return }
-  const res = await axios.get('http://127.0.0.1:8000/api/transfer-cost/', {
+  const res = await axios.get('/api/transfer-cost/', {
     params: { from: form.value.branch, to: form.value.return_branch }
   })
   transferCost.value = res.data.cost
@@ -228,7 +228,7 @@ async function handleCreate() {
   formError.value = ''
   formSuccess.value = ''
   try {
-    await axios.post('http://127.0.0.1:8000/api/reservations/', {
+    await axios.post('/api/reservations/', {
       branch: form.value.branch,
       vehicle_group: form.value.vehicle_group,
       start_date: toLocalDateStr(dateRange.value.start),

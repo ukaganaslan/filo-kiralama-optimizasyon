@@ -48,7 +48,7 @@ const result = computed(() => optimizationStore.result)
 
 onMounted(async () => {
   if (!optimizationStore.result) {
-    const res = await axios.get('http://127.0.0.1:8000/api/optimize/latest/')
+    const res = await axios.get('/api/optimize/latest/')
     if (res.data) optimizationStore.setResult(res.data)
   }
 })

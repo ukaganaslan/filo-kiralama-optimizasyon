@@ -159,3 +159,18 @@ class AssignmentResult(models.Model):
     def __str__(self):
         return f"{self.reservation} → {self.vehicle}"
 
+class DeliveryLog(models.Model):
+    EVENT_CHOICES = [
+        ('delivered', 'Teslim Edildi'),
+        ('returned', 'İade Alındı'),
+    ]
+    reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, related_name='delivery_logs')
+    event_type = models.CharField(max_length=20, choices=EVENT_CHOICES)
+    logged_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('reservation', 'event_type')
+
+    def __str__(self):
+        return f"{self.reservation} - {self.event_type} - {self.logged_at}"
+

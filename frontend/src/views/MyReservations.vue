@@ -36,7 +36,7 @@
             <td><span :class="'badge badge-' + r.status">{{ statusLabel(r.status) }}</span></td>
             <td>
               <button
-                v-if="r.status !== 'cancelled'"
+                v-if="r.status !== 'cancelled' && new Date(r.start_date + 'T00:00:00' ) > new Date()"
                 class="btn-cancel"
                 @click="handleCancel(r.reservation_id)"
               >İptal Et</button>
@@ -67,14 +67,14 @@ function statusLabel(s) {
 }
 
 onMounted(async () => {
-  const res = await axios.get('http://127.0.0.1:8000/api/reservations/')
+  const res = await axios.get('/api/reservations/')
   reservations.value = res.data
 })
 
 async function handleCancel(reservationId) {
   try {
-    await axios.post(`http://127.0.0.1:8000/api/reservations/${reservationId}/cancel/`)
-    const res = await axios.get('http://127.0.0.1:8000/api/reservations/')
+    await axios.post(`/api/reservations/${reservationId}/cancel/`)
+    const res = await axios.get('/api/reservations/')
     reservations.value = res.data
   } catch {
     error.value = 'İptal işlemi başarısız.'

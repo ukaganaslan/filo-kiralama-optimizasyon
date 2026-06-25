@@ -7,7 +7,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
-from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost
+from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog
 from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
@@ -84,6 +84,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        _sync_delivery_logs()
         user = self.request.user
         if user.is_staff:
             return Reservation.objects.all()
@@ -125,14 +126,32 @@ class ReservationViewSet(viewsets.ModelViewSet):
         instance.delete()
         _run_optimization()
 
+def _sync_delivery_logs():
+    today = date.today()
+    active = Reservation.objects.filter(status='assigned', start_date__lte=today, end_date__gte=today)
+    for r in active:
+        DeliveryLog.objects.get_or_create(reservation=r, event_type='delivered')
+    completed = Reservation.objects.filter(status='assigned', end_date__lt=today)
+    for r in completed:
+        DeliveryLog.objects.get_or_create(reservation=r, event_type='delivered')
+        DeliveryLog.objects.get_or_create(reservation=r, event_type='returned')
+
 def _run_optimization():
-    reservations = list(Reservation.objects.exclude(status='cancelled'))
+    from datetime import date
+    today = date.today()
+    locked = list(Reservation.objects.filter(
+        status='assigned',
+        start_date__lte=today,
+        end_date__gte=today
+    ))
+    locked_ids = [r.id for r in locked]
+    free = list(Reservation.objects.exclude(status='cancelled').exclude(id__in=locked_ids))
     vehicles = list(Vehicle.objects.all())
 
-    assignments, unassigned = greedy_solver_güncel.solve(reservations, vehicles)
+    assignments, unassigned = greedy_solver_güncel.solve(free, vehicles)
     score = calculate_score(assignments, unassigned, vehicles)
 
-    Reservation.objects.exclude(status='cancelled').update(status='pending')
+    Reservation.objects.filter(id__in=[r.id for r in free]).update(status='pending')
     for a in assignments:
         a['reservation'].status = 'assigned'
         a['reservation'].save()
@@ -293,6 +312,9 @@ def cancel_reservation(request, reservation_id):
         reservation = Reservation.objects.get(reservation_id=reservation_id, customer=request.user)
     except Reservation.DoesNotExist:
         return Response({'error': 'Rezervasyon bulunamadı'}, status=404)
+    from datetime import date
+    if reservation.start_date <= date.today():
+        return Response({'error': 'Başlamış rezervasyon iptal edilemez'}, status=400)
     reservation.status = 'cancelled'
     reservation.save()
     return Response({'message': 'Rezervasyon iptal edildi'})
@@ -599,3 +621,39 @@ def guest_cancel(request):
     reservation.status = 'cancelled'
     reservation.save()
     return Response({'message': 'Rezervasyon iptal edildi'})
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def delivery_logs(request):
+    user = request.user
+    profile = getattr(user, 'profile', None)
+    if user.is_staff:
+        logs = DeliveryLog.objects.select_related(
+            'reservation', 'reservation__branch', 'reservation__customer'
+        ).order_by('-logged_at')
+    elif profile and profile.role == 'representative' and profile.branch:
+        logs = DeliveryLog.objects.filter(
+            reservation__branch=profile.branch
+        ).select_related(
+            'reservation', 'reservation__branch', 'reservation__customer'
+        ).order_by('-logged_at')
+    else:
+        return Response({'error': 'Yetkisiz'}, status=403)
+
+    data = []
+    for log in logs:
+        result = log.reservation.assignmentresult_set.order_by('-run__created_at').first()
+        plate = result.vehicle.plate if result else None
+        data.append({
+            'reservation_id': log.reservation.reservation_id,
+            'branch_name': log.reservation.branch.title or log.reservation.branch.name,
+            'vehicle_group': log.reservation.vehicle_group,
+            'customer': log.reservation.customer.username if log.reservation.customer else log.reservation.guest_name,
+            'start_date': log.reservation.start_date,
+            'end_date': log.reservation.end_date,
+            'event_type': log.event_type,
+            'logged_at': log.logged_at,
+            'assigned_vehicle_plate': plate,
+        })
+
+    return Response(data)

@@ -53,7 +53,7 @@ const auth = useAuthStore()
 
 async function handleLogin() {
   try {
-    const response = await axios.post('http://127.0.0.1:8000/api/login/', {
+    const response = await axios.post('/api/login/', {
       username: username.value,
       password: password.value,
     })

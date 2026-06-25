@@ -122,8 +122,8 @@ const deletingVehicle = ref(null)
 
 async function loadData() {
   const [vRes, bRes] = await Promise.all([
-    axios.get('http://127.0.0.1:8000/api/vehicles/'),
-    axios.get('http://127.0.0.1:8000/api/branches/'),
+    axios.get('/api/vehicles/'),
+    axios.get('/api/branches/'),
   ])
   vehicles.value = vRes.data.sort((a, b) => {
     if (a.branch !== b.branch) return a.branch - b.branch
@@ -164,9 +164,9 @@ async function saveForm() {
   }
   try {
     if (editingId.value) {
-      await axios.patch(`http://127.0.0.1:8000/api/vehicles/${editingId.value}/`, form.value)
+      await axios.patch(`/api/vehicles/${editingId.value}/`, form.value)
     } else {
-      await axios.post('http://127.0.0.1:8000/api/vehicles/', form.value)
+      await axios.post('/api/vehicles/', form.value)
     }
     formModal.value = false
     await loadData()
@@ -188,7 +188,7 @@ function confirmDelete(v) {
 
 async function doDelete() {
   try {
-    await axios.delete(`http://127.0.0.1:8000/api/vehicles/${deletingVehicle.value.id}/`)
+    await axios.delete(`/api/vehicles/${deletingVehicle.value.id}/`)
     deleteModal.value = false
     await loadData()
   } catch {

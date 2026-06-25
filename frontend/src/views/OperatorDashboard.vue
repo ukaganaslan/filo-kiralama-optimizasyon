@@ -4,17 +4,17 @@
       <div class="stat-card">
         <div class="stat-label">Aktif Rezervasyon</div>
         <div class="stat-value">{{ activeCount }}</div>
-        <div class="stat-sub">{{ cancelledCount }} iptal</div>
+        <div class="stat-sub">({{ cancelledCount }} iptal)</div>
       </div>
       <div class="stat-card stat-amber">
         <div class="stat-label">Bekleyen</div>
         <div class="stat-value">{{ pendingCount }}</div>
-        <div class="stat-sub">atama bekliyor</div>
+
       </div>
       <div class="stat-card stat-green">
         <div class="stat-label">Atandı</div>
         <div class="stat-value">{{ assignedCount }}</div>
-        <div class="stat-sub">aktif rezervasyon</div>
+
       </div>
     </div>
 
@@ -83,8 +83,8 @@ const availableVehicles = computed(() => vehicles.value.filter(v => v.status ===
 
 onMounted(async () => {
   const [rezRes, vehicleRes] = await Promise.all([
-    axios.get('http://127.0.0.1:8000/api/reservations/'),
-    axios.get('http://127.0.0.1:8000/api/vehicles/'),
+    axios.get('/api/reservations/'),
+    axios.get('/api/vehicles/'),
   ])
   reservations.value = rezRes.data
   vehicles.value = vehicleRes.data
@@ -93,7 +93,7 @@ onMounted(async () => {
 
 async function deleteReservation(r) {
   if (!confirm(`${r.reservation_id} silinsin mi?`)) return
-  await axios.delete(`http://127.0.0.1:8000/api/reservations/${r.id}/`)
+  await axios.delete(`/api/reservations/${r.id}/`)
   reservations.value = reservations.value.filter(x => x.id !== r.id)
 }
 

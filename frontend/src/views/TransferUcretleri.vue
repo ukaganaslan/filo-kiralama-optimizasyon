@@ -93,8 +93,8 @@ const deletingCost = ref(null)
 
 async function loadData() {
   const [cRes, bRes] = await Promise.all([
-    axios.get('http://127.0.0.1:8000/api/transfer-costs/'),
-    axios.get('http://127.0.0.1:8000/api/branches/'),
+    axios.get('/api/transfer-costs/'),
+    axios.get('/api/branches/'),
   ])
   costs.value = cRes.data
   branches.value = bRes.data
@@ -128,9 +128,9 @@ async function saveForm() {
   }
   try {
     if (editingId.value) {
-      await axios.patch(`http://127.0.0.1:8000/api/transfer-costs/${editingId.value}/`, form.value)
+      await axios.patch(`/api/transfer-costs/${editingId.value}/`, form.value)
     } else {
-      await axios.post('http://127.0.0.1:8000/api/transfer-costs/', form.value)
+      await axios.post('/api/transfer-costs/', form.value)
     }
     formModal.value = false
     await loadData()
@@ -151,7 +151,7 @@ function confirmDelete(c) {
 
 async function doDelete() {
   try {
-    await axios.delete(`http://127.0.0.1:8000/api/transfer-costs/${deletingCost.value.id}/`)
+    await axios.delete(`/api/transfer-costs/${deletingCost.value.id}/`)
     deleteModal.value = false
     await loadData()
   } catch {

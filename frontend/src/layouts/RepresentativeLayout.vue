@@ -21,6 +21,9 @@
         <router-link to="/representative/araclar" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
           <span class="nav-icon">🚗</span> Araçlar
         </router-link>
+        <router-link to="/representative/logs" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
+          <span class="nav-icon">📋</span> Teslimat Logları
+        </router-link>
       </nav>
 
       <div class="sidebar-footer">
@@ -79,7 +82,7 @@ onMounted(() => document.addEventListener('click', handleClickOutside))
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
 async function handleLogout() {
-  await axios.post('http://127.0.0.1:8000/api/logout/')
+  await axios.post('/api/logout/')
   auth.logout()
   router.push('/')
 }
