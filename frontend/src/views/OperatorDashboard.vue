@@ -34,6 +34,7 @@
       <thead>
         <tr>
           <th>ID</th>
+          <th>Araç</th>
           <th>Müşteri</th>
           <th>Şube</th>
           <th>İade Şube</th>
@@ -47,6 +48,7 @@
       <tbody>
         <tr v-for="r in reservations" :key="r.id">
           <td>{{ r.reservation_id }}</td>
+          <td>{{ r.assigned_vehicle_id }}</td>
           <td>{{ r.customer_username || `Misafir - ${r.guest_name}` }}</td>
           <td>{{ r.branch_title }}</td>
           <td>{{ r.return_branch_title || r.branch_title }}</td>
@@ -219,7 +221,7 @@ td { border-top: 1px solid #f1f5f9; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 .btn-del { background: none; border: none; cursor: pointer; font-size: 16px; opacity: 0.4; padding: 4px 8px; border-radius: 6px; }
 .btn-del:hover { opacity: 1; background: #fee2e2; }
-td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7), td:nth-child(8), th:nth-child(8), td:nth-child(9), th:nth-child(9) { text-align: center; }
+td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7), td:nth-child(8), th:nth-child(8), td:nth-child(9), th:nth-child(9), td:nth-child(10), th:nth-child(10) { text-align: center; }
 </style>
 
 <style>
