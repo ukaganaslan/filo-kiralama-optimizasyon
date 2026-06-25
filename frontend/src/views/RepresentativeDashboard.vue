@@ -22,6 +22,7 @@
           <th>Grup</th>
           <th>Başlangıç</th>
           <th>Bitiş</th>
+          <th>İade Şube</th>
           <th>Durum</th>
         </tr>
       </thead>
@@ -32,10 +33,11 @@
           <td>{{ r.vehicle_group }}</td>
           <td>{{ r.start_date }}</td>
           <td>{{ r.end_date }}</td>
+          <td>{{ r.return_branch_title || r.branch_title }}</td>
           <td><span :class="'badge badge-' + r.status">{{ statusLabel(r.status) }}</span></td>
         </tr>
         <tr v-if="reservations.length === 0">
-          <td colspan="6" class="empty">Bu şubeye ait rezervasyon bulunamadı.</td>
+          <td colspan="7" class="empty">Bu şubeye ait rezervasyon bulunamadı.</td>
         </tr>
       </tbody>
     </table>

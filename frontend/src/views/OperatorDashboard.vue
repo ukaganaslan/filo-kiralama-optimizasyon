@@ -18,6 +18,7 @@
           <th>ID</th>
           <th>Müşteri</th>
           <th>Şube</th>
+          <th>İade Şube</th>
           <th>Grup</th>
           <th>Başlangıç</th>
           <th>Bitiş</th>
@@ -29,7 +30,8 @@
         <tr v-for="r in reservations" :key="r.id">
           <td>{{ r.reservation_id }}</td>
           <td>{{ r.customer_username || `Misafir - ${r.guest_name}` }}</td>
-          <td>{{ r.branch_name }}</td>
+          <td>{{ r.branch_title }}</td>
+          <td>{{ r.return_branch_title || r.branch_title }}</td>
           <td>{{ r.vehicle_group }}</td>
           <td>{{ r.start_date }}</td>
           <td>{{ r.end_date }}</td>

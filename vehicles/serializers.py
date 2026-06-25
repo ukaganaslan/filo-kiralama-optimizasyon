@@ -19,19 +19,22 @@ class BranchSerializer(serializers.ModelSerializer):
 
 class VehicleSerializer(serializers.ModelSerializer):
     branch_name = serializers.CharField(source='branch.name', read_only=True)
+    branch_title = serializers.CharField(source='branch.title', read_only=True)
     vehicle_id = serializers.CharField(read_only=True)
 
     class Meta:
         model = Vehicle
         fields = [
-            'id', 'vehicle_id', 'group', 'brand', 'model', 'plate', 'sasi', 'branch', 'branch_name',
+            'id', 'vehicle_id', 'group', 'brand', 'model', 'plate', 'sasi', 'branch', 'branch_name','branch_title',
             'status', 'total_reservations', 'total_km', 'maintenance_due',
         ]
 
 
 class ReservationSerializer(serializers.ModelSerializer):
     branch_name = serializers.CharField(source='branch.name', read_only=True)
+    branch_title = serializers.CharField(source='branch.title', read_only=True)
     return_branch_name = serializers.CharField(source='return_branch.name', read_only=True, default=None)
+    return_branch_title = serializers.CharField(source='return_branch.title', read_only=True, default=None)
     customer_username = serializers.CharField(source='customer.username', read_only=True)
     reservation_id = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
@@ -44,8 +47,8 @@ class ReservationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reservation
         fields = [
-            'id', 'reservation_id', 'branch', 'branch_name',
-            'return_branch', 'return_branch_name',
+            'id', 'reservation_id', 'branch', 'branch_name', 'branch_title',
+            'return_branch', 'return_branch_name', 'return_branch_title',
             'vehicle_group', 'start_date', 'end_date', 'status',
             'customer_username', 'assigned_vehicle_id',
             'guest_name', 'guest_phone', 'guest_email',
