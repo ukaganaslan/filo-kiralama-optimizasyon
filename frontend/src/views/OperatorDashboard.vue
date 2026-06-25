@@ -216,10 +216,6 @@ th {
   letter-spacing: 0.05em;
 }
 td { border-top: 1px solid #f1f5f9; }
-.badge { padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.badge-pending { background: #fef3c7; color: #92400e; }
-.badge-assigned { background: #d1fae5; color: #065f46; }
-.badge-cancelled { background: #fee2e2; color: #991b1b; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 .btn-del { background: none; border: none; cursor: pointer; font-size: 16px; opacity: 0.4; padding: 4px 8px; border-radius: 6px; }
 .btn-del:hover { opacity: 1; background: #fee2e2; }

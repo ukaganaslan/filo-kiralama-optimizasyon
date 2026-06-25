@@ -43,3 +43,31 @@ input, select, textarea, button {
 }
 
 a { text-decoration: none; }
+
+/* ── Badge sistemi (global standart) ── */
+.badge,
+.badge-group,
+.badge-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Araç grubu */
+.badge-economy    { background: #dbeafe; color: #1d4ed8; }
+.badge-mid        { background: #fef3c7; color: #92400e; }
+.badge-suv        { background: #f3e8ff; color: #6b21a8; }
+
+/* Araç durumu */
+.badge-available   { background: #d1fae5; color: #065f46; }
+.badge-rented      { background: #ede9fe; color: #4f46e5; }
+.badge-maintenance { background: #fef3c7; color: #92400e; }
+.badge-service     { background: #fee2e2; color: #991b1b; }
+.badge-inactive    { background: #f1f5f9; color: #64748b; }
+
+/* Rezervasyon durumu */
+.badge-pending   { background: #fef3c7; color: #92400e; }
+.badge-assigned  { background: #d1fae5; color: #065f46; }
+.badge-cancelled { background: #fee2e2; color: #991b1b; }

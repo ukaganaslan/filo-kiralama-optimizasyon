@@ -205,18 +205,6 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .id { font-family: monospace; font-weight: 600; color: #1e293b; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 .rez-count { display: inline-block; padding: 2px 10px; background: #ede9fe; color: #5b21b6; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.badge { padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.badge-group, .badge-status { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.badge-available { background: #d1fae5; color: #065f46; }
-.badge-rented { background: #fef3c7; color: #92400e; }
-.badge-maintenance { background: #fee2e2; color: #991b1b; }
-.badge-service { background: #fee2e2; color: #991b1b; }
-.badge-inactive { background: #f1f5f9; color: #94a3b8; }
-.badge-reserved { background: #ede9fe; color: #4f46e5; }
-.badge-group, .badge-status { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.badge-economy { background: #dbeafe; color: #1d4ed8; }
-.badge-mid { background: #fef3c7; color: #92400e; }
-.badge-suv { background: #f3e8ff; color: #6b21a8; }
 .actions { width: 60px; }
 .btn-edit { padding: 4px 10px; background: white; color: #6366f1; border: 1px solid #6366f1; border-radius: 50px; font-size: 12px; cursor: pointer; }
 .btn-edit:hover { background: #ede9fe; }
