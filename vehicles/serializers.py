@@ -48,6 +48,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             'return_branch', 'return_branch_name',
             'vehicle_group', 'start_date', 'end_date', 'status',
             'customer_username', 'assigned_vehicle_id',
+            'guest_name', 'guest_phone', 'guest_email',
         ]
 
 

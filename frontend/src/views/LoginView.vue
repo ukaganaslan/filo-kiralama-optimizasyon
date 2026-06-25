@@ -31,6 +31,8 @@
 
         <button class="btn-submit" @click="handleLogin">Giriş Yap →</button>
 
+        <button class="btn-guest" @click="router.push('/misafir')">Giriş Yapmadan Devam Et →</button>
+
         <p class="switch">Hesabın yok mu? <a @click="router.push('/register')">Kayıt Ol</a></p>
       </div>
     </div>
@@ -138,6 +140,8 @@ h2 { font-size: 26px; font-weight: 800; color: #0f172a; margin: 0; }
 .btn-submit { padding: 13px; background: #6366f1; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.2s, transform 0.1s; margin-top: 4px; }
 .btn-submit:hover { background: #4f46e5; transform: translateY(-1px); }
 .btn-submit:active { transform: translateY(0); }
+.btn-guest { padding: 13px; background: white; color: #6366f1; border: 1.5px solid #6366f1; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: -4px; }
+.btn-guest:hover { background: #f5f3ff; }
 .error { color: #dc2626; font-size: 13px; background: #fff1f2; padding: 10px 14px; border-radius: 8px; margin: 0; }
 .switch { text-align: center; font-size: 13px; color: #64748b; margin: 0; }
 .switch a { color: #6366f1; cursor: pointer; font-weight: 700; }

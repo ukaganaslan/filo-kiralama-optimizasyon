@@ -79,6 +79,9 @@ class Reservation(models.Model):
     customer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
     return_branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name='return_reservations')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    guest_name = models.CharField(max_length=20, blank=True)
+    guest_phone = models.CharField(max_length=20, blank=True)
+    guest_email = models.EmailField(blank=True)
 
     def __str__(self):
         return f"{self.reservation_id} - {self.branch} - {self.get_vehicle_group_display()}"
