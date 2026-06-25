@@ -27,7 +27,7 @@
           <td>{{ v.brand }} {{ v.model }}</td>
           <td>{{ v.plate || '—' }}</td>
           <td><span :class="'badge-group badge-' + v.group">{{ groupLabel(v.group) }}</span></td>
-          <td><span :class="'badge-status badge-' + v.status">{{ statusLabel(v.status) }}</span></td>
+          <td><span :class="'badge-status badge-' + v.current_status">{{ statusLabel(v.current_status) }}</span></td>
           <td class="actions">
             <button class="btn-edit" @click="openEdit(v)">✏️</button>
             <button class="btn-delete" @click="confirmDelete(v)">🗑️</button>
@@ -184,7 +184,7 @@ function groupLabel(g) {
 }
 
 function statusLabel(s) {
-  return { available: 'Müsait', rented: 'Kirada', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif', reserved: 'Rezerve Edildi' }[s] || s
+  return { available: 'Müsait', rented: 'Kiralandı', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif' }[s] || s
 }
 </script>
 

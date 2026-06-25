@@ -16,11 +16,6 @@
         <div class="stat-value">{{ assignedCount }}</div>
         <div class="stat-sub">aktif rezervasyon</div>
       </div>
-      <div class="stat-card stat-blue">
-        <div class="stat-label">Araç Filosu</div>
-        <div class="stat-value">{{ availableVehicles }}<span class="stat-denom"> / {{ totalVehicles }}</span></div>
-        <div class="stat-sub">müsait araç</div>
-      </div>
     </div>
 
     <div class="section-header">
@@ -131,7 +126,7 @@ const calendarOptions = computed(() => ({
 }
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 28px;
 }
