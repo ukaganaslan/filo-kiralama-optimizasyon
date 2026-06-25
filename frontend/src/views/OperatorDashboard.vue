@@ -4,17 +4,17 @@
       <div class="stat-card">
         <div class="stat-label">Aktif Rezervasyon</div>
         <div class="stat-value">{{ activeCount }}</div>
-        <div class="stat-sub">{{ cancelledCount }} iptal</div>
+        <div class="stat-sub">({{ cancelledCount }} iptal)</div>
       </div>
       <div class="stat-card stat-amber">
         <div class="stat-label">Bekleyen</div>
         <div class="stat-value">{{ pendingCount }}</div>
-        <div class="stat-sub">atama bekliyor</div>
+
       </div>
       <div class="stat-card stat-green">
         <div class="stat-label">Atandı</div>
         <div class="stat-value">{{ assignedCount }}</div>
-        <div class="stat-sub">aktif rezervasyon</div>
+
       </div>
     </div>
 

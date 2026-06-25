@@ -126,13 +126,21 @@ class ReservationViewSet(viewsets.ModelViewSet):
         _run_optimization()
 
 def _run_optimization():
-    reservations = list(Reservation.objects.exclude(status='cancelled'))
+    from datetime import date
+    today = date.today()
+    locked = list(Reservation.objects.filter(
+        status='assigned',
+        start_date__lte=today,
+        end_date__gte=today
+    ))
+    locked_ids = [r.id for r in locked]
+    free = list(Reservation.objects.exclude(status='cancelled').exclude(id__in=locked_ids))
     vehicles = list(Vehicle.objects.all())
 
-    assignments, unassigned = greedy_solver_güncel.solve(reservations, vehicles)
+    assignments, unassigned = greedy_solver_güncel.solve(free, vehicles)
     score = calculate_score(assignments, unassigned, vehicles)
 
-    Reservation.objects.exclude(status='cancelled').update(status='pending')
+    Reservation.objects.filter(id__in=[r.id for r in free]).update(status='pending')
     for a in assignments:
         a['reservation'].status = 'assigned'
         a['reservation'].save()
