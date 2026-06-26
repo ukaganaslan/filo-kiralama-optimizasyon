@@ -114,6 +114,6 @@ tr:hover td { background: #fafbff; }
 .btn-cancel:hover { background: #fff1f2; border-color: #dc2626; }
 .error-msg { color: #dc2626; font-size: 13px; margin-top: 12px; background: #fff1f2; padding: 10px 14px; border-radius: 8px; }
 .vehicle-info { margin-top: 4px; font-size: 12px; color: #000000; font-weight: 600; }
-.price-badge { font-size: 13px; font-weight: 700; color: #4f46e5; }
+.price-badge { font-size: 13px; font-weight: 700; color: #000000; }
 .price-na { color: #94a3b8; }
 </style>
