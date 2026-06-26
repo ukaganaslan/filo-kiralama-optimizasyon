@@ -135,11 +135,13 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return MaintenanceLog.objects.all()
         profile = getattr(user, 'profile', None)
         if profile and profile.role == 'representative' and profile.branch:
             return MaintenanceLog.objects.filter(vehicle__branch=profile.branch)
         if profile and profile.role == 'admin':
-            return MaintenanceLog.objects.all() 
+            return MaintenanceLog.objects.all()
         return MaintenanceLog.objects.none()
 
     def perform_create(self, serializer):
@@ -158,6 +160,11 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
 
         if current_km < vehicle.total_km:
             raise ValidationError('Girilen KM aracın mevcut KM değerinden düşük olamaz.')
+        
+        start_date = serializer.validated_data.get('start_date')
+        end_date = serializer.validated_data.get('end_date')
+        if end_date and end_date < start_date:
+            raise ValidationError('Bitiş tarihi başlangıç tarihinden önce olamaz.')
 
         log = serializer.save()
         log.vehicle.status = 'maintenance'

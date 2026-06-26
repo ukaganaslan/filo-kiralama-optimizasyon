@@ -50,6 +50,22 @@
     <div class="modal">
       <h3>Müşteri Adına Rezervasyon</h3>
 
+      <!-- Takvimden açıldığında: özet bilgi kartları -->
+      <div v-if="calendarMode" class="info-summary">
+        <div class="info-item">
+          <span class="info-label">ŞUBE</span>
+          <span class="info-value">{{ currentBranchName }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">GRUP</span>
+          <span class="info-value">{{ groupLabel(form.vehicle_group) }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">TARİH</span>
+          <span class="info-value">{{ toLocalDateStr(dateRange.start) }} → {{ toLocalDateStr(dateRange.end) }}</span>
+        </div>
+      </div>
+
       <div class="field">
         <label>Müşteri</label>
         <div class="customer-search" ref="customerSearchRef">
@@ -61,7 +77,7 @@
             @input="customerDropdownOpen = true"
             @focus="customerDropdownOpen = true"
           />
-          <button v-if="selectedCustomer" class="customer-clear" @click="clearCustomer">✕</button>
+          <button v-if="selectedCustomer" class="customer-clear" @click="clearCustomer">x</button>
           <div v-if="customerDropdownOpen && filteredCustomers.length > 0" class="customer-dropdown">
             <div
               v-for="u in filteredCustomers"
@@ -79,50 +95,53 @@
         </div>
       </div>
 
-      <div class="field">
-        <label class="checkbox-label">
-          <input type="checkbox" v-model="differentReturn" @change="onDifferentReturnChange" />
-          Farklı bir noktaya teslim
-        </label>
-      </div>
+      <!-- Sadece normal modda (takvim seçimi yoksa) göster -->
+      <template v-if="!calendarMode">
+        <div class="field">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="differentReturn" @change="onDifferentReturnChange" />
+            Farklı bir noktaya teslim
+          </label>
+        </div>
 
-      <div v-if="differentReturn" class="field">
-        <label>İade Yeri</label>
-        <select v-model="form.return_branch" @change="fetchTransferCost">
-          <option value="">Seçin</option>
-          <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
-        </select>
-        <span v-if="transferCost !== null" class="transfer-hint">
-          Transfer ücreti: {{ transferCost > 0 ? transferCost + ' ₺' : 'Ücretsiz' }}
-        </span>
-      </div>
+        <div v-if="differentReturn" class="field">
+          <label>İade Yeri</label>
+          <select v-model="form.return_branch" @change="fetchTransferCost">
+            <option value="">Seçin</option>
+            <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
+          </select>
+          <span v-if="transferCost !== null" class="transfer-hint">
+            Transfer ücreti: {{ transferCost > 0 ? transferCost + ' ₺' : 'Ücretsiz' }}
+          </span>
+        </div>
 
-      <div class="field">
-        <label>Araç Grubu</label>
-        <select v-model="form.vehicle_group" @change="fetchAvailability">
-          <option value="">Seçin</option>
-          <option value="economy">Ekonomi</option>
-          <option value="mid">Orta Sınıf</option>
-          <option value="suv">SUV</option>
-        </select>
-      </div>
+        <div class="field">
+          <label>Araç Grubu</label>
+          <select v-model="form.vehicle_group" @change="fetchAvailability">
+            <option value="">Seçin</option>
+            <option value="economy">Ekonomi</option>
+            <option value="mid">Orta Sınıf</option>
+            <option value="suv">SUV</option>
+          </select>
+        </div>
 
-      <div v-if="availabilityLoading" class="loading-hint">Müsait günler yükleniyor...</div>
+        <div v-if="availabilityLoading" class="loading-hint">Müsait günler yükleniyor...</div>
 
-      <div v-if="availableDates.length > 0" class="calendar-section">
-        <label>TARİH ARALIĞI</label>
-        <VDatePicker
-          v-model.range="dateRange"
-          :disabled-dates="disabledDates"
-          :min-date="new Date()"
-          color="indigo"
-          is-expanded
-        />
-      </div>
+        <div v-if="availableDates.length > 0" class="calendar-section">
+          <label>TARİH ARALIĞI</label>
+          <VDatePicker
+            v-model.range="dateRange"
+            :disabled-dates="disabledDates"
+            :min-date="new Date()"
+            color="indigo"
+            is-expanded
+          />
+        </div>
 
-      <div v-if="form.vehicle_group && availableDates.length === 0 && !availabilityLoading" class="no-avail">
-        Bu grupta müsait gün bulunmuyor.
-      </div>
+        <div v-if="form.vehicle_group && availableDates.length === 0 && !availabilityLoading" class="no-avail">
+          Bu grupta müsait gün bulunmuyor.
+        </div>
+      </template>
 
       <p v-if="formError" class="error">{{ formError }}</p>
       <p v-if="formSuccess" class="success">{{ formSuccess }}</p>
@@ -150,6 +169,7 @@ const branchId = ref(null)
 const activeView = ref('list')
 
 const createModal = ref(false)
+const calendarMode = ref(false)
 const form = ref({ customer_id: '', vehicle_group: '', branch: '', return_branch: '' })
 const differentReturn = ref(false)
 const transferCost = ref(null)
@@ -265,6 +285,15 @@ function statusLabel(s) {
   return { pending: 'Bekliyor', assigned: 'Atandı', cancelled: 'İptal' }[s] || s
 }
 
+function groupLabel(g) {
+  return { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }[g] || g
+}
+
+const currentBranchName = computed(() => {
+  const b = branches.value.find(b => b.id === branchId.value)
+  return b ? (b.title || b.name) : ''
+})
+
 function onDifferentReturnChange() {
   form.value.return_branch = ''
   transferCost.value = null
@@ -309,15 +338,17 @@ async function openCreate({ startDate = null, endDate = null, vehicleGroup = '' 
   customerDropdownOpen.value = false
   differentReturn.value = false
   transferCost.value = null
+  calendarMode.value = !!(startDate && endDate && vehicleGroup)
   createModal.value = true
 
   if (vehicleGroup) {
-    await fetchAvailability()
     if (startDate && endDate) {
       dateRange.value = {
         start: new Date(startDate + 'T00:00:00'),
         end: new Date(endDate + 'T00:00:00'),
       }
+    } else {
+      await fetchAvailability()
     }
   }
 }
@@ -365,7 +396,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .id { font-family: monospace; font-weight: 600; color: #1e293b; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; }
-.modal { background: white; border-radius: 12px; padding: 32px; width: 460px; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 16px; }
+.modal { background: white; border-radius: 12px; padding: 32px; width: 460px; max-height: 85vh; overflow: visible; box-shadow: 0 8px 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 16px; }
 .modal h3 { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; }
@@ -377,7 +408,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .customer-input.has-value { color: #6366f1; font-weight: 500; }
 .customer-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 13px; padding: 0; line-height: 1; }
 .customer-clear:hover { color: #dc2626; }
-.customer-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); z-index: 50; overflow: hidden; }
+.customer-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); z-index: 300; overflow: hidden; }
 .customer-option { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; cursor: pointer; }
 .customer-option:hover { background: #f1f5f9; }
 .customer-name { font-size: 14px; color: #1e293b; font-weight: 500; }
@@ -397,4 +428,9 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .btn-save:disabled { background: #a5b4fc; cursor: not-allowed; }
 .error { color: #dc2626; font-size: 13px; margin: 0; }
 .success { color: #16a34a; font-size: 13px; margin: 0; }
+.info-summary { display: flex; gap: 0; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+.info-item { flex: 1; padding: 12px 16px; background: #f8fafc; border-right: 1px solid #e2e8f0; }
+.info-item:last-child { border-right: none; }
+.info-label { display: block; font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+.info-value { display: block; font-size: 14px; font-weight: 700; color: #1e293b; }
 </style>
