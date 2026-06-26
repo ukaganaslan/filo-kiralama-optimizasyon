@@ -37,5 +37,5 @@ EGITIM.md
 GREEDY_ACIKLAMA.md
 *.pdf
 
-# Django migrations
-*/migrations/
+# Django migrations — repoda tutulur, Railway deploy için gerekli
+# */migrations/

@@ -231,6 +231,7 @@ def _run_optimization():
     return run, assignments, unassigned
 
 @api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
 def optimize(request):
     run, assignments, unassigned = _run_optimization()
 
@@ -272,6 +273,7 @@ def _build_result(run, assignments, unassigned):
 
 
 @api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
 def latest_optimization(request):
     run = OptimizationRun.objects.order_by('-created_at').first()
     if not run:
