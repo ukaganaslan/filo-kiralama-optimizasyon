@@ -16,7 +16,7 @@ def assign_vehicles(queryset=None):
 
     assignments, unassigned = greedy_solver.solve(reservations, all_vehicles)
     violations = validate_solution(assignments)
-    score = calculate_score(assignments, unassigned, all_vehicles)
+    score = calculate_score(assignments, unassigned)
 
     created = []
     for entry in assignments:
