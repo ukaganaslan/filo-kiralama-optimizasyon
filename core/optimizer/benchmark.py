@@ -27,7 +27,7 @@ def _run_on_data(solver_fn, reservations, vehicles):
     assigned_ids = {a['vehicle'].vehicle_id for a in assignments}
     idle_count = sum(1 for v in vehicles if v.vehicle_id not in assigned_ids)
     return {
-        'score': calculate_score(assignments, unassigned, vehicles),
+        'score': calculate_score(assignments, unassigned),
         'fulfilled': fulfilled,
         'unfulfilled': len(unassigned),
         'fulfillment_pct': round(fulfilled / total * 100) if total else 0,
