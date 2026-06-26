@@ -250,6 +250,7 @@ def _build_result(run, assignments, unassigned):
             {
                 'reservation_id': a['reservation'].reservation_id,
                 'customer_username': a['reservation'].customer.username if a['reservation'].customer else None,
+                'guest_name': a['reservation'].guest_name,
                 'vehicle_id': a['vehicle'].vehicle_id,
                 'start_date': str(a['reservation'].start_date),
                 'end_date': str(a['reservation'].end_date),
@@ -286,6 +287,7 @@ def latest_optimization(request):
         {
             'reservation_id': ar.reservation.reservation_id,
             'customer_username': ar.reservation.customer.username if ar.reservation.customer else None,
+            'guest_name': ar.reservation.guest_name,
             'vehicle_id': ar.vehicle.vehicle_id,
             'start_date': str(ar.reservation.start_date),
             'end_date': str(ar.reservation.end_date),
@@ -608,6 +610,14 @@ def guest_reservation(request):
     total = sum(prices.get(start + timedelta(days=i), 0)
                 for i in range((end - start).days + 1))
 
+    return_branch_id = request.data.get('return_branch')
+    return_branch = None
+    if return_branch_id and str(return_branch_id) != str(branch_id):
+        try:
+            return_branch = Branch.objects.get(id=return_branch_id)
+        except Branch.DoesNotExist:
+            pass
+
     reservation = Reservation.objects.create(
         reservation_id=reservation_id,
         customer=None,
@@ -615,6 +625,7 @@ def guest_reservation(request):
         guest_phone=guest_phone,
         guest_email=guest_email,
         branch=branch,
+        return_branch=return_branch,
         vehicle_group=vehicle_group,
         start_date=start_date,
         end_date=end_date,

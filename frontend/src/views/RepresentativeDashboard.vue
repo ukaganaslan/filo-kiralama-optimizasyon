@@ -36,7 +36,7 @@
           <td>{{ r.vehicle_group }}</td>
           <td>{{ r.start_date }}</td>
           <td>{{ r.end_date }}</td>
-          <td>{{ r.return_branch_title || r.branch_title }}</td>
+          <td>{{ r.return_branch ? (r.return_branch_title || r.return_branch_name) : (r.branch_title || r.branch_name) }}</td>
           <td><span v-if="r.total_price" class="price-badge">{{ Number(r.total_price).toLocaleString('tr-TR') }} ₺</span><span v-else class="price-na">—</span></td>
           <td><span :class="'badge badge-' + r.status">{{ statusLabel(r.status) }}</span></td>
         </tr>
