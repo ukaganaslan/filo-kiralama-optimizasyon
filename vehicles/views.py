@@ -550,6 +550,7 @@ def profile_view(request):
 
 
 @api_view(['POST'])
+@permission_classes([permissions.AllowAny])
 def login_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
@@ -648,6 +649,7 @@ def guest_reservation(request):
     }, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
+@permission_classes([permissions.AllowAny])
 def register_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
