@@ -120,6 +120,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
             raise ValidationError({'non_field_errors': ['Seçilen tarih aralığında aktif bir rezervasyon var.']})
         reservation_id = 'R' + uuid.uuid4().hex[:6].upper()
         group = serializer.validated_data.get('vehicle_group')
+        total_days = (end_date - start_date).days + 1
         prices = {
             p.date: p.price_per_day
             for p in DailyPrice.objects.filter(
@@ -128,8 +129,10 @@ class ReservationViewSet(viewsets.ModelViewSet):
                 date__lte=end_date,
             )
         }
+        if len(prices) < total_days:
+            raise ValidationError({'non_field_errors': ['Seçilen tarih aralığında fiyatlandırılmamış günler var. Lütfen fiyat tanımlı bir aralık seçin.']})
         total = sum(prices.get(start_date + timedelta(days=i), 0)
-                    for i in range((end_date - start_date).days + 1))
+                    for i in range(total_days))
         save_kwargs = {'customer': customer, 'status': 'pending', 'reservation_id': reservation_id, 'total_price': total or None}
         if profile and profile.role == 'representative' and profile.branch:
             save_kwargs['branch'] = profile.branch
@@ -599,6 +602,7 @@ def guest_reservation(request):
     from datetime import datetime
     start = datetime.strptime(start_date, '%Y-%m-%d').date()
     end   = datetime.strptime(end_date,   '%Y-%m-%d').date()
+    total_days = (end - start).days + 1
     prices = {
         p.date: p.price_per_day
         for p in DailyPrice.objects.filter(
@@ -607,8 +611,10 @@ def guest_reservation(request):
             date__lte=end,
         )
     }
+    if len(prices) < total_days:
+        return Response({'error': 'Seçilen tarih aralığında fiyatlandırılmamış günler var. Lütfen fiyat tanımlı bir aralık seçin.'}, status=status.HTTP_400_BAD_REQUEST)
     total = sum(prices.get(start + timedelta(days=i), 0)
-                for i in range((end - start).days + 1))
+                for i in range(total_days))
 
     return_branch_id = request.data.get('return_branch')
     return_branch = None
