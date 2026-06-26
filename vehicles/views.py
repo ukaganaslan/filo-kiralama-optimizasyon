@@ -594,6 +594,20 @@ def guest_reservation(request):
 
     reservation_id = 'G' + uuid.uuid4().hex[:7].upper()
 
+    from datetime import datetime
+    start = datetime.strptime(start_date, '%Y-%m-%d').date()
+    end   = datetime.strptime(end_date,   '%Y-%m-%d').date()
+    prices = {
+        p.date: p.price_per_day
+        for p in DailyPrice.objects.filter(
+            vehicle_group=vehicle_group,
+            date__gte=start,
+            date__lte=end,
+        )
+    }
+    total = sum(prices.get(start + timedelta(days=i), 0)
+                for i in range((end - start).days + 1))
+
     reservation = Reservation.objects.create(
         reservation_id=reservation_id,
         customer=None,
@@ -605,6 +619,7 @@ def guest_reservation(request):
         start_date=start_date,
         end_date=end_date,
         status='pending',
+        total_price=total or None,
     )
 
     _run_optimization()
@@ -612,6 +627,7 @@ def guest_reservation(request):
     return Response({
         'code': reservation.reservation_id[:8].upper(),
         'message': 'Rezervasyonunuz alındı.',
+        'total_price': str(reservation.total_price) if reservation.total_price else None,
     }, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
@@ -660,6 +676,7 @@ def guest_reservation_detail(request):
         'start_date': str(reservation.start_date),
         'end_date': str(reservation.end_date),
         'status': reservation.status,
+        'total_price': str(reservation.total_price) if reservation.total_price else None,
     })
 
 
