@@ -4,6 +4,7 @@ import RegisterView from '../views/RegisterView.vue'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import CustomerLayout from '../layouts/CustomerLayout.vue'
 import RepresentativeLayout from '../layouts/RepresentativeLayout.vue'
+import Maintenance from '../views/Maintenance.vue'
 
 const routes = [
     { path: '/', component: LoginView },
@@ -28,6 +29,8 @@ const routes = [
             { path: 'araclar', component: () => import('../views/RepresentativeAraclar.vue') },
             { path: 'profil', component: () => import('../views/RepresentativeProfil.vue') },
             {path: 'logs', component: () => import('../views/DeliveryLogs.vue')},
+            { path: 'maintenance', component: Maintenance },
+
         ]
     },
     {
@@ -44,6 +47,7 @@ const routes = [
             { path: 'transfer-ucretleri', component: () => import('../views/TransferUcretleri.vue') },
             { path: 'profil', component: () => import('../views/OperatorProfil.vue') },
             { path: 'logs', component: () => import('../views/DeliveryLogs.vue') },
+            { path: 'maintenance', component: Maintenance },
         ]
     },
 ]

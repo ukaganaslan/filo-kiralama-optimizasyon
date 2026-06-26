@@ -36,6 +36,10 @@
           <span class="nav-icon">📝</span>
           <span class="nav-label">Teslimat Logları</span>
         </router-link>
+        <router-link to="/representative/maintenance" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
+          <span class="nav-icon">🔧</span>
+          <span class="nav-label">Bakım Kayıtları</span>
+        </router-link>
       </nav>
 
       <!-- Footer -->
@@ -107,6 +111,7 @@ const pageTitles = {
   '/representative/araclar': 'Araçlar',
   '/representative/profil': 'Profil Ayarları',
   '/representative/logs': 'Teslimat Logları',
+  '/representative/maintenance': 'Bakım Kayıtları',
 }
 const pageTitle = computed(() => pageTitles[route.path] || '')
 

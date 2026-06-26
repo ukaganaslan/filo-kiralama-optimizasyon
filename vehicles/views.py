@@ -7,8 +7,8 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
-from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog
-from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer
+from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog
+from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
 
@@ -55,7 +55,10 @@ class VehicleViewSet(viewsets.ModelViewSet):
             serializer.save()
 
     def perform_create(self, serializer):
-        from rest_framework.exceptions import PermissionDenied
+        from rest_framework.exceptions import PermissionDenied, ValidationError
+        from datetime import date
+        vehicle = serializer.validated_data.get('vehicle')
+        current_km = serializer.validated_data.get('current_km')
         user = self.request.user
         profile = getattr(user, 'profile', None)
         if not user.is_staff and profile and profile.role == 'representative':
@@ -125,6 +128,40 @@ class ReservationViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.delete()
         _run_optimization()
+
+class MaintenanceLogViewSet(viewsets.ModelViewSet):
+    serializer_class = MaintenanceLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        profile = getattr(user, 'profile', None)
+        if profile and profile.role == 'representative' and profile.branch:
+            return MaintenanceLog.objects.filter(vehicle__branch=profile.branch)
+        if profile and profile.role == 'admin':
+            return MaintenanceLog.objects.all() 
+        return MaintenanceLog.objects.none()
+
+    def perform_create(self, serializer):
+        from rest_framework.exceptions import ValidationError
+        vehicle = serializer.validated_data.get('vehicle')
+        current_km = serializer.validated_data.get('current_km')
+
+        aktif_atama = AssignmentResult.objects.filter(
+            vehicle=vehicle,
+            reservation__start_date__lte=date.today(),
+            reservation__end_date__gte=date.today(),
+            reservation__status='assigned'
+        ).exists()
+        if aktif_atama:
+            raise ValidationError('Bu araç şu an müşteridedir, önce iade alınmalıdır.')
+
+        if current_km < vehicle.total_km:
+            raise ValidationError('Girilen KM aracın mevcut KM değerinden düşük olamaz.')
+
+        log = serializer.save()
+        log.vehicle.status = 'maintenance'
+        log.vehicle.save(update_fields=['status'])
 
 def _sync_delivery_logs():
     today = date.today()

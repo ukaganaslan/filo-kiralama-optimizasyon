@@ -24,7 +24,14 @@
           <td class="name">{{ b.title || '—' }}</td>
           <td class="city">{{ b.name }}</td>
           <td><span class="count">{{ b.vehicle_count }}</span></td>
-          <td><button class="btn-edit" @click="openEdit(b)">✏️</button></td>
+          <td class="actions">
+            <div class="action-menu" @click.stop>
+              <button class="btn-dots" @click="toggleMenu(b.id)">···</button>
+              <div v-if="openMenuId === b.id" class="action-dropdown">
+                <button @click="openEdit(b); openMenuId = null">Düzenle</button>
+              </div>
+            </div>
+          </td>
         </tr>
         <tr v-if="branches.length === 0">
           <td colspan="5" class="empty">Şube bulunamadı.</td>
@@ -79,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 
 const sehirler = [
@@ -97,6 +104,7 @@ const sehirler = [
 ]
 
 const branches = ref([])
+const openMenuId = ref(null)
 const addModal = ref(false)
 const addForm = ref({ name: '', title: '' })
 const addError = ref('')
@@ -116,7 +124,10 @@ async function loadBranches() {
   }))
 }
 
-onMounted(loadBranches)
+function toggleMenu(id) { openMenuId.value = openMenuId.value === id ? null : id }
+function closeMenu() { openMenuId.value = null }
+onMounted(() => { loadBranches(); document.addEventListener('click', closeMenu) })
+onUnmounted(() => document.removeEventListener('click', closeMenu))
 
 function openAdd() {
   addForm.value = { name: '', title: '' }
@@ -176,8 +187,13 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 .count { display: inline-block; padding: 2px 10px; background: #ede9fe; color: #35455e; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4) { text-align: center; }
-.btn-edit { padding: 4px 12px; background: white; color: #6366f1; border: 1px solid #6366f1; border-radius: 50px; font-size: 12px; cursor: pointer; }
-.btn-edit:hover { background: #ede9fe; }
+.actions { text-align: center !important; }
+.action-menu { position: relative; display: inline-block; }
+.btn-dots { background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 16px; color: #64748b; line-height: 1; letter-spacing: 2px; }
+.btn-dots:hover { background: #f1f5f9; }
+.action-dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 110px; z-index: 50; overflow: hidden; }
+.action-dropdown button { display: block; width: 100%; padding: 9px 14px; text-align: left; background: none; border: none; font-size: 13px; color: #374151; cursor: pointer; }
+.action-dropdown button:hover { background: #f8fafc; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; }
 .modal { background: white; border-radius: 14px; padding: 32px; width: 400px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 16px; }
 .modal h3 { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; }

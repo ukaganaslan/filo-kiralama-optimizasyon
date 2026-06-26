@@ -44,8 +44,13 @@
             </span>
           </td>
           <td class="actions">
-            <button class="btn-edit" @click="openEdit(u)">✏️</button>
-            <button class="btn-toggle" @click="toggleActive(u)">{{ u.is_active ? 'Pasife Al' : 'Aktife Al' }}</button>
+            <div class="action-menu" @click.stop>
+              <button class="btn-dots" @click="toggleMenu(u.id)">···</button>
+              <div v-if="openMenuId === u.id" class="action-dropdown">
+                <button @click="openEdit(u); openMenuId = null">Düzenle</button>
+                <button @click="toggleActive(u); openMenuId = null">{{ u.is_active ? 'Pasife Al' : 'Aktife Al' }}</button>
+              </div>
+            </div>
           </td>
         </tr>
         <tr v-if="filtered.length === 0">
@@ -121,12 +126,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 
 const users = ref([])
 const branches = ref([])
 const search = ref('')
+const openMenuId = ref(null)
 const addModal = ref(false)
 const editModal = ref(false)
 const formError = ref('')
@@ -138,6 +144,11 @@ async function loadUsers() {
   const res = await axios.get('/api/users/')
   users.value = res.data
 }
+
+function toggleMenu(id) { openMenuId.value = openMenuId.value === id ? null : id }
+function closeMenu() { openMenuId.value = null }
+onMounted(() => document.addEventListener('click', closeMenu))
+onUnmounted(() => document.removeEventListener('click', closeMenu))
 
 onMounted(async () => {
   const [usersRes, branchRes] = await Promise.all([
@@ -239,11 +250,13 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .username { font-weight: 600; color: #1e293b; }
 .rez-count { display: inline-block; padding: 2px 10px; background: #ede9fe; color: #35455e; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
-.actions { display: flex; gap: 8px; align-items: center; }
-.btn-edit { padding: 4px 12px; background: white; color: #6366f1; border: 1px solid #6366f1; border-radius: 50px; font-size: 12px; cursor: pointer; }
-.btn-edit:hover { background: #ede9fe; }
-.btn-toggle { padding: 4px 12px; background: white; color: #64748b; border: 1px solid #cbd5e1; border-radius: 50px; font-size: 12px; cursor: pointer; white-space: nowrap; }
-.btn-toggle:hover { background: #f1f5f9; }
+.actions { text-align: center !important; }
+.action-menu { position: relative; display: inline-block; }
+.btn-dots { background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 16px; color: #64748b; line-height: 1; letter-spacing: 2px; }
+.btn-dots:hover { background: #f1f5f9; }
+.action-dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 120px; z-index: 50; overflow: hidden; }
+.action-dropdown button { display: block; width: 100%; padding: 9px 14px; text-align: left; background: none; border: none; font-size: 13px; color: #374151; cursor: pointer; white-space: nowrap; }
+.action-dropdown button:hover { background: #f8fafc; }
 .badge-active { padding: 3px 10px; background: #d1fae5; color: #065f46; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .badge-passive { padding: 3px 10px; background: #fee2e2; color: #991b1b; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .role-badge { padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }

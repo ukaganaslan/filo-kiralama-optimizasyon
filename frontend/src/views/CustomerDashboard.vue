@@ -24,7 +24,6 @@
         <!-- Step 1: Lokasyon -->
         <div v-if="currentStep === 1" key="step1" class="step-card">
           <div class="card-title">
-            <div class="card-title-icon">📍</div>
             <div>
               <div class="card-title-text">Lokasyon</div>
               <div class="card-title-sub">Aracı teslim alacağınız şubeyi seçin</div>
@@ -70,7 +69,6 @@
         <!-- Step 2: Araç Grubu -->
         <div v-else-if="currentStep === 2" key="step2" class="step-card">
           <div class="card-title">
-            <div class="card-title-icon">🚗</div>
             <div>
               <div class="card-title-text">Araç Grubu</div>
               <div class="card-title-sub">Size uygun araç kategorisini seçin</div>
@@ -102,7 +100,6 @@
         <!-- Step 3: Tarih -->
         <div v-else-if="currentStep === 3" key="step3" class="step-card">
           <div class="card-title">
-            <div class="card-title-icon">📅</div>
             <div>
               <div class="card-title-text">Tarih Aralığı</div>
               <div class="card-title-sub">Kiralama başlangıç ve bitiş tarihini seçin</div>

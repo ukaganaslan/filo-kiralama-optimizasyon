@@ -97,11 +97,13 @@ class Assignment(models.Model):
 
 
 class MaintenanceLog(models.Model):
+    EVENT_CHOICES = [('routine', 'Rutin Bakım'), ('cleaning', 'Temizlik'), ('repair', 'Hasar Onarım')] 
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='maintenance_logs')
-    date = models.DateField()
-    reason = models.CharField(max_length=255)
-    km_at_maintenance = models.IntegerField()
-    reservations_at_maintenance = models.IntegerField()
+    current_km = models.IntegerField()
+    reason = models.CharField(max_length=50, choices=EVENT_CHOICES)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
 
     def __str__(self):
         return f"{self.vehicle} - {self.date}"
