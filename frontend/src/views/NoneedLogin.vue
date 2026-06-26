@@ -42,6 +42,9 @@
           <h3>Rezervasyonunuz Alındı!</h3>
           <p class="success-sub">Rezervasyon kodunuzu saklayın. Durumu sorgulamak veya iptal etmek için bu kodu kullanın.</p>
           <div class="code-box">{{ reservationCode }}</div>
+          <div v-if="reservationPrice" class="price-box">
+            Tahmini Tutar: <strong>{{ Number(reservationPrice).toLocaleString('tr-TR') }} ₺</strong>
+          </div>
           <p class="code-hint">Bu kodu not edin veya ekran görüntüsü alın.</p>
           <button class="btn-new" @click="resetForm">Yeni Rezervasyon Oluştur</button>
         </div>
@@ -238,6 +241,10 @@
           <div class="result-row"><span class="rk">Şube</span><span class="rv">{{ queryResult.branch }}</span></div>
           <div class="result-row"><span class="rk">Grup</span><span class="rv">{{ groupLabel(queryResult.vehicle_group) }}</span></div>
           <div class="result-row"><span class="rk">Tarih</span><span class="rv">{{ queryResult.start_date }} → {{ queryResult.end_date }}</span></div>
+          <div v-if="queryResult.total_price" class="result-row">
+            <span class="rk">Tutar</span>
+            <span class="rv">{{ Number(queryResult.total_price).toLocaleString('tr-TR') }} ₺</span>
+          </div>
           <div class="result-row">
             <span class="rk">Durum</span>
             <span class="status-badge" :class="queryResult.status">{{ statusLabel(queryResult.status) }}</span>
@@ -272,6 +279,7 @@ const availableDates = ref([])
 const availabilityLoading = ref(false)
 const formError = ref('')
 const reservationCode = ref('')
+const reservationPrice = ref(null)
 const differentReturn = ref(false)
 const transferCost = ref(null)
 
@@ -389,6 +397,7 @@ async function handleCreate() {
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
     })
     reservationCode.value = res.data.code
+    reservationPrice.value = res.data.total_price
   } catch (e) {
     formError.value = e.response?.data?.error || 'Bir hata oluştu.'
   }
@@ -403,6 +412,7 @@ function resetForm() {
   differentReturn.value = false
   transferCost.value = null
   reservationCode.value = ''
+  reservationPrice.value = null
   formError.value = ''
 }
 
@@ -607,6 +617,8 @@ async function handleCancel() {
 .success-card h3 { font-size: 22px; font-weight: 800; color: #111827; margin: 0 0 10px; }
 .success-sub { font-size: 14px; color: #64748B; margin: 0 0 24px; line-height: 1.6; }
 .code-box { font-size: 30px; font-weight: 900; letter-spacing: 6px; color: #1B1063; background: #edeaff; border: 2px dashed #9b8ff5; border-radius: 12px; padding: 18px 28px; display: inline-block; margin-bottom: 10px; }
+.price-box { font-size: 15px; color: #1B1063; background: #edeaff; border-radius: 10px; padding: 10px 20px; margin: 10px 0 4px; font-weight: 600; }
+.price-box strong { font-weight: 800; }
 .code-hint { font-size: 12px; color: #94a3b8; margin-bottom: 28px; }
 .btn-new { padding: 13px 32px; background: linear-gradient(135deg, #16A34A, #15803d); color: white; border: none; border-radius: 11px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
 .btn-new:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(22,163,74,0.4); }
