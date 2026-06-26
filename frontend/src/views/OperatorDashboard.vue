@@ -52,7 +52,7 @@
           <td>{{ r.assigned_vehicle_id }}</td>
           <td>{{ r.customer_username || `Misafir - ${r.guest_name}` }}</td>
           <td>{{ r.branch_title }}</td>
-          <td>{{ r.return_branch_title || r.branch_title }}</td>
+          <td>{{ r.return_branch ? (r.return_branch_title || r.return_branch_name) : (r.branch_title || r.branch_name) }}</td>
           <td>{{ r.vehicle_group }}</td>
           <td>{{ r.start_date }}</td>
           <td>{{ r.end_date }}</td>
