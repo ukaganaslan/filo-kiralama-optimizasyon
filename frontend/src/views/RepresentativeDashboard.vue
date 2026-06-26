@@ -24,6 +24,7 @@
           <th>Başlangıç</th>
           <th>Bitiş</th>
           <th>İade Şube</th>
+          <th>Tutar</th>
           <th>Durum</th>
         </tr>
       </thead>
@@ -36,6 +37,7 @@
           <td>{{ r.start_date }}</td>
           <td>{{ r.end_date }}</td>
           <td>{{ r.return_branch_title || r.branch_title }}</td>
+          <td><span v-if="r.total_price" class="price-badge">{{ Number(r.total_price).toLocaleString('tr-TR') }} ₺</span><span v-else class="price-na">—</span></td>
           <td><span :class="'badge badge-' + r.status">{{ statusLabel(r.status) }}</span></td>
         </tr>
         <tr v-if="reservations.length === 0">
@@ -433,4 +435,6 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .info-item:last-child { border-right: none; }
 .info-label { display: block; font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
 .info-value { display: block; font-size: 14px; font-weight: 700; color: #1e293b; }
+.price-badge { font-size: 13px; font-weight: 700; color: #000000; }
+.price-na { color: #94a3b8; }
 </style>

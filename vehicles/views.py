@@ -718,6 +718,7 @@ def delivery_logs(request):
             'event_type': log.event_type,
             'logged_at': log.logged_at,
             'assigned_vehicle_plate': plate,
+            'total_price': log.reservation.total_price,
         })
 
     return Response(data)
