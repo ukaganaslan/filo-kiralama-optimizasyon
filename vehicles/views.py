@@ -1,14 +1,14 @@
 import uuid
 from datetime import date, timedelta
 from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
-from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog
-from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer
+from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice
+from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
 
@@ -119,7 +119,18 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if overlap:
             raise ValidationError({'non_field_errors': ['Seçilen tarih aralığında aktif bir rezervasyon var.']})
         reservation_id = 'R' + uuid.uuid4().hex[:6].upper()
-        save_kwargs = {'customer': customer, 'status': 'pending', 'reservation_id': reservation_id}
+        group = serializer.validated_data.get('vehicle_group')
+        prices = {
+            p.date: p.price_per_day
+            for p in DailyPrice.objects.filter(
+                vehicle_group=group,
+                date__gte=start_date,
+                date__lte=end_date,
+            )
+        }
+        total = sum(prices.get(start_date + timedelta(days=i), 0)
+                    for i in range((end_date - start_date).days + 1))
+        save_kwargs = {'customer': customer, 'status': 'pending', 'reservation_id': reservation_id, 'total_price': total or None}
         if profile and profile.role == 'representative' and profile.branch:
             save_kwargs['branch'] = profile.branch
         serializer.save(**save_kwargs)
@@ -334,9 +345,18 @@ def availability(request):
 
     bugun = date.today()
     musait_gunler = []
+    fiyatli_gunler = set(
+        DailyPrice.objects.filter(
+            vehicle_group=group,
+            date__gte=bugun,
+            date__lt=bugun + timedelta(days=90)
+        ).values_list('date', flat=True)
+    )
 
     for i in range(90):
         gun = bugun + timedelta(days=i)
+        if gun not in fiyatli_gunler:
+            continue
         dolu = Reservation.objects.filter(
             branch_id=branch_id,
             vehicle_group=group,
@@ -701,3 +721,35 @@ def delivery_logs(request):
         })
 
     return Response(data)
+
+class DailyPriceViewSet(viewsets.ModelViewSet):
+    serializer_class = DailyPriceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        qs = DailyPrice.objects.all()
+        group = self.request.query_params.get('group')
+        if group:
+            qs = qs.filter(vehicle_group=group)
+        return qs
+
+    @action(detail=False, methods=['post'])
+    def bulk_set(self, request):
+        from rest_framework.exceptions import ValidationError
+        start = request.data.get('start_date')
+        end = request.data.get('end_date')
+        group = request.data.get('vehicle_group')
+        price = request.data.get('price_per_day')
+        if not all([start, end, group, price]):
+            raise ValidationError('Tüm alanlar gerekli.')
+        start_d = date.fromisoformat(start)
+        end_d = date.fromisoformat(end)
+        current = start_d
+        while current <= end_d:
+            DailyPrice.objects.update_or_create(
+                date=current,
+                vehicle_group=group,
+                defaults={'price_per_day': price}
+            )
+            current += timedelta(days=1)
+        return Response({'ok': True})

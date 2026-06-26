@@ -48,6 +48,7 @@ const routes = [
             { path: 'profil', component: () => import('../views/OperatorProfil.vue') },
             { path: 'logs', component: () => import('../views/DeliveryLogs.vue') },
             { path: 'maintenance', component: Maintenance },
+            { path: 'pricing', component: () => import('../views/Pricing.vue') },
         ]
     },
 ]

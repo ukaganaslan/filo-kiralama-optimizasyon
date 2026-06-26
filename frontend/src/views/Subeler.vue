@@ -184,7 +184,7 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 .id { color: #94a3b8; font-size: 13px; }
 .name { font-weight: 600; color: #1e293b; }
 .city { color: #35455e; font-family: monospace; font-size: 13px; }
-.count { display: inline-block; padding: 2px 10px; background: #ede9fe; color: #35455e; border-radius: 50px; font-size: 12px; font-weight: 600; }
+.count { display: inline-block; padding: 2px 10px; background: #8a8a8a3b; color: #000000; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4) { text-align: center; }
 .actions { text-align: center !important; }

@@ -12,7 +12,7 @@
 
       </div>
       <div class="stat-card stat-green">
-        <div class="stat-label">Atandı</div>
+        <div class="stat-label">Onaylandı</div>
         <div class="stat-value">{{ assignedCount }}</div>
 
       </div>
@@ -55,7 +55,7 @@
           <td>{{ r.vehicle_group }}</td>
           <td>{{ r.start_date }}</td>
           <td>{{ r.end_date }}</td>
-          <td><span :class="'badge badge-' + r.status">{{ r.status }}</span></td>
+          <td><span :class="'badge badge-' + r.status">{{ { pending: 'Bekliyor', assigned: 'Onaylandı', cancelled: 'İptal' }[r.status] || r.status }}</span></td>
           <td class="actions">
             <div class="action-menu" @click.stop>
               <button class="btn-dots" @click="toggleMenu(r.id)">···</button>

@@ -248,7 +248,7 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }
 .username { font-weight: 600; color: #1e293b; }
-.rez-count { display: inline-block; padding: 2px 10px; background: #ede9fe; color: #35455e; border-radius: 50px; font-size: 12px; font-weight: 600; }
+.rez-count { display: inline-block; padding: 2px 10px; background: #8a8a8a3b; color: #000000; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 .actions { text-align: center !important; }
 .action-menu { position: relative; display: inline-block; }

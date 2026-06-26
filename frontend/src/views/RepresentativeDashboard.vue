@@ -282,7 +282,7 @@ onMounted(async () => {
 onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 function statusLabel(s) {
-  return { pending: 'Bekliyor', assigned: 'Atandı', cancelled: 'İptal' }[s] || s
+  return { pending: 'Bekliyor', assigned: 'Onaylandı', cancelled: 'İptal' }[s] || s
 }
 
 function groupLabel(g) {

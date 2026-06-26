@@ -22,6 +22,7 @@
             <th>Grup</th>
             <th>Başlangıç</th>
             <th>Bitiş</th>
+            <th>Tutar</th>
             <th>Durum</th>
             <th></th>
           </tr>
@@ -33,7 +34,16 @@
             <td>{{ groupLabel(r.vehicle_group) }}</td>
             <td>{{ r.start_date }}</td>
             <td>{{ r.end_date }}</td>
-            <td><span :class="'badge badge-' + r.status">{{ statusLabel(r.status) }}</span></td>
+            <td>
+              <span v-if="r.total_price" class="price-badge">{{ Number(r.total_price).toLocaleString('tr-TR') }} ₺</span>
+              <span v-else class="price-na">—</span>
+            </td>
+            <td>
+              <span :class="'badge badge-' + r.status">{{ statusLabel(r.status) }}</span>
+              <div v-if="r.assigned_vehicle_info" class="vehicle-info">
+                {{ r.assigned_vehicle_info.brand }} {{ r.assigned_vehicle_info.model }} · {{ r.assigned_vehicle_info.plate }}
+              </div>
+            </td>
             <td>
               <button
                 v-if="r.status !== 'cancelled' && new Date(r.start_date + 'T00:00:00' ) > new Date()"
@@ -61,7 +71,7 @@ const groupLabels = { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }
 function groupLabel(v) { return groupLabels[v] || v }
 function statusLabel(s) {
   if (s === 'pending') return 'Bekliyor'
-  if (s === 'assigned') return 'Atandı'
+  if (s === 'assigned') return 'Onaylandı'
   if (s === 'cancelled') return 'İptal'
   return s
 }
@@ -96,9 +106,14 @@ table { width: 100%; border-collapse: collapse; }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th { background: #f8fafc; font-weight: 700; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #f1f5f9; }
 td { border-top: 1px solid #f8fafc; color: #1e293b; }
+.empty { text-align: center; color: #94a3b8; padding: 32px !important; }
+td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }
 tr:hover td { background: #fafbff; }
-.res-id { font-weight: 700; color: #6366f1; font-size: 13px; }
+.res-id { font-weight: 700; color: #000000; font-size: 13px; }
 .btn-cancel { padding: 5px 12px; background: white; color: #dc2626; border: 1.5px solid #fca5a5; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
 .btn-cancel:hover { background: #fff1f2; border-color: #dc2626; }
 .error-msg { color: #dc2626; font-size: 13px; margin-top: 12px; background: #fff1f2; padding: 10px 14px; border-radius: 8px; }
+.vehicle-info { margin-top: 4px; font-size: 12px; color: #000000; font-weight: 600; }
+.price-badge { font-size: 13px; font-weight: 700; color: #4f46e5; }
+.price-na { color: #94a3b8; }
 </style>

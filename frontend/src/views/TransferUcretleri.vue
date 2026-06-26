@@ -181,7 +181,7 @@ table { width: 100%; border-collapse: collapse; background: white; border-radius
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th:first-child { border-radius: 14px 0 0 0; } th:last-child { border-radius: 0 14px 0 0; } th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
 tr:not(:last-child) td { border-bottom: 1px solid #f1f5f9; }
-.cost-cell { font-weight: 700; color: #6366f1; }
+.cost-cell { font-weight: 700; color: #000000; }
 .actions { text-align: center !important; }
 .action-menu { position: relative; display: inline-block; }
 .btn-dots { background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 16px; color: #64748b; line-height: 1; letter-spacing: 2px; }
