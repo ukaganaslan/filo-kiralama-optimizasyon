@@ -1,130 +1,202 @@
 <template>
   <div class="page">
+    <div class="wizard">
 
-    <!-- Hero -->
-    <div class="hero">
-      <div class="hero-content">
-        <h1>Aracınızı Hemen Kiralayın</h1>
-        <p class="hero-sub">Şubenizi seçin, grubu belirleyin, tarihleri ayarlayın.</p>
-      </div>
-    </div>
-
-    <!-- Form -->
-    <div class="form-wrap">
-
-      <!-- Step 1: Lokasyon -->
-      <div class="section-card">
-        <div class="section-title">
-          <span class="step-num">1</span>
-          <span>Lokasyon</span>
-        </div>
-
-        <div class="location-row">
-          <div class="location-field">
-            <div class="loc-label">
-              <span class="loc-dot pickup"></span>
-              Alış Yeri
+      <!-- Step Bar -->
+      <div class="step-bar">
+        <template v-for="(label, i) in stepLabels" :key="i">
+          <div class="step-node" :class="{ completed: currentStep > i + 1, active: currentStep === i + 1 }">
+            <div class="step-circle">
+              <svg v-if="currentStep > i + 1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+              <span v-else>{{ i + 1 }}</span>
             </div>
-            <select v-model="form.branch" @change="onPickupChange" :class="{ filled: form.branch }">
-              <option value="" disabled>Şube seçin...</option>
-              <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
-            </select>
+            <span class="step-label">{{ label }}</span>
           </div>
-
-          <div class="loc-arrow">→</div>
-
-          <div class="location-field">
-            <div class="loc-label">
-              <span class="loc-dot return" :class="{ active: differentReturn }"></span>
-              İade Yeri
-            </div>
-            <div v-if="!differentReturn" class="same-location" @click="differentReturn = true">
-              Alış yeriyle aynı <span class="change-link">Değiştir</span>
-            </div>
-            <select v-else v-model="form.return_branch" @change="fetchTransferCost" :class="{ filled: form.return_branch }">
-              <option value="" disabled>Şube seçin...</option>
-              <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
-            </select>
-          </div>
-        </div>
-
-        <div v-if="transferCost !== null && differentReturn" class="transfer-notice" :class="{ free: transferCost === 0 }">
-          <span>{{ transferCost > 0 ? `Transfer ücreti: ${transferCost} ₺` : 'Bu iade noktası için transfer ücreti yok' }}</span>
-        </div>
+          <div v-if="i < stepLabels.length - 1" class="step-connector" :class="{ done: currentStep > i + 1 }"></div>
+        </template>
       </div>
 
-      <!-- Step 2: Araç Grubu -->
-      <div class="section-card">
-        <div class="section-title">
-          <span class="step-num">2</span>
-          <span>Araç Grubu</span>
-        </div>
-        <div class="group-cards">
-          <button
-            v-for="g in groups"
-            :key="g.value"
-            class="group-card"
-            :class="{ selected: form.vehicle_group === g.value }"
-            @click="selectGroup(g.value)"
-          >
-            <span class="group-emoji">{{ g.emoji }}</span>
-            <div class="group-info">
-              <div class="group-name">{{ g.label }}</div>
-              <div class="group-desc">{{ g.desc }}</div>
+      <!-- Step Content -->
+      <transition :name="transitionName" mode="out-in">
+
+        <!-- Step 1: Lokasyon -->
+        <div v-if="currentStep === 1" key="step1" class="step-card">
+          <div class="card-title">
+            <div class="card-title-icon">📍</div>
+            <div>
+              <div class="card-title-text">Lokasyon</div>
+              <div class="card-title-sub">Aracı teslim alacağınız şubeyi seçin</div>
             </div>
-            <span v-if="form.vehicle_group === g.value" class="group-check">✓</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Step 3: Tarih -->
-      <div class="section-card" v-if="form.branch && form.vehicle_group">
-        <div class="section-title">
-          <span class="step-num">3</span>
-          <span>Tarih Aralığı</span>
-          <span v-if="availabilityLoading" class="loading-chip">Yükleniyor...</span>
-        </div>
-
-        <div v-if="availableDates.length > 0">
-          <p class="date-hint">Açık günler müsait, gri günler dolu.</p>
-          <VDatePicker
-            v-model.range="dateRange"
-            :disabled-dates="disabledDates"
-            :min-date="new Date()"
-            color="indigo"
-            is-expanded
-          />
-        </div>
-
-        <div v-if="availableDates.length === 0 && !availabilityLoading" class="no-avail">
-          <span>⚠️</span> Bu şube ve grupta müsait gün bulunmuyor.
-        </div>
-      </div>
-
-      <!-- Confirm -->
-      <div v-if="dateRange.start && dateRange.end" class="confirm-card">
-        <div class="confirm-summary">
-          <div class="confirm-item">
-            <span class="confirm-key">Alış</span>
-            <span class="confirm-val">{{ branchName(form.branch) }}</span>
           </div>
-          <div v-if="differentReturn && form.return_branch" class="confirm-item">
-            <span class="confirm-key">İade</span>
-            <span class="confirm-val">{{ branchName(form.return_branch) }}</span>
+
+          <div class="location-grid">
+            <div class="loc-field">
+              <div class="loc-label">
+                <span class="loc-dot pickup"></span>
+                <span>Alış Yeri</span>
+              </div>
+              <select v-model="form.branch" @change="onPickupChange" :class="{ filled: form.branch }">
+                <option value="" disabled>Şube seçin...</option>
+                <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
+              </select>
+            </div>
+
+            <div class="loc-arrow">→</div>
+
+            <div class="loc-field">
+              <div class="loc-label">
+                <span class="loc-dot" :class="{ active: differentReturn }"></span>
+                <span>İade Yeri</span>
+              </div>
+              <div v-if="!differentReturn" class="same-loc-btn" @click="differentReturn = true">
+                Alış yeriyle aynı
+                <span class="change-link">Değiştir</span>
+              </div>
+              <select v-else v-model="form.return_branch" @change="fetchTransferCost" :class="{ filled: form.return_branch }">
+                <option value="" disabled>Şube seçin...</option>
+                <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
+              </select>
+            </div>
           </div>
-          <div class="confirm-item">
-            <span class="confirm-key">Grup</span>
-            <span class="confirm-val">{{ groupLabel(form.vehicle_group) }}</span>
-          </div>
-          <div class="confirm-item">
-            <span class="confirm-key">Tarih</span>
-            <span class="confirm-val">{{ toLocalDateStr(dateRange.start) }} → {{ toLocalDateStr(dateRange.end) }}</span>
+
+          <div v-if="transferCost !== null && differentReturn" class="transfer-notice" :class="{ free: transferCost === 0 }">
+            <span class="notice-icon">{{ transferCost === 0 ? '✅' : '💸' }}</span>
+            {{ transferCost > 0 ? `Transfer ücreti: ${transferCost} ₺` : 'Bu iade noktası için transfer ücreti yok' }}
           </div>
         </div>
-        <p v-if="formError" class="error">{{ formError }}</p>
-        <p v-if="formSuccess" class="success-msg">{{ formSuccess }}</p>
-        <button class="btn-confirm" @click="handleCreate">
+
+        <!-- Step 2: Araç Grubu -->
+        <div v-else-if="currentStep === 2" key="step2" class="step-card">
+          <div class="card-title">
+            <div class="card-title-icon">🚗</div>
+            <div>
+              <div class="card-title-text">Araç Grubu</div>
+              <div class="card-title-sub">Size uygun araç kategorisini seçin</div>
+            </div>
+          </div>
+
+          <div class="group-list">
+            <button
+              v-for="g in groups"
+              :key="g.value"
+              class="group-card"
+              :class="{ selected: form.vehicle_group === g.value }"
+              @click="selectGroup(g.value)"
+            >
+              <span class="group-emoji">{{ g.emoji }}</span>
+              <div class="group-info">
+                <div class="group-name">{{ g.label }}</div>
+                <div class="group-desc">{{ g.desc }}</div>
+              </div>
+              <div class="group-check-circle" :class="{ visible: form.vehicle_group === g.value }">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Tarih -->
+        <div v-else-if="currentStep === 3" key="step3" class="step-card">
+          <div class="card-title">
+            <div class="card-title-icon">📅</div>
+            <div>
+              <div class="card-title-text">Tarih Aralığı</div>
+              <div class="card-title-sub">Kiralama başlangıç ve bitiş tarihini seçin</div>
+            </div>
+          </div>
+
+          <div v-if="availabilityLoading" class="loading-state">
+            <div class="loading-spinner"></div>
+            <span>Müsait günler yükleniyor...</span>
+          </div>
+
+          <template v-else-if="availableDates.length > 0">
+            <p class="date-hint">Açık günler müsait, gri günler dolu.</p>
+            <VDatePicker
+              v-model.range="dateRange"
+              :disabled-dates="disabledDates"
+              :min-date="new Date()"
+              color="indigo"
+              is-expanded
+            />
+          </template>
+
+          <div v-else class="no-avail">
+            <span>⚠️</span> Bu şube ve grupta müsait gün bulunmuyor.
+          </div>
+        </div>
+
+        <!-- Step 4: Onay -->
+        <div v-else-if="currentStep === 4" key="step4" class="step-card">
+          <div class="card-title">
+            <div class="card-title-icon">✅</div>
+            <div>
+              <div class="card-title-text">Rezervasyon Özeti</div>
+              <div class="card-title-sub">Bilgileri kontrol edip onaylayın</div>
+            </div>
+          </div>
+
+          <div class="summary-grid">
+            <div class="summary-item">
+              <div class="summary-key">Alış Şubesi</div>
+              <div class="summary-val">{{ branchName(form.branch) }}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-key">İade Şubesi</div>
+              <div class="summary-val">{{ differentReturn && form.return_branch ? branchName(form.return_branch) : branchName(form.branch) }}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-key">Araç Grubu</div>
+              <div class="summary-val">{{ groupLabel(form.vehicle_group) }}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-key">Başlangıç</div>
+              <div class="summary-val">{{ toLocalDateStr(dateRange.start) }}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-key">Bitiş</div>
+              <div class="summary-val">{{ toLocalDateStr(dateRange.end) }}</div>
+            </div>
+            <div v-if="transferCost !== null && differentReturn" class="summary-item">
+              <div class="summary-key">Transfer Ücreti</div>
+              <div class="summary-val" :class="{ 'val-free': transferCost === 0 }">
+                {{ transferCost === 0 ? 'Ücretsiz' : `${transferCost} ₺` }}
+              </div>
+            </div>
+          </div>
+
+          <p v-if="formError" class="form-error">{{ formError }}</p>
+          <p v-if="formSuccess" class="form-success">{{ formSuccess }}</p>
+        </div>
+
+      </transition>
+
+      <!-- Navigation -->
+      <div class="step-nav" :class="{ 'nav-start': currentStep === 1 }">
+        <button v-if="currentStep > 1" class="btn-back" @click="prevStep">
+          ← Geri
+        </button>
+        <button
+          v-if="currentStep < 4"
+          class="btn-next"
+          :disabled="!canAdvance"
+          @click="nextStep"
+        >
+          İleri →
+        </button>
+        <button
+          v-if="currentStep === 4 && !formSuccess"
+          class="btn-confirm"
+          @click="handleCreate"
+        >
           Rezervasyon Oluştur →
+        </button>
+        <button v-if="formSuccess" class="btn-new" @click="resetForm">
+          Yeni Rezervasyon
         </button>
       </div>
 
@@ -135,6 +207,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+
+const currentStep = ref(1)
+const direction = ref('forward')
+const stepLabels = ['Lokasyon', 'Araç Grubu', 'Tarih', 'Onay']
 
 const branches = ref([])
 const availableDates = ref([])
@@ -147,13 +223,22 @@ const differentReturn = ref(false)
 const transferCost = ref(null)
 
 const groups = [
-  { value: 'economy', label: 'Ekonomi', emoji: '🚗', desc: 'Şehir içi, yakıt dostu' },
-  { value: 'mid',     label: 'Orta Sınıf', emoji: '🚙', desc: 'Konfor ve performans' },
-  { value: 'suv',     label: 'SUV', emoji: '🛻', desc: 'Geniş, güçlü, her arazi' },
+  { value: 'economy', label: 'Ekonomi', desc: 'Şehir içi, yakıt dostu' },
+  { value: 'mid',     label: 'Orta Sınıf', desc: 'Konfor ve performans' },
+  { value: 'suv',     label: 'SUV', desc: 'Geniş, güçlü, her arazi' },
 ]
 
+const transitionName = computed(() => direction.value === 'forward' ? 'step-fwd' : 'step-back')
+
+const canAdvance = computed(() => {
+  if (currentStep.value === 1) return !!form.value.branch
+  if (currentStep.value === 2) return !!form.value.vehicle_group
+  if (currentStep.value === 3) return !!(dateRange.value.start && dateRange.value.end)
+  return false
+})
+
 const disabledDates = computed(() => {
-  if (availableDates.value.length === 0) return []
+  if (!availableDates.value.length) return []
   const available = new Set(availableDates.value)
   const disabled = []
   const today = new Date()
@@ -173,11 +258,20 @@ onMounted(async () => {
 
 function branchName(id) {
   const b = branches.value.find(b => b.id === id)
-  return b ? (b.title || b.name) : ''
+  return b ? (b.title || b.name) : '—'
 }
-
 function groupLabel(v) {
   return groups.find(g => g.value === v)?.label || v
+}
+
+function nextStep() {
+  if (!canAdvance.value) return
+  direction.value = 'forward'
+  currentStep.value++
+}
+function prevStep() {
+  direction.value = 'back'
+  currentStep.value--
 }
 
 function selectGroup(val) {
@@ -189,11 +283,6 @@ function onPickupChange() {
   form.value.return_branch = ''
   transferCost.value = null
   fetchAvailability()
-}
-
-function onDifferentReturnChange() {
-  form.value.return_branch = ''
-  transferCost.value = null
 }
 
 async function fetchAvailability() {
@@ -220,6 +309,7 @@ async function fetchTransferCost() {
 }
 
 function toLocalDateStr(date) {
+  if (!date) return '—'
   const d = new Date(date)
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
@@ -235,83 +325,376 @@ async function handleCreate() {
       end_date: toLocalDateStr(dateRange.value.end),
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
     })
-    formSuccess.value = 'Rezervasyon oluşturuldu, onay bekleniyor.'
-    form.value = { branch: '', vehicle_group: '', return_branch: '' }
-    dateRange.value = { start: null, end: null }
-    availableDates.value = []
-    differentReturn.value = false
-    transferCost.value = null
+    formSuccess.value = 'Rezervasyon oluşturuldu! Onay bekleniyor.'
   } catch (e) {
     const msg = e.response?.data?.non_field_errors?.[0]
     formError.value = msg || 'Rezervasyon oluşturulamadı.'
   }
 }
+
+function resetForm() {
+  currentStep.value = 1
+  direction.value = 'forward'
+  form.value = { branch: '', vehicle_group: '', return_branch: '' }
+  dateRange.value = { start: null, end: null }
+  availableDates.value = []
+  differentReturn.value = false
+  transferCost.value = null
+  formError.value = ''
+  formSuccess.value = ''
+}
 </script>
 
 <style scoped>
-.page { min-height: 100vh; background: #f8fafc; }
+.page { background: #F8FAFC; min-height: 100vh; }
 
-/* Hero */
-.hero {
-  background: #f8fafc;
-  padding: 52px 0 48px;
+.wizard {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
 }
-.hero-content { max-width: 760px; margin: 0 auto; padding: 0 24px; }
-.hero-eyebrow { font-size: 12px; font-weight: 700; color: #a5b4fc; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
-.hero h1 { font-size: 36px; font-weight: 800; color: #312e81; margin: 0 0 10px; line-height: 1.15; }
-.hero-sub { font-size: 15px; color: #94a3b8; margin: 0; }
 
-/* Form wrap */
-.form-wrap { max-width: 760px; margin: 0 auto; padding: 32px 24px 48px; display: flex; flex-direction: column; gap: 20px; }
+/* ── Step Bar ── */
+.step-bar {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 36px;
+  padding: 0 8px;
+}
 
-/* Section card */
-.section-card { background: white; border-radius: 14px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); }
-.section-title { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 20px; }
-.step-num { width: 26px; height: 26px; background: #6366f1; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
-.loading-chip { margin-left: auto; font-size: 12px; color: #6366f1; background: #ede9fe; padding: 3px 10px; border-radius: 50px; font-weight: 600; }
+.step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 
-/* Location */
-.location-row { display: flex; align-items: center; gap: 16px; }
-.location-field { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-.loc-label { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; }
-.loc-dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; }
-.loc-dot.pickup { background: #6366f1; }
-.loc-dot.return { background: #cbd5e1; }
-.loc-dot.return.active { background: #f59e0b; }
-.location-field select { border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 11px 14px; font-size: 14px; color: #94a3b8; outline: none; background: #fafafa; transition: border 0.2s, color 0.2s; }
-.location-field select.filled { color: #1e293b; background: white; border-color: #c7d2fe; }
-.location-field select:focus { border-color: #6366f1; background: white; }
-.same-location { padding: 11px 14px; background: #f8fafc; border: 1.5px dashed #e2e8f0; border-radius: 9px; font-size: 13.5px; color: #94a3b8; cursor: pointer; transition: border-color 0.2s; }
-.same-location:hover { border-color: #6366f1; }
-.change-link { color: #6366f1; font-weight: 600; margin-left: 6px; }
-.loc-arrow { font-size: 18px; color: #cbd5e1; flex-shrink: 0; margin-top: 20px; }
-.transfer-notice { margin-top: 12px; padding: 10px 14px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; font-size: 13px; color: #92400e; font-weight: 500; }
+.step-circle {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  transition: all 0.3s ease;
+  background: white;
+  border: 2px solid #d1d5db;
+  color: #9ca3af;
+}
+
+.step-circle svg { width: 18px; height: 18px; }
+
+.step-node.active .step-circle {
+  border: 2.5px solid #1B1063;
+  color: #1B1063;
+  box-shadow: 0 0 0 6px rgba(27,16,99,0.1);
+}
+
+.step-node.completed .step-circle {
+  background: #1B1063;
+  border-color: #1B1063;
+  color: white;
+  box-shadow: 0 0 0 6px rgba(27,16,99,0.1);
+}
+
+.step-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  white-space: nowrap;
+  text-align: center;
+  transition: color 0.3s;
+}
+.step-node.active .step-label   { color: #1B1063; font-weight: 700; }
+.step-node.completed .step-label { color: #64748b; }
+
+.step-connector {
+  flex: 1;
+  height: 2px;
+  background: #e5e7eb;
+  margin-top: 22px;
+  transition: background 0.3s ease;
+}
+.step-connector.done { background: #1B1063; }
+
+/* ── Step Card ── */
+.step-card {
+  background: white;
+  border-radius: 20px;
+  padding: 36px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid rgba(226,232,240,0.8);
+  min-height: 300px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.card-title-icon { font-size: 26px; flex-shrink: 0; }
+.card-title-text { font-size: 18px; font-weight: 800; color: #111827; line-height: 1.2; }
+.card-title-sub { font-size: 13px; color: #64748B; margin-top: 2px; }
+
+/* ── Step 1: Lokasyon ── */
+.location-grid {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.loc-field { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+.loc-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.loc-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #d1d5db;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.loc-dot.pickup { background: #1B1063; }
+.loc-dot.active { background: #F59E0B; }
+
+.loc-field select {
+  padding: 12px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 11px;
+  font-size: 14px;
+  color: #94a3b8;
+  outline: none;
+  background: #fafafa;
+  transition: border 0.2s, color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+.loc-field select.filled { color: #111827; background: white; border-color: #c4beff; }
+.loc-field select:focus { border-color: #1B1063; background: white; box-shadow: 0 0 0 3px rgba(27,16,99,0.08); }
+
+.same-loc-btn {
+  padding: 12px 16px;
+  border: 1.5px dashed #e2e8f0;
+  border-radius: 11px;
+  font-size: 13.5px;
+  color: #94a3b8;
+  cursor: pointer;
+  background: #fafafa;
+  transition: border-color 0.2s;
+}
+.same-loc-btn:hover { border-color: #1B1063; }
+
+.loc-arrow { font-size: 18px; color: #d1d5db; flex-shrink: 0; padding-bottom: 14px; }
+.change-link { color: #1B1063; font-weight: 700; margin-left: 4px; }
+
+.transfer-notice {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  font-size: 13.5px;
+  color: #92400e;
+  font-weight: 500;
+}
 .transfer-notice.free { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+.notice-icon { font-size: 16px; flex-shrink: 0; }
 
-/* Group cards */
-.group-cards { display: flex; flex-direction: column; gap: 10px; }
-.group-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; cursor: pointer; text-align: left; transition: border-color 0.2s, background 0.2s; width: 100%; }
-.group-card:hover { border-color: #a5b4fc; background: #fafafe; }
-.group-card.selected { border-color: #6366f1; background: #eef2ff; }
-.group-emoji { font-size: 26px; flex-shrink: 0; }
+/* ── Step 2: Araç Grubu ── */
+.group-list { display: flex; flex-direction: column; gap: 12px; }
+
+.group-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: white;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  width: 100%;
+}
+.group-card:hover { border-color: #9b8ff5; background: #faf9ff; transform: translateX(2px); }
+.group-card.selected { border-color: #1B1063; background: #edeaff; box-shadow: 0 0 0 4px rgba(27,16,99,0.08); }
+
+.group-emoji { font-size: 30px; flex-shrink: 0; }
 .group-info { flex: 1; }
-.group-name { font-size: 14px; font-weight: 700; color: #1e293b; }
-.group-desc { font-size: 12px; color: #94a3b8; margin-top: 2px; }
-.group-check { width: 22px; height: 22px; background: #6366f1; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.group-name { font-size: 15px; font-weight: 700; color: #111827; }
+.group-desc { font-size: 12.5px; color: #64748B; margin-top: 2px; }
 
-/* Dates */
-.date-hint { font-size: 12px; color: #94a3b8; margin-bottom: 14px; }
-.no-avail { padding: 16px; background: #fff1f2; border-radius: 8px; color: #be123c; font-size: 14px; font-weight: 500; }
+.group-check-circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #1B1063;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.group-check-circle.visible { opacity: 1; transform: scale(1); }
+.group-check-circle svg { width: 14px; height: 14px; color: white; }
 
-/* Confirm */
-.confirm-card { background: white; border-radius: 14px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 2px solid #e0e7ff; }
-.confirm-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
-.confirm-item { display: flex; flex-direction: column; gap: 3px; }
-.confirm-key { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; }
-.confirm-val { font-size: 14px; font-weight: 600; color: #1e293b; }
-.btn-confirm { width: 100%; padding: 14px; background: #6366f1; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.2s, transform 0.1s; }
-.btn-confirm:hover { background: #4f46e5; transform: translateY(-1px); }
-.btn-confirm:active { transform: translateY(0); }
-.error { color: #dc2626; font-size: 13px; margin-bottom: 12px; }
-.success-msg { color: #16a34a; font-size: 13px; font-weight: 600; margin-bottom: 12px; background: #f0fdf4; padding: 10px 14px; border-radius: 8px; }
+/* ── Step 3: Tarih ── */
+.date-hint { font-size: 13px; color: #64748B; margin-bottom: 16px; }
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 40px 0;
+  justify-content: center;
+  color: #64748B;
+  font-size: 14px;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2.5px solid #e2e8f0;
+  border-top-color: #1B1063;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.no-avail {
+  padding: 20px;
+  background: #fff7ed;
+  border-radius: 12px;
+  color: #9a3412;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #fcd34d;
+}
+
+/* ── Step 4: Onay ── */
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.summary-item {
+  padding: 16px 18px;
+  background: #F8FAFC;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+}
+.summary-key {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+.summary-val { font-size: 14px; font-weight: 700; color: #111827; }
+.val-free { color: #16A34A; }
+
+.form-error {
+  color: #DC2626;
+  font-size: 13px;
+  background: #fff1f2;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #fecdd3;
+  margin-bottom: 16px;
+}
+.form-success {
+  color: #16A34A;
+  font-size: 13px;
+  background: #f0fdf4;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #bbf7d0;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+/* ── Navigation ── */
+.step-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  gap: 12px;
+}
+.step-nav.nav-start { justify-content: flex-end; }
+
+.btn-back {
+  padding: 12px 24px;
+  background: white;
+  color: #64748b;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-back:hover { background: #F8FAFC; border-color: #cbd5e1; color: #111827; }
+
+.btn-next, .btn-confirm, .btn-new {
+  padding: 13px 32px;
+  background: linear-gradient(135deg, #1B1063, #130d4a);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(27,16,99,0.3);
+}
+.btn-next:hover:not(:disabled), .btn-confirm:hover, .btn-new:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(27,16,99,0.4);
+}
+.btn-next:disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-new {
+  background: linear-gradient(135deg, #16A34A, #15803d);
+  box-shadow: 0 4px 14px rgba(22,163,74,0.3);
+}
+
+/* ── Step Transitions ── */
+.step-fwd-enter-active { transition: all 0.28s ease; }
+.step-fwd-leave-active { transition: all 0.2s ease; }
+.step-fwd-enter-from   { opacity: 0; transform: translateX(36px); }
+.step-fwd-leave-to     { opacity: 0; transform: translateX(-36px); }
+
+.step-back-enter-active { transition: all 0.28s ease; }
+.step-back-leave-active { transition: all 0.2s ease; }
+.step-back-enter-from   { opacity: 0; transform: translateX(-36px); }
+.step-back-leave-to     { opacity: 0; transform: translateX(36px); }
 </style>

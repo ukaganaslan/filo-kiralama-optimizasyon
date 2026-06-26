@@ -4,172 +4,255 @@
     <!-- Header -->
     <div class="guest-header">
       <div class="brand">
-        <div class="brand-icon">K</div>
-        <span>Filo Yönetimi</span>
+        <div class="brand-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 17H3a2 2 0 01-2-2V9a2 2 0 012-2h2M17 17h2a2 2 0 002-2V9a2 2 0 00-2-2h-2"/>
+            <rect x="5" y="7" width="14" height="10" rx="2"/>
+            <circle cx="7.5" cy="17" r="1.5"/><circle cx="16.5" cy="17" r="1.5"/>
+          </svg>
+        </div>
+        <span>FiloRent</span>
       </div>
-      <router-link to="/" class="login-link">Giriş Yap →</router-link>
+      <div class="login-cta">
+        <div class="login-cta-text">
+          <span class="cta-title">Kullanıcı Girişi Yaparak</span>
+          <span class="cta-sub">Rezervasyonlarınızı daha kolay yönetin</span>
+        </div>
+        <router-link to="/" class="login-cta-btn">Giriş Yap →</router-link>
+      </div>
     </div>
 
     <div class="guest-body">
 
-      <!-- SOL: Rezervasyon Formu -->
-      <div class="form-panel">
-        <h2>Misafir Rezervasyonu</h2>
-        <p class="sub">Hesap oluşturmadan araç kiralayın.</p>
+      <!-- SOL: Wizard -->
+      <div class="wizard-panel">
 
-        <!-- ADIM 1: Lokasyon + Grup -->
-        <div v-if="step === 1">
-          <div class="section-title"><span class="step-num">1</span> Lokasyon ve Araç Grubu</div>
-
-          <div class="field">
-            <label>Alış Yeri</label>
-            <select v-model="form.branch" @change="onPickupChange">
-              <option value="" disabled>Şube seçin...</option>
-              <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label>İade Yeri</label>
-            <div v-if="!differentReturn" class="same-loc" @click="differentReturn = true">
-              Alış yeriyle aynı <span class="change-link">Değiştir</span>
-            </div>
-            <select v-else v-model="form.return_branch" @change="fetchTransferCost">
-              <option value="" disabled>Şube seçin...</option>
-              <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
-            </select>
-          </div>
-
-          <div v-if="transferCost !== null && differentReturn" class="transfer-notice" :class="{ free: transferCost === 0 }">
-            {{ transferCost > 0 ? `Transfer ücreti: ${transferCost} ₺` : 'Transfer ücreti yok' }}
-          </div>
-
-          <div class="field">
-            <label>Araç Grubu</label>
-            <div class="group-cards">
-              <button
-                v-for="g in groups"
-                :key="g.value"
-                class="group-card"
-                :class="{ selected: form.vehicle_group === g.value }"
-                @click="selectGroup(g.value)"
-              >
-                <span>{{ g.emoji }}</span>
-                <div>
-                  <div class="group-name">{{ g.label }}</div>
-                  <div class="group-desc">{{ g.desc }}</div>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          <button class="btn-next" :disabled="!form.branch || !form.vehicle_group" @click="goStep2">
-            Devam Et →
-          </button>
+        <div class="wizard-intro">
+          <h2>Misafir Rezervasyonu</h2>
+          <p>Hesap oluşturmadan araç kiralayın.</p>
         </div>
 
-        <!-- ADIM 2: Takvim -->
-        <div v-if="step === 2">
-          <div class="section-title"><span class="step-num">2</span> Tarih Seçin</div>
-
-          <div v-if="availabilityLoading" class="loading">Müsaitlik kontrol ediliyor...</div>
-
-          <div v-else-if="availableDates.length === 0" class="no-avail">
-            ⚠️ Bu şube ve grupta müsait gün bulunmuyor.
+        <!-- Başarı Ekranı -->
+        <div v-if="reservationCode" class="success-card">
+          <div class="success-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
           </div>
-
-          <div v-else>
-            <p class="date-hint">Açık günler müsait, gri günler dolu.</p>
-            <VDatePicker
-              v-model.range="dateRange"
-              :disabled-dates="disabledDates"
-              :min-date="new Date()"
-              color="indigo"
-              is-expanded
-            />
-          </div>
-
-          <div class="step-actions">
-            <button class="btn-back" @click="step = 1">← Geri</button>
-            <button class="btn-next" :disabled="!dateRange.start || !dateRange.end" @click="step = 3">
-              Devam Et →
-            </button>
-          </div>
-        </div>
-
-        <!-- ADIM 3: Kişisel Bilgiler -->
-        <div v-if="step === 3">
-          <div class="section-title"><span class="step-num">3</span> Bilgileriniz</div>
-
-          <div class="confirm-summary">
-            <div class="confirm-item"><span class="confirm-key">Şube</span><span>{{ branchName(form.branch) }}</span></div>
-            <div class="confirm-item"><span class="confirm-key">Grup</span><span>{{ groupLabel(form.vehicle_group) }}</span></div>
-            <div class="confirm-item"><span class="confirm-key">Tarih</span><span>{{ toLocalDateStr(dateRange.start) }} → {{ toLocalDateStr(dateRange.end) }}</span></div>
-          </div>
-
-          <div class="field">
-            <label>Ad Soyad *</label>
-            <input v-model="guest.name" type="text" placeholder="Ahmet Yılmaz" />
-          </div>
-          <div class="field">
-            <label>Telefon</label>
-            <input v-model="guest.phone" type="tel" placeholder="05XX XXX XX XX" />
-          </div>
-          <div class="field">
-            <label>E-posta *</label>
-            <input v-model="guest.email" type="email" placeholder="ahmet@email.com" />
-          </div>
-
-          <p v-if="formError" class="error">{{ formError }}</p>
-
-          <div class="step-actions">
-            <button class="btn-back" @click="step = 2">← Geri</button>
-            <button class="btn-next" @click="handleCreate">Rezervasyon Oluştur →</button>
-          </div>
-        </div>
-
-        <!-- ADIM 4: Başarı -->
-        <div v-if="step === 4" class="success-panel">
-          <div class="success-icon">✓</div>
-          <h3>Rezervasyonunuz Alındı</h3>
-          <p>Rezervasyon kodunuzu saklayın. Bu kodla rezervasyonunuzu sorgulayabilir veya iptal edebilirsiniz.</p>
+          <h3>Rezervasyonunuz Alındı!</h3>
+          <p class="success-sub">Rezervasyon kodunuzu saklayın. Durumu sorgulamak veya iptal etmek için bu kodu kullanın.</p>
           <div class="code-box">{{ reservationCode }}</div>
           <p class="code-hint">Bu kodu not edin veya ekran görüntüsü alın.</p>
-          <button class="btn-next" @click="resetForm">Yeni Rezervasyon</button>
+          <button class="btn-new" @click="resetForm">Yeni Rezervasyon Oluştur</button>
         </div>
+
+        <!-- Wizard Steps -->
+        <template v-else>
+
+          <!-- Step Bar -->
+          <div class="step-bar">
+            <template v-for="(label, i) in stepLabels" :key="i">
+              <div class="step-node" :class="{ completed: currentStep > i + 1, active: currentStep === i + 1 }">
+                <div class="step-circle">
+                  <svg v-if="currentStep > i + 1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6L9 17l-5-5"/>
+                  </svg>
+                  <span v-else>{{ i + 1 }}</span>
+                </div>
+                <span class="step-label">{{ label }}</span>
+              </div>
+              <div v-if="i < stepLabels.length - 1" class="step-connector" :class="{ done: currentStep > i + 1 }"></div>
+            </template>
+          </div>
+
+          <!-- Step Content -->
+          <transition :name="transitionName" mode="out-in">
+
+            <!-- Step 1: Lokasyon -->
+            <div v-if="currentStep === 1" key="s1" class="step-card">
+              <div class="card-title">
+                <div class="card-title-icon">📍</div>
+                <div>
+                  <div class="card-title-text">Lokasyon</div>
+                  <div class="card-title-sub">Aracı teslim alacağınız şubeyi seçin</div>
+                </div>
+              </div>
+
+              <div class="location-grid">
+                <div class="loc-field">
+                  <div class="loc-label">
+                    <span class="loc-dot pickup"></span><span>Alış Yeri</span>
+                  </div>
+                  <select v-model="form.branch" @change="onPickupChange" :class="{ filled: form.branch }">
+                    <option value="" disabled>Şube seçin...</option>
+                    <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
+                  </select>
+                </div>
+
+                <div class="loc-arrow">→</div>
+
+                <div class="loc-field">
+                  <div class="loc-label">
+                    <span class="loc-dot" :class="{ active: differentReturn }"></span><span>İade Yeri</span>
+                  </div>
+                  <div v-if="!differentReturn" class="same-loc-btn" @click="differentReturn = true">
+                    Alış yeriyle aynı <span class="change-link">Değiştir</span>
+                  </div>
+                  <select v-else v-model="form.return_branch" @change="fetchTransferCost" :class="{ filled: form.return_branch }">
+                    <option value="" disabled>Şube seçin...</option>
+                    <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div v-if="transferCost !== null && differentReturn" class="transfer-notice" :class="{ free: transferCost === 0 }">
+                <span class="notice-icon">{{ transferCost === 0 ? '✅' : '💸' }}</span>
+                {{ transferCost > 0 ? `Transfer ücreti: ${transferCost} ₺` : 'Bu iade noktası için transfer ücreti yok' }}
+              </div>
+            </div>
+
+            <!-- Step 2: Araç Grubu -->
+            <div v-else-if="currentStep === 2" key="s2" class="step-card">
+              <div class="card-title">
+                <div class="card-title-icon"></div>
+                <div>
+                  <div class="card-title-text">Araç Grubu</div>
+                  <div class="card-title-sub">Size uygun araç kategorisini seçin</div>
+                </div>
+              </div>
+              <div class="group-list">
+                <button
+                  v-for="g in groups" :key="g.value"
+                  class="group-card"
+                  :class="{ selected: form.vehicle_group === g.value }"
+                  @click="form.vehicle_group = g.value"
+                >
+                  <span class="group-emoji">{{ g.emoji }}</span>
+                  <div class="group-info">
+                    <div class="group-name">{{ g.label }}</div>
+                    <div class="group-desc">{{ g.desc }}</div>
+                  </div>
+                  <div class="group-check-circle" :class="{ visible: form.vehicle_group === g.value }">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6L9 17l-5-5"/>
+                    </svg>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 3: Tarih -->
+            <div v-else-if="currentStep === 3" key="s3" class="step-card">
+              <div class="card-title">
+                <div class="card-title-icon">📅</div>
+                <div>
+                  <div class="card-title-text">Tarih Aralığı</div>
+                  <div class="card-title-sub">Kiralama başlangıç ve bitiş tarihini seçin</div>
+                </div>
+              </div>
+
+              <div v-if="availabilityLoading" class="loading-state">
+                <div class="loading-spinner"></div>
+                <span>Müsait günler yükleniyor...</span>
+              </div>
+              <template v-else-if="availableDates.length > 0">
+                <p class="date-hint">Açık günler müsait, gri günler dolu.</p>
+                <VDatePicker v-model.range="dateRange" :disabled-dates="disabledDates" :min-date="new Date()" color="indigo" is-expanded />
+              </template>
+              <div v-else class="no-avail">⚠️ Bu şube ve grupta müsait gün bulunmuyor.</div>
+            </div>
+
+            <!-- Step 4: Bilgileriniz -->
+            <div v-else-if="currentStep === 4" key="s4" class="step-card">
+              <div class="card-title">
+                <div class="card-title-icon">👤</div>
+                <div>
+                  <div class="card-title-text">Bilgileriniz</div>
+                  <div class="card-title-sub">İletişim bilgilerinizi girin ve rezervasyonu onaylayın</div>
+                </div>
+              </div>
+
+              <!-- Mini özet -->
+              <div class="mini-summary">
+                <div class="mini-item">
+                  <span class="mini-key">Şube</span>
+                  <span class="mini-val">{{ branchName(form.branch) }}</span>
+                </div>
+                <div class="mini-item">
+                  <span class="mini-key">Grup</span>
+                  <span class="mini-val">{{ groupLabel(form.vehicle_group) }}</span>
+                </div>
+                <div class="mini-item">
+                  <span class="mini-key">Tarih</span>
+                  <span class="mini-val">{{ toLocalDateStr(dateRange.start) }} → {{ toLocalDateStr(dateRange.end) }}</span>
+                </div>
+              </div>
+
+              <div class="info-fields">
+                <div class="info-field">
+                  <label>Ad Soyad <span class="req">*</span></label>
+                  <input v-model="guest.name" type="text" placeholder="Ahmet Yılmaz" />
+                </div>
+                <div class="info-field">
+                  <label>Telefon</label>
+                  <input v-model="guest.phone" type="tel" placeholder="05XX XXX XX XX" />
+                </div>
+                <div class="info-field">
+                  <label>E-posta <span class="req">*</span></label>
+                  <input v-model="guest.email" type="email" placeholder="ahmet@email.com" />
+                </div>
+              </div>
+
+              <p v-if="formError" class="form-error">{{ formError }}</p>
+            </div>
+
+          </transition>
+
+          <!-- Navigation -->
+          <div class="step-nav" :class="{ 'nav-start': currentStep === 1 }">
+            <button v-if="currentStep > 1" class="btn-back" @click="prevStep">← Geri</button>
+            <button v-if="currentStep < 4" class="btn-next" :disabled="!canAdvance" @click="nextStep">İleri →</button>
+            <button v-if="currentStep === 4" class="btn-confirm" @click="handleCreate">Rezervasyon Oluştur →</button>
+          </div>
+
+        </template>
       </div>
 
       <!-- SAĞ: Rezervasyon Sorgula -->
       <div class="query-panel">
-        <h3>Rezervasyonunuzu Sorgulayın</h3>
-        <p class="sub">Rezervasyon kodunuzla mevcut rezervasyonunuzu görüntüleyin veya iptal edin.</p>
+        <div class="query-header">
+          <div class="query-icon">🔍</div>
+          <div>
+            <div class="query-title">Rezervasyon Sorgula</div>
+            <div class="query-sub">Kodunuzla rezervasyonunuzu görüntüleyin veya iptal edin</div>
+          </div>
+        </div>
 
-        <div class="field">
+        <div class="q-field">
           <label>Rezervasyon Kodu</label>
           <input v-model="query.code" type="text" placeholder="3FA2B91C" maxlength="8" style="text-transform: uppercase" />
         </div>
+        <button class="btn-query" @click="handleQuery">Sorgula →</button>
 
-        <button class="btn-query" @click="handleQuery">Sorgula</button>
-
-        <p v-if="queryError" class="error">{{ queryError }}</p>
+        <p v-if="queryError" class="q-error">{{ queryError }}</p>
 
         <div v-if="queryResult" class="query-result">
-          <div class="confirm-item"><span class="confirm-key">Ad</span><span>{{ queryResult.guest_name }}</span></div>
-          <div class="confirm-item"><span class="confirm-key">Şube</span><span>{{ queryResult.branch }}</span></div>
-          <div class="confirm-item"><span class="confirm-key">Grup</span><span>{{ groupLabel(queryResult.vehicle_group) }}</span></div>
-          <div class="confirm-item"><span class="confirm-key">Tarih</span><span>{{ queryResult.start_date }} → {{ queryResult.end_date }}</span></div>
-          <div class="confirm-item">
-            <span class="confirm-key">Durum</span>
-            <span class="badge" :class="queryResult.status">{{ statusLabel(queryResult.status) }}</span>
+          <div class="result-row"><span class="rk">Ad</span><span class="rv">{{ queryResult.guest_name }}</span></div>
+          <div class="result-row"><span class="rk">Şube</span><span class="rv">{{ queryResult.branch }}</span></div>
+          <div class="result-row"><span class="rk">Grup</span><span class="rv">{{ groupLabel(queryResult.vehicle_group) }}</span></div>
+          <div class="result-row"><span class="rk">Tarih</span><span class="rv">{{ queryResult.start_date }} → {{ queryResult.end_date }}</span></div>
+          <div class="result-row">
+            <span class="rk">Durum</span>
+            <span class="status-badge" :class="queryResult.status">{{ statusLabel(queryResult.status) }}</span>
           </div>
 
-          <div v-if="queryResult.status !== 'cancelled'" class="cancel-section">
-            <div class="field">
-              <label>E-posta (doğrulama için)</label>
+          <div v-if="queryResult.status !== 'cancelled'" class="cancel-area">
+            <div class="q-field">
+              <label>E-posta (doğrulama)</label>
               <input v-model="query.email" type="email" placeholder="rezervasyon e-postanız" />
             </div>
-            <p v-if="cancelError" class="error">{{ cancelError }}</p>
-            <p v-if="cancelSuccess" class="success-msg">{{ cancelSuccess }}</p>
+            <p v-if="cancelError" class="q-error">{{ cancelError }}</p>
+            <p v-if="cancelSuccess" class="q-success">{{ cancelSuccess }}</p>
             <button class="btn-cancel" @click="handleCancel">Rezervasyonu İptal Et</button>
           </div>
         </div>
@@ -183,7 +266,10 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
-const step = ref(1)
+const currentStep = ref(1)
+const direction = ref('forward')
+const stepLabels = ['Lokasyon', 'Araç Grubu', 'Tarih', 'Bilgileriniz']
+
 const branches = ref([])
 const availableDates = ref([])
 const availabilityLoading = ref(false)
@@ -203,13 +289,22 @@ const cancelError = ref('')
 const cancelSuccess = ref('')
 
 const groups = [
-  { value: 'economy', label: 'Ekonomi', emoji: '🚗', desc: 'Şehir içi, yakıt dostu' },
-  { value: 'mid',     label: 'Orta Sınıf', emoji: '🚙', desc: 'Konfor ve performans' },
-  { value: 'suv',     label: 'SUV', emoji: '🛻', desc: 'Geniş, güçlü, her arazi' },
+  { value: 'economy', label: 'Ekonomi',desc: 'Şehir içi, yakıt dostu' },
+  { value: 'mid',     label: 'Orta Sınıf', desc: 'Konfor ve performans' },
+  { value: 'suv',     label: 'SUV', desc: 'Geniş, güçlü, her arazi' },
 ]
 
+const transitionName = computed(() => direction.value === 'forward' ? 'step-fwd' : 'step-back')
+
+const canAdvance = computed(() => {
+  if (currentStep.value === 1) return !!form.value.branch
+  if (currentStep.value === 2) return !!form.value.vehicle_group
+  if (currentStep.value === 3) return !!(dateRange.value.start && dateRange.value.end)
+  return false
+})
+
 const disabledDates = computed(() => {
-  if (availableDates.value.length === 0) return []
+  if (!availableDates.value.length) return []
   const available = new Set(availableDates.value)
   const disabled = []
   const today = new Date()
@@ -229,19 +324,20 @@ onMounted(async () => {
 
 function branchName(id) {
   const b = branches.value.find(b => b.id === id)
-  return b ? (b.title || b.name) : ''
+  return b ? (b.title || b.name) : '—'
 }
+function groupLabel(v) { return groups.find(g => g.value === v)?.label || v }
+function statusLabel(s) { return { pending: 'Bekliyor', assigned: 'Atandı', cancelled: 'İptal' }[s] || s }
 
-function groupLabel(v) {
-  return groups.find(g => g.value === v)?.label || v
+function nextStep() {
+  if (!canAdvance.value) return
+  if (currentStep.value === 2) fetchAvailability()
+  direction.value = 'forward'
+  currentStep.value++
 }
-
-function statusLabel(s) {
-  return { pending: 'Bekliyor', assigned: 'Atandı', cancelled: 'İptal' }[s] || s
-}
-
-function selectGroup(val) {
-  form.value.vehicle_group = val
+function prevStep() {
+  direction.value = 'back'
+  currentStep.value--
 }
 
 function onPickupChange() {
@@ -257,11 +353,11 @@ async function fetchTransferCost() {
   transferCost.value = res.data.cost
 }
 
-async function goStep2() {
+async function fetchAvailability() {
+  if (!form.value.branch || !form.value.vehicle_group) return
   availabilityLoading.value = true
   availableDates.value = []
   dateRange.value = { start: null, end: null }
-  step.value = 2
   try {
     const res = await axios.get('/api/availability/', {
       params: { branch: form.value.branch, group: form.value.vehicle_group }
@@ -273,6 +369,7 @@ async function goStep2() {
 }
 
 function toLocalDateStr(date) {
+  if (!date) return '—'
   const d = new Date(date)
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
@@ -295,14 +392,14 @@ async function handleCreate() {
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
     })
     reservationCode.value = res.data.code
-    step.value = 4
   } catch (e) {
     formError.value = e.response?.data?.error || 'Bir hata oluştu.'
   }
 }
 
 function resetForm() {
-  step.value = 1
+  currentStep.value = 1
+  direction.value = 'forward'
   form.value = { branch: '', vehicle_group: '', return_branch: '' }
   dateRange.value = { start: null, end: null }
   guest.value = { name: '', phone: '', email: '' }
@@ -317,131 +414,261 @@ async function handleQuery() {
   queryResult.value = null
   cancelError.value = ''
   cancelSuccess.value = ''
-  if (!query.value.code || query.value.code.length < 8) {
-    queryError.value = '8 haneli kodu girin.'
-    return
-  }
+  if (!query.value.code || query.value.code.length < 8) { queryError.value = '8 haneli kodu girin.'; return }
   try {
-    const res = await axios.get('/api/guest-reservation/query/', {
-      params: { code: query.value.code }
-    })
+    const res = await axios.get('/api/guest-reservation/query/', { params: { code: query.value.code } })
     queryResult.value = res.data
-  } catch {
-    queryError.value = 'Rezervasyon bulunamadı.'
-  }
+  } catch { queryError.value = 'Rezervasyon bulunamadı.' }
 }
 
 async function handleCancel() {
   cancelError.value = ''
   cancelSuccess.value = ''
-  if (!query.value.email) {
-    cancelError.value = 'E-posta gerekli.'
-    return
-  }
+  if (!query.value.email) { cancelError.value = 'E-posta gerekli.'; return }
   try {
-    await axios.post('/api/guest-reservation/cancel/', {
-      code: query.value.code,
-      email: query.value.email,
-    })
+    await axios.post('/api/guest-reservation/cancel/', { code: query.value.code, email: query.value.email })
     cancelSuccess.value = 'Rezervasyon iptal edildi.'
     queryResult.value = { ...queryResult.value, status: 'cancelled' }
-  } catch (e) {
-    cancelError.value = e.response?.data?.error || 'İptal işlemi başarısız.'
-  }
+  } catch (e) { cancelError.value = e.response?.data?.error || 'İptal işlemi başarısız.' }
 }
 </script>
 
 <style scoped>
-.guest-layout { min-height: 100vh; background: #f8fafc; display: flex; flex-direction: column; }
+.guest-layout { min-height: 100vh; background: #F8FAFC; display: flex; flex-direction: column; }
 
+/* ── Header ── */
 .guest-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 40px; background: white; border-bottom: 1px solid #e2e8f0;
+  padding: 14px 40px;
+  background: white; border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  position: sticky; top: 0; z-index: 30;
 }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: #1e293b; }
-.brand-icon { width: 32px; height: 32px; background: #6366f1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 14px; }
-.login-link { font-size: 13px; font-weight: 600; color: #6366f1; text-decoration: none; }
-.login-link:hover { text-decoration: underline; }
 
-.guest-body { display: flex; gap: 32px; padding: 40px; max-width: 1100px; margin: 0 auto; width: 100%; }
-
-.form-panel {
-  flex: 1.2; background: white; border-radius: 14px;
-  border: 1.5px solid #e2e8f0; padding: 32px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+.brand { display: flex; align-items: center; gap: 11px; font-weight: 800; font-size: 16px; color: #111827; }
+.brand-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, #3730a3, #1B1063);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  color: white; box-shadow: 0 3px 8px rgba(27,16,99,0.3);
 }
+
+.login-cta {
+  display: flex; align-items: center; gap: 14px;
+  background: white; border: 1.5px solid #e2e8f0;
+  border-radius: 14px; padding: 10px 14px 10px 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06); transition: box-shadow 0.2s;
+}
+.login-cta:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.1); }
+.login-cta-text { display: flex; flex-direction: column; gap: 2px; }
+.cta-title { font-size: 12px; font-weight: 700; color: #111827; white-space: nowrap; }
+.cta-sub { font-size: 11px; color: #94a3b8; white-space: nowrap; }
+.login-cta-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 700; color: white;
+  background: linear-gradient(135deg, #1B1063, #130d4a);
+  padding: 9px 18px; border-radius: 10px; transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(27,16,99,0.35); white-space: nowrap; flex-shrink: 0;
+}
+.login-cta-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(27,16,99,0.45); }
+
+/* ── Body ── */
+.guest-body {
+  display: flex; gap: 28px;
+  padding: 40px 40px 60px;
+  max-width: 1160px; margin: 0 auto; width: 100%;
+}
+
+/* ── Wizard Panel ── */
+.wizard-panel { flex: 1.3; min-width: 0; }
+
+.wizard-intro { margin-bottom: 28px; }
+.wizard-intro h2 { font-size: 22px; font-weight: 800; color: #111827; margin: 0 0 4px; }
+.wizard-intro p { font-size: 13px; color: #64748B; margin: 0; }
+
+/* ── Step Bar ── */
+.step-bar {
+  display: flex; align-items: flex-start;
+  margin-bottom: 28px; padding: 0 4px;
+}
+
+.step-node { display: flex; flex-direction: column; align-items: center; gap: 7px; flex-shrink: 0; }
+
+.step-circle {
+  width: 42px; height: 42px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800;
+  background: white; border: 2px solid #d1d5db; color: #9ca3af;
+  transition: all 0.3s ease;
+}
+.step-circle svg { width: 16px; height: 16px; }
+
+.step-node.active .step-circle { border: 2.5px solid #1B1063; color: #1B1063; box-shadow: 0 0 0 5px rgba(27,16,99,0.1); }
+.step-node.completed .step-circle { background: #1B1063; border-color: #1B1063; color: white; box-shadow: 0 0 0 5px rgba(27,16,99,0.1); }
+
+.step-label { font-size: 11px; font-weight: 600; color: #9ca3af; white-space: nowrap; text-align: center; transition: color 0.3s; }
+.step-node.active .step-label { color: #1B1063; font-weight: 700; }
+.step-node.completed .step-label { color: #64748b; }
+
+.step-connector { flex: 1; height: 2px; background: #e5e7eb; margin-top: 20px; transition: background 0.3s; }
+.step-connector.done { background: #1B1063; }
+
+/* ── Step Card ── */
+.step-card {
+  background: white; border-radius: 18px;
+  padding: 30px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  border: 1px solid rgba(226,232,240,0.8);
+  min-height: 280px;
+}
+
+.card-title { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid #f1f5f9; }
+.card-title-icon { font-size: 24px; flex-shrink: 0; }
+.card-title-text { font-size: 17px; font-weight: 800; color: #111827; line-height: 1.2; }
+.card-title-sub { font-size: 12.5px; color: #64748B; margin-top: 2px; }
+
+/* ── Step 1 ── */
+.location-grid { display: flex; align-items: flex-end; gap: 14px; }
+.loc-field { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.loc-label { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.08em; }
+.loc-dot { width: 9px; height: 9px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; transition: background 0.2s; }
+.loc-dot.pickup { background: #1B1063; }
+.loc-dot.active { background: #F59E0B; }
+.loc-field select { padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; color: #94a3b8; outline: none; background: #fafafa; transition: border 0.2s, box-shadow 0.2s; cursor: pointer; }
+.loc-field select.filled { color: #111827; background: white; border-color: #c4beff; }
+.loc-field select:focus { border-color: #1B1063; background: white; box-shadow: 0 0 0 3px rgba(27,16,99,0.08); }
+.same-loc-btn { padding: 11px 14px; border: 1.5px dashed #e2e8f0; border-radius: 10px; font-size: 13px; color: #94a3b8; cursor: pointer; background: #fafafa; transition: border-color 0.2s; }
+.same-loc-btn:hover { border-color: #1B1063; }
+.loc-arrow { font-size: 16px; color: #d1d5db; flex-shrink: 0; padding-bottom: 12px; }
+.change-link { color: #1B1063; font-weight: 700; margin-left: 4px; }
+.transfer-notice { margin-top: 14px; display: flex; align-items: center; gap: 8px; padding: 11px 14px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 9px; font-size: 13px; color: #92400e; font-weight: 500; }
+.transfer-notice.free { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+.notice-icon { font-size: 15px; flex-shrink: 0; }
+
+/* ── Step 2 ── */
+.group-list { display: flex; flex-direction: column; gap: 10px; }
+.group-card { display: flex; align-items: center; gap: 14px; padding: 16px 18px; background: white; border: 1.5px solid #e5e7eb; border-radius: 13px; cursor: pointer; text-align: left; transition: all 0.2s; width: 100%; }
+.group-card:hover { border-color: #9b8ff5; background: #faf9ff; transform: translateX(2px); }
+.group-card.selected { border-color: #1B1063; background: #edeaff; box-shadow: 0 0 0 3px rgba(27,16,99,0.08); }
+.group-emoji { font-size: 28px; flex-shrink: 0; }
+.group-info { flex: 1; }
+.group-name { font-size: 14px; font-weight: 700; color: #111827; }
+.group-desc { font-size: 12px; color: #64748B; margin-top: 2px; }
+.group-check-circle { width: 28px; height: 28px; border-radius: 50%; background: #1B1063; display: flex; align-items: center; justify-content: center; flex-shrink: 0; opacity: 0; transform: scale(0.6); transition: opacity 0.2s, transform 0.2s; }
+.group-check-circle.visible { opacity: 1; transform: scale(1); }
+.group-check-circle svg { width: 13px; height: 13px; color: white; }
+
+/* ── Step 3 ── */
+.date-hint { font-size: 13px; color: #64748B; margin-bottom: 14px; }
+.loading-state { display: flex; align-items: center; gap: 12px; padding: 40px 0; justify-content: center; color: #64748B; font-size: 14px; }
+.loading-spinner { width: 22px; height: 22px; border: 2.5px solid #e2e8f0; border-top-color: #1B1063; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.no-avail { padding: 18px; background: #fff7ed; border-radius: 10px; color: #9a3412; font-size: 14px; font-weight: 500; border: 1px solid #fcd34d; }
+
+/* ── Step 4 ── */
+.mini-summary {
+  display: flex; gap: 0;
+  background: #F8FAFC; border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  margin-bottom: 22px; overflow: hidden;
+}
+.mini-item { flex: 1; padding: 12px 16px; border-right: 1px solid #f1f5f9; }
+.mini-item:last-child { border-right: none; }
+.mini-key { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; display: block; margin-bottom: 4px; }
+.mini-val { font-size: 13px; font-weight: 700; color: #111827; }
+
+.info-fields { display: flex; flex-direction: column; gap: 14px; }
+.info-field { display: flex; flex-direction: column; gap: 6px; }
+.info-field label { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.07em; }
+.req { color: #DC2626; }
+.info-field input { padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; background: #fafafa; transition: border-color 0.2s, box-shadow 0.2s; }
+.info-field input:focus { border-color: #1B1063; background: white; box-shadow: 0 0 0 3px rgba(27,16,99,0.08); }
+
+.form-error { color: #DC2626; font-size: 13px; background: #fff1f2; padding: 11px 14px; border-radius: 9px; border: 1px solid #fecdd3; margin-top: 12px; }
+
+/* ── Navigation ── */
+.step-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 10px; }
+.step-nav.nav-start { justify-content: flex-end; }
+
+.btn-back { padding: 11px 22px; background: white; color: #64748b; border: 1.5px solid #e2e8f0; border-radius: 11px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-back:hover { background: #F8FAFC; border-color: #cbd5e1; color: #111827; }
+
+.btn-next, .btn-confirm {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #1B1063, #130d4a);
+  color: white; border: none; border-radius: 11px;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: all 0.2s; box-shadow: 0 4px 12px rgba(27,16,99,0.3);
+}
+.btn-next:hover:not(:disabled), .btn-confirm:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(27,16,99,0.4); }
+.btn-next:disabled { background: #e5e7eb; color: #9ca3af; box-shadow: none; cursor: not-allowed; transform: none; }
+
+/* ── Success ── */
+.success-card { background: white; border-radius: 18px; padding: 40px 32px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04); border: 1px solid rgba(226,232,240,0.8); }
+.success-icon-wrap { width: 64px; height: 64px; background: linear-gradient(135deg, #16A34A, #15803d); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 16px rgba(22,163,74,0.3); }
+.success-icon-wrap svg { width: 28px; height: 28px; color: white; }
+.success-card h3 { font-size: 22px; font-weight: 800; color: #111827; margin: 0 0 10px; }
+.success-sub { font-size: 14px; color: #64748B; margin: 0 0 24px; line-height: 1.6; }
+.code-box { font-size: 30px; font-weight: 900; letter-spacing: 6px; color: #1B1063; background: #edeaff; border: 2px dashed #9b8ff5; border-radius: 12px; padding: 18px 28px; display: inline-block; margin-bottom: 10px; }
+.code-hint { font-size: 12px; color: #94a3b8; margin-bottom: 28px; }
+.btn-new { padding: 13px 32px; background: linear-gradient(135deg, #16A34A, #15803d); color: white; border: none; border-radius: 11px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
+.btn-new:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(22,163,74,0.4); }
+
+/* ── Query Panel ── */
 .query-panel {
-  flex: 0.8; background: white; border-radius: 14px;
-  border: 1.5px solid #e2e8f0; padding: 32px;
+  width: 300px; flex-shrink: 0;
+  background: white; border-radius: 18px; padding: 28px;
+  border: 1.5px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-  align-self: flex-start;
+  align-self: center;
 }
 
-h2 { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
-h3 { font-size: 17px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
-.sub { font-size: 13px; color: #94a3b8; margin: 0 0 24px; }
+.query-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid #f1f5f9; }
+.query-icon { font-size: 22px; flex-shrink: 0; }
+.query-title { font-size: 15px; font-weight: 800; color: #111827; }
+.query-sub { font-size: 12px; color: #64748B; margin-top: 2px; line-height: 1.4; }
 
-.section-title { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; color: #1e293b; margin-bottom: 20px; }
-.step-num { width: 24px; height: 24px; background: #6366f1; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+.q-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.q-field label { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.07em; }
+.q-field input { padding: 10px 13px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 14px; outline: none; background: #fafafa; transition: border-color 0.2s; }
+.q-field input:focus { border-color: #1B1063; background: white; }
 
-.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-.field label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.06em; }
-.field input, .field select { padding: 10px 13px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 14px; outline: none; background: white; color: #1e293b; }
-.field input:focus, .field select:focus { border-color: #6366f1; }
+.btn-query { width: 100%; padding: 11px; background: #1B1063; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; margin-bottom: 14px; }
+.btn-query:hover { background: #130d4a; }
 
-.same-loc { padding: 10px 13px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 13px; color: #94a3b8; cursor: pointer; }
-.change-link { color: #6366f1; font-weight: 600; margin-left: 6px; }
+.q-error { color: #DC2626; font-size: 12.5px; background: #fff1f2; padding: 8px 12px; border-radius: 8px; border: 1px solid #fecdd3; margin-bottom: 12px; }
+.q-success { color: #16A34A; font-size: 12.5px; background: #f0fdf4; padding: 8px 12px; border-radius: 8px; border: 1px solid #bbf7d0; margin-bottom: 12px; font-weight: 600; }
 
-.transfer-notice { padding: 10px 14px; background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; font-size: 13px; color: #92400e; margin-bottom: 16px; }
-.transfer-notice.free { background: #f0fdf4; border-color: #86efac; color: #166534; }
+.query-result { border-top: 1px solid #f1f5f9; padding-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.result-row { display: flex; justify-content: space-between; align-items: center; }
+.rk { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; }
+.rv { font-size: 13px; font-weight: 600; color: #111827; text-align: right; max-width: 150px; word-break: break-word; }
 
-.group-cards { display: flex; flex-direction: column; gap: 8px; }
-.group-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; background: white; cursor: pointer; text-align: left; transition: border-color 0.15s; }
-.group-card:hover { border-color: #a5b4fc; }
-.group-card.selected { border-color: #6366f1; background: #f5f3ff; }
-.group-name { font-size: 13px; font-weight: 700; color: #1e293b; }
-.group-desc { font-size: 12px; color: #94a3b8; }
+.status-badge { padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 700; }
+.status-badge.pending  { background: #fef3c7; color: #92400e; }
+.status-badge.assigned { background: #d1fae5; color: #16A34A; }
+.status-badge.cancelled { background: #fee2e2; color: #DC2626; }
 
-.date-hint { font-size: 12px; color: #94a3b8; margin-bottom: 12px; }
-.loading { font-size: 13px; color: #94a3b8; padding: 20px 0; text-align: center; }
-.no-avail { padding: 16px; background: #fff7ed; border-radius: 8px; font-size: 13px; color: #9a3412; }
+.cancel-area { margin-top: 14px; padding-top: 14px; border-top: 1px solid #f1f5f9; }
+.btn-cancel { width: 100%; padding: 10px; background: #fff1f2; color: #DC2626; border: 1.5px solid #fecdd3; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 10px; }
+.btn-cancel:hover { background: #fee2e2; border-color: #DC2626; }
 
-.step-actions { display: flex; gap: 10px; margin-top: 20px; }
-.btn-next { flex: 1; padding: 12px; background: #6366f1; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
-.btn-next:hover { background: #4f46e5; }
-.btn-next:disabled { background: #c7d2fe; cursor: not-allowed; }
-.btn-back { padding: 12px 18px; background: white; color: #64748b; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
-.btn-back:hover { background: #f8fafc; }
+/* ── Transitions ── */
+.step-fwd-enter-active { transition: all 0.28s ease; }
+.step-fwd-leave-active { transition: all 0.2s ease; }
+.step-fwd-enter-from   { opacity: 0; transform: translateX(32px); }
+.step-fwd-leave-to     { opacity: 0; transform: translateX(-32px); }
 
-.confirm-summary { background: #f8fafc; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 6px; }
-.confirm-item { display: flex; justify-content: space-between; font-size: 13px; color: #475569; }
-.confirm-key { font-weight: 600; color: #94a3b8; }
+.step-back-enter-active { transition: all 0.28s ease; }
+.step-back-leave-active { transition: all 0.2s ease; }
+.step-back-enter-from   { opacity: 0; transform: translateX(-32px); }
+.step-back-leave-to     { opacity: 0; transform: translateX(32px); }
 
-.success-panel { text-align: center; padding: 20px 0; }
-.success-icon { width: 56px; height: 56px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 16px; color: #16a34a; }
-.success-panel h3 { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
-.success-panel p { font-size: 13px; color: #64748b; margin-bottom: 20px; }
-.code-box { font-size: 28px; font-weight: 900; letter-spacing: 6px; color: #6366f1; background: #f5f3ff; border: 2px dashed #a5b4fc; border-radius: 12px; padding: 16px 24px; display: inline-block; margin-bottom: 8px; }
-.code-hint { font-size: 12px; color: #94a3b8; margin-bottom: 24px; }
-
-.btn-query { width: 100%; padding: 11px; background: #1e293b; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 12px; }
-.btn-query:hover { background: #0f172a; }
-
-.query-result { margin-top: 16px; background: #f8fafc; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
-.badge { padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 700; }
-.badge.pending { background: #fef9c3; color: #854d0e; }
-.badge.assigned { background: #dcfce7; color: #166534; }
-.badge.cancelled { background: #fee2e2; color: #991b1b; }
-
-.cancel-section { margin-top: 14px; padding-top: 14px; border-top: 1px solid #e2e8f0; }
-.btn-cancel { width: 100%; padding: 10px; background: #dc2626; color: white; border: none; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; }
-.btn-cancel:hover { background: #b91c1c; }
-
-.error { color: #dc2626; font-size: 13px; background: #fff1f2; padding: 10px 14px; border-radius: 8px; margin: 8px 0 0; }
-.success-msg { color: #16a34a; font-size: 13px; background: #f0fdf4; padding: 10px 14px; border-radius: 8px; margin: 8px 0 0; }
-
-@media (max-width: 768px) {
-  .guest-body { flex-direction: column; padding: 20px; }
-  .guest-header { padding: 16px 20px; }
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .guest-body { flex-direction: column; padding: 24px 20px 40px; }
+  .query-panel { width: 100%; position: static; }
+  .guest-header { padding: 12px 20px; }
+  .login-cta-text { display: none; }
 }
 </style>
