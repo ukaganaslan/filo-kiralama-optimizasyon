@@ -29,8 +29,13 @@
           <td><span :class="'badge-group badge-' + v.group">{{ groupLabel(v.group) }}</span></td>
           <td><span :class="'badge-status badge-' + v.current_status">{{ statusLabel(v.current_status) }}</span></td>
           <td class="actions">
-            <button class="btn-edit" @click="openEdit(v)">✏️</button>
-            <button class="btn-delete" @click="confirmDelete(v)">🗑️</button>
+            <div class="action-menu" @click.stop>
+              <button class="btn-dots" @click="toggleMenu(v.id)">···</button>
+              <div v-if="openMenuId === v.id" class="action-dropdown">
+                <button @click="openEdit(v); openMenuId = null">Düzenle</button>
+                <button class="danger" @click="confirmDelete(v); openMenuId = null">Sil</button>
+              </div>
+            </div>
           </td>
         </tr>
         <tr v-if="vehicles.length === 0">
@@ -102,10 +107,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 
 const vehicles = ref([])
+const openMenuId = ref(null)
 const editModal = ref(false)
 const formError = ref('')
 const editForm = ref({})
@@ -113,7 +119,10 @@ const editingId = ref(null)
 const deleteModal = ref(false)
 const deletingVehicle = ref(null)
 
-onMounted(loadVehicles)
+function toggleMenu(id) { openMenuId.value = openMenuId.value === id ? null : id }
+function closeMenu() { openMenuId.value = null }
+onMounted(() => { loadVehicles(); document.addEventListener('click', closeMenu) })
+onUnmounted(() => document.removeEventListener('click', closeMenu))
 
 async function loadVehicles() {
   const res = await axios.get('/api/vehicles/')
@@ -205,11 +214,15 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .id { font-family: monospace; font-weight: 600; color: #1e293b; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 .rez-count { display: inline-block; padding: 2px 10px; background: #ede9fe; color: #5b21b6; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.actions { width: 60px; }
-.btn-edit { padding: 4px 10px; background: white; color: #6366f1; border: 1px solid #6366f1; border-radius: 50px; font-size: 12px; cursor: pointer; }
-.btn-edit:hover { background: #ede9fe; }
-.btn-delete { padding: 4px 12px; background: white; color: #dc2626; border: 1px solid #dc2626; border-radius: 50px; font-size: 12px; cursor: pointer; }
-.btn-delete:hover { background: #fee2e2; }
+.actions { text-align: center !important; width: 60px; }
+.action-menu { position: relative; display: inline-block; }
+.btn-dots { background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 16px; color: #64748b; line-height: 1; letter-spacing: 2px; }
+.btn-dots:hover { background: #f1f5f9; }
+.action-dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 110px; z-index: 50; overflow: hidden; }
+.action-dropdown button { display: block; width: 100%; padding: 9px 14px; text-align: left; background: none; border: none; font-size: 13px; color: #374151; cursor: pointer; }
+.action-dropdown button:hover { background: #f8fafc; }
+.action-dropdown button.danger { color: #dc2626; }
+.action-dropdown button.danger:hover { background: #fee2e2; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; }
 .modal { background: white; border-radius: 14px; padding: 32px; width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 14px; }
 .modal h3 { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; }

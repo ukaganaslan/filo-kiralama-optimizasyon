@@ -56,7 +56,14 @@
           <td>{{ r.start_date }}</td>
           <td>{{ r.end_date }}</td>
           <td><span :class="'badge badge-' + r.status">{{ r.status }}</span></td>
-          <td><button class="btn-del" @click="deleteReservation(r)">🗑️</button></td>
+          <td class="actions">
+            <div class="action-menu" @click.stop>
+              <button class="btn-dots" @click="toggleMenu(r.id)">···</button>
+              <div v-if="openMenuId === r.id" class="action-dropdown">
+                <button class="danger" @click="deleteReservation(r); openMenuId = null">Sil</button>
+              </div>
+            </div>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -64,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
 import FullCalendar from '@fullcalendar/vue3'
 import ResourceTimelinePlugin from '@fullcalendar/resource-timeline'
@@ -73,6 +80,7 @@ import trLocale from '@fullcalendar/core/locales/tr'
 const reservations = ref([])
 const activeView = ref('list')
 const vehicles = ref([])
+const openMenuId = ref(null)
 
 const activeCount = computed(() => reservations.value.filter(r => r.status !== 'cancelled').length)
 const pendingCount = computed(() => reservations.value.filter(r => r.status === 'pending').length)
@@ -80,6 +88,11 @@ const assignedCount = computed(() => reservations.value.filter(r => r.status ===
 const cancelledCount = computed(() => reservations.value.filter(r => r.status === 'cancelled').length)
 const totalVehicles = computed(() => vehicles.value.length)
 const availableVehicles = computed(() => vehicles.value.filter(v => v.status === 'available').length)
+
+function toggleMenu(id) { openMenuId.value = openMenuId.value === id ? null : id }
+function closeMenu() { openMenuId.value = null }
+onMounted(() => document.addEventListener('click', closeMenu))
+onUnmounted(() => document.removeEventListener('click', closeMenu))
 
 onMounted(async () => {
   const [rezRes, vehicleRes] = await Promise.all([
@@ -219,8 +232,15 @@ th {
 }
 td { border-top: 1px solid #f1f5f9; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
-.btn-del { background: none; border: none; cursor: pointer; font-size: 16px; opacity: 0.4; padding: 4px 8px; border-radius: 6px; }
-.btn-del:hover { opacity: 1; background: #fee2e2; }
+.actions { text-align: center !important; }
+.action-menu { position: relative; display: inline-block; }
+.btn-dots { background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 16px; color: #64748b; line-height: 1; letter-spacing: 2px; }
+.btn-dots:hover { background: #f1f5f9; }
+.action-dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 100px; z-index: 50; overflow: hidden; }
+.action-dropdown button { display: block; width: 100%; padding: 9px 14px; text-align: left; background: none; border: none; font-size: 13px; color: #374151; cursor: pointer; }
+.action-dropdown button:hover { background: #f8fafc; }
+.action-dropdown button.danger { color: #dc2626; }
+.action-dropdown button.danger:hover { background: #fee2e2; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7), td:nth-child(8), th:nth-child(8), td:nth-child(9), th:nth-child(9), td:nth-child(10), th:nth-child(10) { text-align: center; }
 </style>
 

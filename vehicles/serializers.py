@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import Branch, Vehicle, Reservation, Assignment, TransferCost
+from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog
 from datetime import date
+
 
 
 
@@ -89,3 +90,17 @@ class AssignmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assignment
         fields = ['id', 'reservation', 'vehicle', 'transfer_cost']
+
+class MaintenanceLogSerializer(serializers.ModelSerializer):
+    vehicle_id = serializers.CharField(source='vehicle.vehicle_id', read_only=True)
+    vehicle_plate = serializers.CharField(source='vehicle.plate', read_only=True)
+    vehicle_group = serializers.CharField(source='vehicle.group', read_only=True)
+    vehicle_branch_name = serializers.CharField(source='vehicle.branch.name', read_only=True)
+    vehicle_branch_title = serializers.CharField(source='vehicle.branch.title', read_only=True)
+
+    class Meta:
+        model = MaintenanceLog
+        fields = [
+            'id', 'vehicle', 'vehicle_id', 'vehicle_plate', 'vehicle_group', 'vehicle_branch_name', 'vehicle_branch_title',
+            'current_km', 'reason', 'start_date', 'end_date', 'notes'
+        ]
