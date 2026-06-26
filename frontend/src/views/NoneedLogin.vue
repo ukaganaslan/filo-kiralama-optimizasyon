@@ -324,7 +324,7 @@ function branchName(id) {
   return b ? (b.title || b.name) : '—'
 }
 function groupLabel(v) { return groups.find(g => g.value === v)?.label || v }
-function statusLabel(s) { return { pending: 'Bekliyor', assigned: 'Atandı', cancelled: 'İptal' }[s] || s }
+function statusLabel(s) { return { pending: 'Bekliyor', assigned: 'Onaylandı', cancelled: 'İptal' }[s] || s }
 
 function nextStep() {
   if (!canAdvance.value) return

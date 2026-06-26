@@ -48,6 +48,10 @@
           <span class="nav-icon">🔧</span>
           <span class="nav-label">Bakım Kayıtları</span>
         </router-link>
+        <router-link to="/operator/pricing" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
+          <span class="nav-icon">💰</span>
+          <span class="nav-label">Fiyatlandırma</span>
+        </router-link>
 
         <div class="nav-divider"></div>
         <div class="nav-section-label">Optimizasyon</div>

@@ -32,14 +32,15 @@
           <span class="nav-icon">🚗</span>
           <span class="nav-label">Araçlar</span>
         </router-link>
-        <router-link to="/representative/logs" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Teslimat Logları' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">📝</span>
-          <span class="nav-label">Teslimat Logları</span>
-        </router-link>
         <router-link to="/representative/maintenance" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
           <span class="nav-icon">🔧</span>
           <span class="nav-label">Bakım Kayıtları</span>
         </router-link>
+        <router-link to="/representative/logs" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Teslimat Logları' : ''" @click="mobileOpen = false">
+          <span class="nav-icon">📝</span>
+          <span class="nav-label">Teslimat Logları</span>
+        </router-link>
+
       </nav>
 
       <!-- Footer -->

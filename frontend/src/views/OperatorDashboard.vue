@@ -12,7 +12,7 @@
 
       </div>
       <div class="stat-card stat-green">
-        <div class="stat-label">Atandı</div>
+        <div class="stat-label">Onaylandı</div>
         <div class="stat-value">{{ assignedCount }}</div>
 
       </div>
@@ -55,7 +55,7 @@
           <td>{{ r.vehicle_group }}</td>
           <td>{{ r.start_date }}</td>
           <td>{{ r.end_date }}</td>
-          <td><span :class="'badge badge-' + r.status">{{ r.status }}</span></td>
+          <td><span :class="'badge badge-' + r.status">{{ { pending: 'Bekliyor', assigned: 'Onaylandı', cancelled: 'İptal' }[r.status] || r.status }}</span></td>
           <td class="actions">
             <div class="action-menu" @click.stop>
               <button class="btn-dots" @click="toggleMenu(r.id)">···</button>
@@ -218,10 +218,11 @@ table {
   border-collapse: collapse;
   background: white;
   border-radius: 8px;
-  overflow: hidden;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
+th:first-child { border-radius: 8px 0 0 0; }
+th:last-child { border-radius: 0 8px 0 0; }
 th {
   background: #f1f5f9;
   font-weight: 600;
@@ -236,7 +237,7 @@ td { border-top: 1px solid #f1f5f9; }
 .action-menu { position: relative; display: inline-block; }
 .btn-dots { background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 16px; color: #64748b; line-height: 1; letter-spacing: 2px; }
 .btn-dots:hover { background: #f1f5f9; }
-.action-dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 100px; z-index: 50; overflow: hidden; }
+.action-dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 100px; z-index: 300; overflow: hidden; }
 .action-dropdown button { display: block; width: 100%; padding: 9px 14px; text-align: left; background: none; border: none; font-size: 13px; color: #374151; cursor: pointer; }
 .action-dropdown button:hover { background: #f8fafc; }
 .action-dropdown button.danger { color: #dc2626; }

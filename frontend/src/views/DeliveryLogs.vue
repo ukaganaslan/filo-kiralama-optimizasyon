@@ -71,7 +71,7 @@ th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
 td { border-top: 1px solid #f1f5f9; color: #374151; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7), td:nth-child(8), th:nth-child(8), td:nth-child(9), th:nth-child(9) { text-align: center; }
-.res-id { font-weight: 700; color: #6366f1; font-family: monospace; }
+.res-id { font-weight: 700; color: #000000; font-family: monospace; }
 .badge-event-delivered { background: #d1fae5; color: #065f46; display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .badge-event-returned { background: #dbeafe; color: #1d4ed8; display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
 </style>

@@ -131,7 +131,7 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 .action-menu { position: relative; display: inline-block; }
 .btn-dots { background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 16px; color: #64748b; line-height: 1; letter-spacing: 2px; }
 .btn-dots:hover { background: #f1f5f9; }
-.action-dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 110px; z-index: 50; overflow: hidden; }
+.action-dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 110px; z-index: 300; overflow: hidden; }
 .action-dropdown button { display: block; width: 100%; padding: 9px 14px; text-align: left; background: none; border: none; font-size: 13px; color: #374151; cursor: pointer; }
 .action-dropdown button:hover { background: #f8fafc; }
 .action-dropdown button.danger { color: #dc2626; }
@@ -231,17 +231,33 @@ async function saveForm() {
     formError.value = 'Araç, KM, bakım türü ve başlangıç tarihi zorunludur.'
     return
   }
+  if (form.value.end_date && form.value.end_date < form.value.start_date) {
+    formError.value = 'Bitiş tarihi başlangıç tarihinden önce olamaz.'
+    return
+  }
   try {
+    const payload = {
+      ...form.value,
+      end_date: form.value.end_date || null,
+    }
     if (editingId.value) {
-      await axios.patch(`/api/maintenance-logs/${editingId.value}/`, form.value)
+      await axios.patch(`/api/maintenance-logs/${editingId.value}/`, payload)
     } else {
-      await axios.post('/api/maintenance-logs/', form.value)
+      await axios.post('/api/maintenance-logs/', payload)
     }
     const res = await axios.get('/api/maintenance-logs/')
     logs.value = res.data
     showModal.value = false
   } catch (e) {
-    formError.value = e.response?.data?.[0] || e.response?.data?.detail || 'Kaydetme başarısız.'
+    const data = e.response?.data
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      const first = Object.values(data)[0]
+      formError.value = Array.isArray(first) ? first[0] : first
+    } else if (Array.isArray(data)) {
+      formError.value = data[0]
+    } else {
+      formError.value = 'Kaydetme başarısız.'
+    }
   }
 }
 

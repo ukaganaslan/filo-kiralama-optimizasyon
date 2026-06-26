@@ -69,6 +69,7 @@ class Reservation(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     km_driven = models.IntegerField(null=True, blank=True)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     STATUS_CHOICES = [
         ('pending', 'Bekliyor'),
@@ -175,4 +176,12 @@ class DeliveryLog(models.Model):
 
     def __str__(self):
         return f"{self.reservation} - {self.event_type} - {self.logged_at}"
+
+class DailyPrice(models.Model):
+    date = models.DateField()
+    vehicle_group = models.CharField(max_length=20, choices=Vehicle.GROUP_CHOICES)
+    price_per_day = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        unique_together = ('date', 'vehicle_group')
 

@@ -164,6 +164,10 @@
                 {{ transferCost === 0 ? 'Ücretsiz' : `${transferCost} ₺` }}
               </div>
             </div>
+            <div v-if="totalPrice !== null" class="summary-item summary-item--price">
+              <div class="summary-key">Toplam Ücret</div>
+              <div class="summary-val summary-price">{{ totalPrice.toLocaleString('tr-TR') }} ₺</div>
+            </div>
           </div>
 
           <p v-if="formError" class="form-error">{{ formError }}</p>
@@ -218,6 +222,21 @@ const form = ref({ branch: '', vehicle_group: '', return_branch: '' })
 const dateRange = ref({ start: null, end: null })
 const differentReturn = ref(false)
 const transferCost = ref(null)
+const dailyPrices = ref([])
+
+const totalPrice = computed(() => {
+  if (!dateRange.value.start || !dateRange.value.end || !dailyPrices.value.length) return null
+  const priceMap = {}
+  dailyPrices.value.forEach(p => { priceMap[p.date] = Number(p.price_per_day) })
+  const start = new Date(dateRange.value.start)
+  const end = new Date(dateRange.value.end)
+  let total = 0
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    total += priceMap[key] || 0
+  }
+  return total
+})
 
 const groups = [
   { value: 'economy', label: 'Ekonomi', desc: 'Şehir içi, yakıt dostu' },
@@ -288,10 +307,12 @@ async function fetchAvailability() {
   availableDates.value = []
   dateRange.value = { start: null, end: null }
   try {
-    const res = await axios.get('/api/availability/', {
-      params: { branch: form.value.branch, group: form.value.vehicle_group }
-    })
-    availableDates.value = res.data.available_dates
+    const [availRes, priceRes] = await Promise.all([
+      axios.get('/api/availability/', { params: { branch: form.value.branch, group: form.value.vehicle_group } }),
+      axios.get('/api/daily-prices/', { params: { group: form.value.vehicle_group } }),
+    ])
+    availableDates.value = availRes.data.available_dates
+    dailyPrices.value = priceRes.data
   } finally {
     availabilityLoading.value = false
   }
@@ -612,6 +633,8 @@ function resetForm() {
 }
 .summary-val { font-size: 14px; font-weight: 700; color: #111827; }
 .val-free { color: #16A34A; }
+.summary-item--price { border-color: #c7d2fe; background: #eef2ff; }
+.summary-price { font-size: 18px; color: #4f46e5; }
 
 .form-error {
   color: #DC2626;
