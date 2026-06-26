@@ -30,6 +30,7 @@
             type="text"
             placeholder="Kullanıcı adı"
             autocomplete="username"
+            @change="username = $event.target.value"
             @keyup.enter="handleLogin"
           />
           <input
@@ -37,6 +38,7 @@
             type="password"
             placeholder="Şifre"
             autocomplete="current-password"
+            @change="password = $event.target.value"
             @keyup.enter="handleLogin"
           />
         </div>
