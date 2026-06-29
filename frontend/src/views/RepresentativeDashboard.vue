@@ -5,6 +5,10 @@
         <h2>Şube Rezervasyonları</h2>
         <span class="count-badge">{{ reservations.length }} rezervasyon</span>
       </div>
+        <select v-model="selectedMonth" class="view-select">
+          <option value="">Tüm Aylar</option>
+          <option v-for="m in availableMonths" :key="m" :value="m">{{ formatMonth(m) }}</option>
+        </select>
         <select v-model="activeView" class="view-select">
           <option value="list">Liste Görünümü</option>
           <option value="calendar">Takvim Görünümü</option>
@@ -26,10 +30,12 @@
           <th>İade Şube</th>
           <th>Tutar</th>
           <th>Durum</th>
+          <th></th>
+          
         </tr>
       </thead>
       <tbody>
-        <tr v-for="r in reservations" :key="r.id">
+        <tr v-for="r in filteredReservations" :key="r.id">
           <td class="id">{{ r.reservation_id }}</td>
           <td>{{ r.assigned_vehicle_id }}</td>
           <td>{{ r.customer_username }}</td>
@@ -39,8 +45,23 @@
           <td>{{ r.return_branch ? (r.return_branch_title || r.return_branch_name) : (r.branch_title || r.branch_name) }}</td>
           <td><span v-if="r.total_price" class="price-badge">{{ Number(r.total_price).toLocaleString('tr-TR') }} ₺</span><span v-else class="price-na">—</span></td>
           <td><span :class="'badge badge-' + r.status">{{ statusLabel(r.status) }}</span></td>
+          <td class="actions">
+            <div class="action-menu" @click.stop>
+              <button class="btn-dots" @click="toggleMenu(r.id)">···</button>
+              <div v-if="openMenuId === r.id" class="action-dropdown">
+                <button
+                  v-if="r.status !== 'cancelled' && r.start_date > bugun"
+                  class="danger"
+                  @click="iptalEt(r); openMenuId = null"
+                >
+                  İptal Et
+                </button>
+                <span v-else class="no-action">İşlem yok</span>
+              </div>
+            </div>
+          </td>
         </tr>
-        <tr v-if="reservations.length === 0">
+        <tr v-if="filteredReservations.length === 0">
           <td colspan="7" class="empty">Bu şubeye ait rezervasyon bulunamadı.</td>
         </tr>
       </tbody>
@@ -169,6 +190,35 @@ const customers = ref([])
 const branches = ref([])
 const branchId = ref(null)
 const activeView = ref('list')
+const bugun = new Date().toISOString().split('T')[0]
+const openMenuId = ref(null)
+const selectedMonth = ref(new Date().toISOString().slice(0, 7)) 
+const availableMonths = computed(() => {
+  const months = [...new Set(reservations.value.map(r => r.start_date.slice(0, 7)))]
+  return months.sort().reverse()
+})
+
+const filteredReservations = computed(() =>
+  selectedMonth.value
+    ? reservations.value.filter(r => r.start_date.startsWith(selectedMonth.value))
+    : reservations.value
+)
+
+function toggleMenu(id) {
+  openMenuId.value = openMenuId.value === id ? null : id
+}
+
+async function iptalEt(r) {
+  if (!confirm(`${r.reservation_id} rezervasyonunu iptal etmek istiyor musunuz?`)) return
+  try {
+    await axios.patch(`/api/reservations/${r.id}/`, { status: 'cancelled' })
+    const idx = reservations.value.findIndex(x => x.id === r.id)
+    if (idx !== -1) reservations.value[idx] = { ...reservations.value[idx], status: 'cancelled' }
+    openMenuId.value = null
+  } catch {
+    alert('İptal işlemi başarısız.')
+  }
+}
 
 const createModal = ref(false)
 const calendarMode = ref(false)
@@ -378,6 +428,11 @@ async function handleCreate() {
     formError.value = msg || 'Rezervasyon oluşturulamadı.'
   }
 }
+function formatMonth(m) {
+  const [y, mo] = m.split('-')
+  const names = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
+  return `${names[parseInt(mo)-1]} ${y}`
+}
 </script>
 
 <style scoped>
@@ -437,4 +492,13 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .info-value { display: block; font-size: 14px; font-weight: 700; color: #1e293b; }
 .price-badge { font-size: 13px; font-weight: 700; color: #000000; }
 .price-na { color: #94a3b8; }
+.actions { text-align: center; width: 48px; }
+.action-menu { position: relative; display: inline-block; }
+.btn-dots { background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px 8px; font-size: 16px; color: #64748b; cursor: pointer; line-height: 1.4; }
+.btn-dots:hover { background: #f1f5f9; }
+.action-dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 50; min-width: 110px; overflow: hidden; }
+.action-dropdown button, .action-dropdown .no-action { display: block; width: 100%; padding: 9px 14px; font-size: 13px; text-align: left; border: none; background: none; cursor: pointer; }
+.action-dropdown button.danger { color: #dc2626; }
+.action-dropdown button.danger:hover { background: #fef2f2; }
+.no-action { color: #94a3b8; cursor: default; }
 </style>

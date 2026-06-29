@@ -21,6 +21,10 @@
     <div class="section-header">
       <h2>Tüm Rezervasyonlar</h2>
       <div class="header-actions">
+        <select v-model="selectedMonth" class="view-select">
+          <option value="">Tüm Aylar</option>
+          <option v-for="m in availableMonths" :key="m" :value="m">{{ formatMonth(m) }}</option>
+        </select>
         <select v-model="activeView" class="view-select">
           <option value="list">Liste Görünümü</option>
           <option value="calendar">Takvim Görünümü</option>
@@ -47,7 +51,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="r in reservations" :key="r.id">
+        <tr v-for="r in filteredReservations" :key="r.id">
           <td>{{ r.reservation_id }}</td>
           <td>{{ r.assigned_vehicle_id }}</td>
           <td>{{ r.customer_username || `Misafir - ${r.guest_name}` }}</td>
@@ -90,6 +94,17 @@ const assignedCount = computed(() => reservations.value.filter(r => r.status ===
 const cancelledCount = computed(() => reservations.value.filter(r => r.status === 'cancelled').length)
 const totalVehicles = computed(() => vehicles.value.length)
 const availableVehicles = computed(() => vehicles.value.filter(v => v.status === 'available').length)
+const selectedMonth = ref(new Date().toISOString().slice(0, 7)) 
+const availableMonths = computed(() => {
+  const months = [...new Set(reservations.value.map(r => r.start_date.slice(0, 7)))]
+  return months.sort().reverse()
+})
+
+const filteredReservations = computed(() =>
+  selectedMonth.value
+    ? reservations.value.filter(r => r.start_date.startsWith(selectedMonth.value))
+    : reservations.value
+)
 
 function toggleMenu(id) { openMenuId.value = openMenuId.value === id ? null : id }
 function closeMenu() { openMenuId.value = null }
@@ -135,6 +150,12 @@ const calendarOptions = computed(() => ({
       end: r.end_date,
     })),
 }))
+
+function formatMonth(m) {
+  const [y, mo] = m.split('-')
+  const names = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
+  return `${names[parseInt(mo)-1]} ${y}`
+}
 </script>
 
 <style scoped>

@@ -24,7 +24,11 @@
 
       <!-- Nav -->
       <nav class="sidebar-nav">
-        <router-link to="/representative" class="nav-item" exact-active-class="nav-item--active" active-class="" :title="collapsed ? 'Rezervasyonlar' : ''" @click="mobileOpen = false">
+        <router-link to="/representative" class="nav-item" exact-active-class="nav-item--active" active-class="" :title="collapsed ? 'Günün Özeti' : ''" @click="mobileOpen = false">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Günün Özeti</span>
+        </router-link>
+        <router-link to="/representative/rezervasyonlar" class="nav-item" exact-active-class="nav-item--active" active-class="" :title="collapsed ? 'Rezervasyonlar' : ''" @click="mobileOpen = false">
           <span class="nav-icon">📋</span>
           <span class="nav-label">Rezervasyonlar</span>
         </router-link>
@@ -108,7 +112,8 @@ const collapsed = ref(localStorage.getItem('sidebarCollapsed') === 'true')
 const initials = computed(() => (auth.username || '').substring(0, 2).toUpperCase())
 
 const pageTitles = {
-  '/representative': 'Rezervasyonlar',
+  '/representative': 'Günün Özeti',
+  '/representative/rezervasyonlar': 'Rezervasyonlar',
   '/representative/araclar': 'Araçlar',
   '/representative/profil': 'Profil Ayarları',
   '/representative/logs': 'Teslimat Logları',
