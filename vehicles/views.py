@@ -33,6 +33,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
     serializer_class = VehicleSerializer
 
     def get_queryset(self):
+        _sync_maintenance()
         profile = getattr(self.request.user, 'profile', None)
         if profile and profile.role == 'representative' and profile.branch:
             return Vehicle.objects.filter(branch=profile.branch)
@@ -139,6 +140,20 @@ class ReservationViewSet(viewsets.ModelViewSet):
         serializer.save(**save_kwargs)
         _run_optimization()
     
+    def perform_update(self, serializer):
+        from rest_framework.exceptions import PermissionDenied, ValidationError
+        new_status = serializer.validated_data.get('status')
+        if new_status and new_status != 'cancelled':
+            raise ValidationError('Sadece iptal işlemi yapılabilir.')
+        instance = serializer.instance
+        profile = getattr(self.request.user, 'profile', None)
+        if profile and profile.role == 'representative':
+            if instance.branch != profile.branch:
+                raise PermissionDenied('Bu rezervasyona erişim yetkiniz yok.')
+            if instance.start_date.isoformat() <= date.today().isoformat():
+                raise ValidationError('Başlamış rezervasyon iptal edilemez.')
+        serializer.save()
+
     def perform_destroy(self, instance):
         instance.delete()
         _run_optimization()
@@ -182,6 +197,22 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
 
         log = serializer.save()
         log.vehicle.status = 'maintenance'
+        log.vehicle.save(update_fields=['status'])
+
+    def perform_update(self, serializer):
+        log = serializer.save()
+        if log.end_date and log.end_date <= date.today():
+            log.vehicle.status = 'available'
+            log.vehicle.save(update_fields=['status'])
+
+def _sync_maintenance():
+    today = date.today()
+    done_logs = MaintenanceLog.objects.filter(
+        end_date__lte=today,
+        vehicle__status='maintenance',
+    ).select_related('vehicle')
+    for log in done_logs:
+        log.vehicle.status = 'available'
         log.vehicle.save(update_fields=['status'])
 
 def _sync_delivery_logs():

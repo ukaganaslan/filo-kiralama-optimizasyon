@@ -52,7 +52,7 @@ class ReservationSerializer(serializers.ModelSerializer):
     return_branch_title = serializers.CharField(source='return_branch.title', read_only=True, default=None)
     customer_username = serializers.CharField(source='customer.username', read_only=True)
     reservation_id = serializers.CharField(read_only=True)
-    status = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=False, required=False)
     assigned_vehicle_id = serializers.SerializerMethodField()
     assigned_vehicle_info = serializers.SerializerMethodField()
     current_status = serializers.SerializerMethodField()

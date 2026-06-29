@@ -30,7 +30,7 @@
         <tbody>
           <tr v-for="r in reservations" :key="r.id">
             <td class="res-id">#{{ r.reservation_id }}</td>
-            <td>{{ r.branch_name }}</td>
+            <td>{{ r.branch_title }}</td>
             <td>{{ groupLabel(r.vehicle_group) }}</td>
             <td>{{ r.start_date }}</td>
             <td>{{ r.end_date }}</td>
