@@ -13,7 +13,7 @@
 
       <div class="card card--green">
         <div class="card-header">
-          <span class="card-title">Bugün Teslim</span>
+          <span class="card-title">Bugün Teslim Edilecekler</span>
           <span class="count-badge">{{ teslimlBugün.length }}</span>
         </div>
         <div v-if="teslimlBugün.length === 0" class="empty">Bugün teslim yok.</div>
@@ -26,7 +26,7 @@
 
       <div class="card card--amber">
         <div class="card-header">
-          <span class="card-title">Bugün İade</span>
+          <span class="card-title">Bugün İade Alınacaklar</span>
           <span class="count-badge">{{ iadelerBugün.length }}</span>
         </div>
         <div v-if="iadelerBugün.length === 0" class="empty">Bugün iade yok.</div>

@@ -1,7 +1,10 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from vehicles.views import BranchViewSet, VehicleViewSet, ReservationViewSet, TransferCostViewSet, optimize, latest_optimization, login_view, logout_view, register_view, availability, cancel_reservation, user_list, toggle_user_active, profile_view, create_user, update_user, transfer_cost_view, guest_reservation, guest_reservation_detail, guest_cancel, delivery_logs, MaintenanceLogViewSet, DailyPriceViewSet
+from vehicles.views import BranchViewSet, VehicleViewSet, ReservationViewSet, TransferCostViewSet, optimize, latest_optimization, login_view, logout_view, register_view, availability, cancel_reservation, user_list, toggle_user_active, profile_view, create_user, update_user, transfer_cost_view, guest_reservation, guest_reservation_detail, guest_cancel, delivery_logs, MaintenanceLogViewSet, DailyPriceViewSet, deliver_reservation, return_reservation
+
+from django.conf import settings
+from django.conf.urls.static import static
 
 
 router = DefaultRouter()
@@ -32,4 +35,8 @@ urlpatterns = [
     path('api/guest-reservation/query/', guest_reservation_detail),
     path('api/guest-reservation/cancel/', guest_cancel),
     path('api/delivery-logs/', delivery_logs),
+    path('api/reservations/<int:pk>/deliver/', deliver_reservation),
+    path('api/reservations/<int:pk>/return/', return_reservation),
 ]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

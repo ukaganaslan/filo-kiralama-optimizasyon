@@ -170,6 +170,11 @@ class DeliveryLog(models.Model):
     reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, related_name='delivery_logs')
     event_type = models.CharField(max_length=20, choices=EVENT_CHOICES)
     logged_at = models.DateTimeField(auto_now_add=True)
+    document = models.FileField(upload_to='delivery_docs/', null=True, blank=True)
+    delivery_km = models.IntegerField(null=True, blank=True)
+    fuel_level = models.IntegerField(null=True, blank=True)
+    damage_items = models.JSONField(default=list, blank=True) 
+    notes = models.TextField(blank=True)
 
     class Meta:
         unique_together = ('reservation', 'event_type')

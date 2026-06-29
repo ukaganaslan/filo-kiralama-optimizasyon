@@ -88,7 +88,6 @@ class ReservationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        _sync_delivery_logs()
         user = self.request.user
         if user.is_staff:
             return Reservation.objects.all()
@@ -823,3 +822,62 @@ class DailyPriceViewSet(viewsets.ModelViewSet):
             )
             current += timedelta(days=1)
         return Response({'ok': True})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def deliver_reservation(request, pk):
+    profile = getattr(request.user, 'profile', None)
+    try:
+        reservation = Reservation.objects.get(pk=pk)
+    except Reservation.DoesNotExist:
+        return Response({'error': 'Rezervasyon bulunamadı'}, status=404)
+    if profile and profile.role == 'representative' and reservation.branch != profile.branch:
+        return Response({'error': 'Yetkisiz'}, status=403)
+    if reservation.status != 'assigned':
+        return Response({'error': 'Rezervasyon onaylı değil'}, status=400)
+    log, _ = DeliveryLog.objects.get_or_create(reservation=reservation, event_type='delivered')
+    if 'document' in request.FILES:
+        log.document = request.FILES['document']
+    if request.data.get('delivery_km'):
+        log.delivery_km = request.data['delivery_km']
+    if request.data.get('fuel_level') is not None:
+        log.fuel_level = request.data['fuel_level']
+    if request.data.get('damage_items'):
+        import json
+        log.damage_items = json.loads(request.data['damage_items']) if isinstance(request.data['damage_items'], str) else request.data['damage_items']
+    if request.data.get('notes'):
+        log.notes = request.data['notes']
+    log.save()
+    return Response({'ok': True})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def return_reservation(request, pk):
+    profile = getattr(request.user, 'profile', None)
+    try:
+        reservation = Reservation.objects.get(pk=pk)
+    except Reservation.DoesNotExist:
+        return Response({'error': 'Rezervasyon bulunamadı'}, status=404)
+    if profile and profile.role == 'representative' and reservation.branch != profile.branch:
+        return Response({'error': 'Yetkisiz'}, status=403)
+    if not DeliveryLog.objects.filter(reservation=reservation, event_type='delivered').exists():
+        return Response({'error': 'Önce teslim işlemi yapılmalı'}, status=400)
+    log, _ = DeliveryLog.objects.get_or_create(reservation=reservation, event_type='returned')
+    if 'document' in request.FILES:
+        log.document = request.FILES['document']
+    if request.data.get('delivery_km'):
+        log.delivery_km = request.data['delivery_km']
+    if request.data.get('fuel_level') is not None:
+        log.fuel_level = request.data['fuel_level']
+    if request.data.get('damage_items'):
+        import json
+        log.damage_items = json.loads(request.data['damage_items']) if isinstance(request.data['damage_items'], str) else request.data['damage_items']
+    if request.data.get('notes'):
+        log.notes = request.data['notes']
+    log.save()
+    if request.data.get('delivery_km'):
+        assignment = AssignmentResult.objects.filter(reservation=reservation).order_by('-id').first()
+        if assignment and assignment.vehicle:
+            assignment.vehicle.total_km = int(request.data['delivery_km'])
+            assignment.vehicle.save(update_fields=['total_km'])
+    return Response({'ok': True})

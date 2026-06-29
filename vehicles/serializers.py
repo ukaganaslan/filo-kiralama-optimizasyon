@@ -11,7 +11,7 @@ class TransferCostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TransferCost
-        fields = ['id', 'from_branch', 'from_branch_name', 'to_branch', 'to_branch_name', 'cost']
+        fields = ['id', 'from_branch', 'from_branch_name', 'to_branch', 'to_branch_name', 'cost',]
 
 
 class BranchSerializer(serializers.ModelSerializer):
@@ -56,6 +56,7 @@ class ReservationSerializer(serializers.ModelSerializer):
     assigned_vehicle_id = serializers.SerializerMethodField()
     assigned_vehicle_info = serializers.SerializerMethodField()
     current_status = serializers.SerializerMethodField()
+    delivery_info = serializers.SerializerMethodField()
 
     def get_assigned_vehicle_id(self, obj):
         result = obj.assignmentresult_set.order_by('-run__created_at').first()
@@ -70,7 +71,28 @@ class ReservationSerializer(serializers.ModelSerializer):
             return None
         v = result.vehicle
         return {'plate': v.plate, 'brand': v.brand, 'model': v.model}
-    
+
+    def get_delivery_info(self, obj):
+        logs = {log.event_type: log for log in obj.delivery_logs.all()}
+        delivered = logs.get('delivered')
+        returned = logs.get('returned')
+        return {
+            'delivered': bool(delivered),
+            'delivered_at': delivered.logged_at.isoformat() if delivered else None,
+            'delivered_doc': delivered.document.url if delivered and delivered.document else None,
+            'delivered_km': delivered.delivery_km if delivered else None,
+            'delivered_fuel': delivered.fuel_level if delivered else None,
+            'delivered_damage': delivered.damage_items if delivered else [],
+            'delivered_notes': delivered.notes if delivered else '',
+            'returned': bool(returned),
+            'returned_at': returned.logged_at.isoformat() if returned else None,
+            'returned_doc': returned.document.url if returned and returned.document else None,
+            'returned_km': returned.delivery_km if returned else None, 
+            'returned_fuel': returned.fuel_level if returned else None,
+            'returned_damage': returned.damage_items if returned else [],
+            'returned_notes': returned.notes if returned else '',
+    }
+
     def get_current_status(self, obj):
         from datetime import date
         today = date.today()
@@ -90,7 +112,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             'return_branch', 'return_branch_name', 'return_branch_title',
             'vehicle_group', 'start_date', 'end_date', 'status',
             'customer_username', 'assigned_vehicle_id', 'assigned_vehicle_info', 'current_status',
-            'guest_name', 'guest_phone', 'guest_email', 'total_price',
+            'guest_name', 'guest_phone', 'guest_email', 'total_price', 'delivery_info',
         ]
 
 
