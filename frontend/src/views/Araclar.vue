@@ -22,7 +22,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="v in vehicles" :key="v.id">
+        <tr v-for="v in vehicles" :key="v.id" @click="openHistory(v)" style="cursor: pointer;">
           <td class="vehicle-id">{{ v.vehicle_id }}</td>
           <td>{{ v.sasi || '—' }}</td>
           <td>{{ v.brand }} {{ v.model }}</td>
@@ -110,6 +110,70 @@
       </div>
     </div>
   </div>
+
+  <div v-if="historyModal" class="modal-overlay" @click.self="historyModal = false">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h3>{{ historyData.brand }} {{ historyData.model }} — {{ historyData.plate }}</h3>
+        <button class="btn-cancel-modal" @click="historyModal = false">Kapat</button>
+      </div>
+
+      <div class="history-stats">
+        <div class="stat-box">
+          <span class="stat-label">Toplam KM</span>
+          <span class="stat-value">{{ historyData.total_km?.toLocaleString('tr-TR') ?? '—' }}</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Toplam Kiralama</span>
+          <span class="stat-value">{{ historyData.reservations?.length ?? 0 }}</span>
+        </div>
+      </div>
+
+      <h4>Rezervasyon Geçmişi</h4>
+      <table v-if="historyData.reservations?.length">
+        <thead>
+          <tr>
+            <th>Rezervasyon ID</th>
+            <th>Müşteri</th>
+            <th>Başlangıç</th>
+            <th>Bitiş</th>
+            <th>KM</th>
+            <th>Fiyat</th>
+            <th>Durum</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="r in historyData.reservations" :key="r.reservation_id">
+            <td>{{ r.reservation_id }}</td>
+            <td>{{ r.customer_name }}</td>
+            <td>{{ r.start_date }}</td>
+            <td>{{ r.end_date }}</td>
+            <td>{{ r.km_driven ?? '—' }}</td>
+            <td>{{ r.total_price ? r.total_price + ' ₺' : '—' }}</td>
+            <td><span :class="'badge-status badge-' + r.status">{{ statusLabel(r.status) }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="empty">Rezervasyon kaydı yok.</p>
+
+      <h4>Bakım Logları</h4>
+      <table v-if="historyData.maintenance_logs?.length">
+        <thead>
+          <tr><th>Tür</th><th>Başlangıç</th><th>Bitiş</th><th>KM</th><th>Not</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="(m, i) in historyData.maintenance_logs" :key="i">
+            <td>{{ m.reason }}</td>
+            <td>{{ m.start_date }}</td>
+            <td>{{ m.end_date ?? '—' }}</td>
+            <td>{{ m.current_km }}</td>
+            <td>{{ m.notes || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="empty">Bakım kaydı yok.</p>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -125,6 +189,8 @@ const form = ref({ brand: '', model: '', plate: '', sasi: '', group: '', branch:
 const formError = ref('')
 const deleteModal = ref(false)
 const deletingVehicle = ref(null)
+const historyModal = ref(false)
+const historyData = ref({})
 
 async function loadData() {
   const [vRes, bRes] = await Promise.all([
@@ -195,6 +261,16 @@ function confirmDelete(v) {
   deleteModal.value = true
 }
 
+async function openHistory(v) {
+  try {
+    const res = await axios.get(`/api/vehicles/${v.vehicle_id}/history/`)
+    historyData.value = res.data
+    historyModal.value = true
+  } catch (e) {
+    console.error('vehicle_history error:', e)
+  }
+}
+
 async function doDelete() {
   try {
     await axios.delete(`/api/vehicles/${deletingVehicle.value.id}/`)
@@ -257,4 +333,12 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .btn-delete-confirm:hover { background: #b91c1c; }
 .confirm-text { color: #374151; font-size: 14px; margin: 0; }
 .error { color: #dc2626; font-size: 13px; margin: 0; }
+.modal-wide { max-width: 800px; width: 90%; max-height: 85vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.modal-header h3 { margin: 0; }
+.history-stats { display: flex; gap: 16px; margin-bottom: 8px; }
+.stat-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 20px; border-radius: 8px; }
+.stat-label { display: block; font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; margin-bottom: 2px; }
+.stat-value { font-size: 22px; font-weight: 700; color: #1e293b; }
+h4 { margin: 16px 0 8px; font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; }
 </style>

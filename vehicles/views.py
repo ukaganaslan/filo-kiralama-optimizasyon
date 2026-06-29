@@ -7,7 +7,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
-from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice
+from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment
 from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
@@ -881,3 +881,45 @@ def return_reservation(request, pk):
             assignment.vehicle.total_km = int(request.data['delivery_km'])
             assignment.vehicle.save(update_fields=['total_km'])
     return Response({'ok': True})
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def vehicle_history (request, vehicle_id):
+    try:
+        vehicle = Vehicle.objects.get(vehicle_id=vehicle_id)
+    except Vehicle.DoesNotExist:
+        return Response({'error': 'Araç bulunamadı'}, status=404)
+
+    profile = getattr(request.user, 'profile', None)
+    if profile and profile.role not in ('admin', 'representative'):
+        return Response({'error': 'Yetkisiz'}, status=403)
+    assignments = vehicle.assignments.select_related('reservation', 'reservation__customer', 'reservation__customer__profile').order_by('-reservation__start_date')
+    reservations = []
+    for a in assignments:
+        r = a.reservation
+        reservations.append({
+            'reservation_id': r.reservation_id,
+            'start_date': r.start_date,
+            'end_date': r.end_date,
+            'status': r.status,
+            'km_driven': r.km_driven,
+            'total_price': r.total_price,
+            'customer_name': (
+                r.customer.profile.full_name if r.customer and hasattr(r.customer, 'profile') else r.guest_name or '-'
+            ),
+        })
+
+    logs = vehicle.maintenance_logs.order_by('-start_date').values(
+        'reason', 'start_date', 'end_date', 'current_km', 'notes'
+    )
+
+    return Response({
+        'vehicle_id': vehicle.vehicle_id,
+        'brand': vehicle.brand,
+        'model': vehicle.model,
+        'plate': vehicle.plate,
+        'group': vehicle.group,
+        'total_km': vehicle.total_km,
+        'reservations': reservations,
+        'maintenance_logs': list(logs),
+    })
