@@ -157,7 +157,7 @@
               </div>
               <template v-else-if="availableDates.length > 0">
                 <p class="date-hint">Açık günler müsait, gri günler dolu.</p>
-                <VDatePicker v-model.range="dateRange" :disabled-dates="disabledDates" :min-date="new Date()" color="indigo" is-expanded />
+                <VDatePicker v-model.range="dateRange" :disabled-dates="disabledDates" :min-date="new Date()" color="indigo" is-expanded :columns="2" />
               </template>
               <div v-else class="no-avail">⚠️ Bu şube ve grupta müsait gün bulunmuyor.</div>
             </div>
@@ -268,6 +268,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import Stepper from 'primevue/stepper'
+import StepItem from 'primevue/stepitem'
+import Step from 'primevue/step'
+import StepPanel from 'primevue/steppanel'
 import axios from 'axios'
 
 const currentStep = ref(1)

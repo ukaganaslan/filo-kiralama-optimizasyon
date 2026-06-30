@@ -10,7 +10,33 @@
 
     <div v-if="loading" class="loading">Yükleniyor...</div>
 
-    <div v-else-if="reservation" class="form-card">
+        <div v-else-if="reservation" class="split-layout">
+
+      <!-- Sol: Teslim Kaydı (readonly) -->
+      <div class="teslim-panel">
+        <div class="panel-title">Teslim Kaydı</div>
+
+        <div class="readonly-row">
+          <span class="readonly-label">Teslim KM</span>
+          <span class="readonly-value">{{ reservation.delivery_info?.delivered_km ?? '—' }}</span>
+        </div>
+        <div class="readonly-row">
+          <span class="readonly-label">Yakıt</span>
+          <span class="readonly-value">{{ fuelLabel(reservation.delivery_info?.delivered_fuel) }}</span>
+        </div>
+        <div class="readonly-row">
+          <span class="readonly-label">Notlar</span>
+          <span class="readonly-value notes-val">{{ reservation.delivery_info?.delivered_notes || '—' }}</span>
+        </div>
+
+        <div class="readonly-label" style="margin-top: 12px;">Hasar Haritası</div>
+        <div class="damage-readonly">
+          <CarDamageMap :model-value="reservation.delivery_info?.delivered_damage || {}" />
+        </div>
+      </div>
+
+      <!-- Sağ: İade Formu -->
+      <div class="form-card">
       <div class="info-grid">
         <div class="info-item">
           <span class="info-label">MÜŞTERİ</span>
@@ -59,6 +85,8 @@
         customUpload
         @select="e => file = e.files[0]"
         @uploader="submit"
+        :showUploadButton="false"
+        :showCancelButton="false"
       >
         <template #empty>
           <span>Belgeyi buraya sürükle bırak.</span>
@@ -74,6 +102,7 @@
           {{ saving ? 'Kaydediliyor...' : 'İade Al' }}
         </button>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -146,7 +175,15 @@ async function submit() {
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .res-id { font-size: 13px; color: #94a3b8; font-family: monospace; }
 .loading { color: #94a3b8; font-size: 14px; }
-.form-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 16px; max-width: 700px; }
+.split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+.teslim-panel { background: #f8fafc; border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 12px; }
+.panel-title { font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.readonly-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+.readonly-label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; }
+.readonly-value { font-size: 13px; font-weight: 600; color: #1e293b; text-align: right; }
+.notes-val { font-weight: 400; font-style: italic; }
+.damage-readonly { pointer-events: none; opacity: 0.85; }
+.form-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 16px; }
 .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
 .info-item { background: white; padding: 12px 14px; }
 .info-label { display: block; font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 3px; }
@@ -173,4 +210,12 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 :deep(.p-button:hover) { background: #ffffffa0; border-color: #1c1c1ca0; }
 :deep(.p-button.p-button-danger) { background: #f1f5f9; border-color: #e2e8f0; color: #475569; }
 :deep(.p-button.p-button-danger:hover) { background: #e2e8f0; }
+:deep(.p-fileupload .p-button) {
+  background: #e9e8ebbf !important;
+  border-color: #e9e8ebbf !important;
+}
+:deep(.p-fileupload .p-button:hover) {
+  background: #38383880 !important;
+  border-color: #38383880 !important;
+}
 </style>

@@ -59,6 +59,8 @@
         customUpload
         @select="e => file = e.files[0]"
         @uploader="submit"
+        :showUploadButton="false"
+        :showCancelButton="false"
       >
         <template #empty>
           <span>Belgeyi buraya sürükle bırak.</span>
@@ -173,4 +175,12 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 :deep(.p-button:hover) { background: #ffffffa0; border-color: #1c1c1ca0; }
 :deep(.p-button.p-button-danger) { background: #f1f5f9; border-color: #e2e8f0; color: #475569; }
 :deep(.p-button.p-button-danger:hover) { background: #e2e8f0; }
+:deep(.p-fileupload .p-button) {
+  background: #e9e8ebbf !important;
+  border-color: #e9e8ebbf !important;
+}
+:deep(.p-fileupload .p-button:hover) {
+  background: #38383880 !important;
+  border-color: #38383880 !important;
+}
 </style>
