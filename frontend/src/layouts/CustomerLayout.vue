@@ -25,11 +25,11 @@
       <!-- Nav -->
       <nav class="sidebar-nav">
         <router-link to="/dashboard" class="nav-item" exact-active-class="nav-item--active" active-class="" :title="collapsed ? 'Yeni Rezervasyon' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">🔍</span>
+          <i class="pi pi-plus-circle nav-icon"></i>
           <span class="nav-label">Yeni Rezervasyon</span>
         </router-link>
         <router-link to="/dashboard/rezervasyonlar" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Rezervasyonlarım' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">📋</span>
+          <i class="pi pi-list nav-icon"></i>
           <span class="nav-label">Rezervasyonlarım</span>
         </router-link>
       </nav>

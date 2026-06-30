@@ -160,13 +160,13 @@
                 <p class="date-hint">Açık günler müsait, gri günler dolu.</p>
                 <VDatePicker v-model.range="dateRange" :disabled-dates="disabledDates" :min-date="new Date()" color="indigo" is-expanded :columns="2" />
               </template>
-              <div v-else class="no-avail">⚠️ Bu şube ve grupta müsait gün bulunmuyor.</div>
+              <div v-else class="no-avail"><i class="pi pi-exclamation-triangle"></i> Bu şube ve grupta müsait gün bulunmuyor.</div>
             </div>
 
             <!-- Step 4: Bilgileriniz -->
             <div v-else-if="currentStep === 4" key="s4" class="step-card">
               <div class="card-title">
-                <div class="card-title-icon">👤</div>
+                <div class="card-title-icon"><i class="pi pi-user"></i></div>
                 <div>
                   <div class="card-title-text">Bilgileriniz</div>
                   <div class="card-title-sub">İletişim bilgilerinizi girin ve rezervasyonu onaylayın</div>
