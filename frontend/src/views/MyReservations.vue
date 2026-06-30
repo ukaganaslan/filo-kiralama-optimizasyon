@@ -88,6 +88,9 @@
               <span class="mlabel">Not</span><span class="mval">{{ selectedRes.delivery_info.delivered_notes }}</span>
             </div>
           </div>
+          <div class="damage-readonly">
+            <CarDamageMap :model-value="selectedRes.delivery_info.delivered_damage || {}" />
+          </div>
         </template>
 
         <template v-if="selectedRes.delivery_info?.returned">
@@ -98,6 +101,9 @@
             <div class="mrow" v-if="selectedRes.delivery_info.returned_notes">
               <span class="mlabel">Not</span><span class="mval">{{ selectedRes.delivery_info.returned_notes }}</span>
             </div>
+          </div>
+          <div class="damage-readonly">
+            <CarDamageMap :model-value="selectedRes.delivery_info.returned_damage || {}" />
           </div>
         </template>
 
@@ -112,6 +118,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import CarDamageMap from '@/components/CarDamageMap.vue'
 
 const reservations = ref([])
 const error = ref('')
@@ -197,4 +204,5 @@ tr:hover td { background: #fafbff; }
 .mlabel { font-size: 12px; font-weight: 600; color: #94a3b8; }
 .mval { font-size: 13px; font-weight: 600; color: #1e293b; text-align: right; }
 .modal-empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 20px 0; }
+.damage-readonly { pointer-events: none; margin-top: 12px; }
 </style>

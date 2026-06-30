@@ -86,11 +86,11 @@ const tarihYazi = new Date().toLocaleDateString('tr-TR', {
 })
 
 const teslimlBugün = computed(() =>
-  reservations.value.filter(r => r.start_date === bugun && r.status === 'assigned')
+  reservations.value.filter(r => r.start_date === bugun && r.status === 'assigned' && !r.delivery_info?.delivered)
 )
 
 const iadelerBugün = computed(() =>
-  reservations.value.filter(r => r.end_date === bugun && r.status === 'assigned')
+  reservations.value.filter(r => r.end_date === bugun && r.status === 'assigned' && !r.delivery_info?.returned)
 )
 
 const bakimdakiler = computed(() =>
