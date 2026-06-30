@@ -10,6 +10,7 @@ import axios from 'axios'
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE
 import App from './App.vue'
 import { useAuthStore } from './stores/auth'
+import ToastService from 'primevue/toastservice'
 
 const pinia = createPinia()
 const app = createApp(App)
@@ -22,7 +23,7 @@ app.use(PrimeVue, {
         preset: Aura
     }
 })
-
+app.use(ToastService)
 const auth = useAuthStore()
 auth.init()
 
