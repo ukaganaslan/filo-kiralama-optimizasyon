@@ -117,6 +117,9 @@
         <div class="done-info">
           <span>KM: <b>{{ selectedReservation.delivery_info.delivered_km ?? '—' }}</b></span>
         </div>
+        <div class="form-actions" style="margin-top: 10px;">
+          <button class="btn-export" @click="router.push(`/operator/teslim/${selectedReservation.id}`)">PDF İndir</button>
+        </div>
       </template>
     </div>
 

@@ -43,7 +43,9 @@
       </div>
 
       <div class="section-label">Hasar Haritası</div>
-      <CarDamageMap v-model="form.damage_map" />
+      <div :style="success ? 'pointer-events: none; opacity: 0.85' : ''">
+        <CarDamageMap v-model="form.damage_map" />
+      </div>
 
       <div class="form-field">
         <label>Notlar</label>
@@ -114,6 +116,14 @@ onMounted(async () => {
   try {
     const res = await axios.get(`/api/reservations/${route.params.id}/`)
     reservation.value = res.data
+    const d = res.data.delivery_info
+    if (d?.delivered) {
+      form.value.km = d.delivered_km ?? ''
+      form.value.fuel = d.delivered_fuel ?? 4
+      form.value.damage_map = d.delivered_damage || {}
+      form.value.notes = d.delivered_notes || ''
+      success.value = 'Teslim kaydı mevcut.'
+    }
   } catch {
     error.value = 'Rezervasyon bulunamadı.'
   } finally {
