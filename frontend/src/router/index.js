@@ -31,7 +31,8 @@ const routes = [
             { path: 'profil', component: () => import('../views/RepresentativeProfil.vue') },
             {path: 'logs', component: () => import('../views/DeliveryLogs.vue')},
             { path: 'maintenance', component: Maintenance },
-
+            { path: 'teslim/:id', component: () => import('../views/Teslim.vue') },
+            { path: 'iade/:id', component: () => import('../views/Iade.vue') },
         ]
     },
     {
@@ -50,6 +51,9 @@ const routes = [
             { path: 'logs', component: () => import('../views/DeliveryLogs.vue') },
             { path: 'maintenance', component: Maintenance },
             { path: 'pricing', component: () => import('../views/Pricing.vue') },
+            { path: 'teslim/:id', component: () => import('../views/Teslim.vue') },
+            { path: 'iade/:id', component: () => import('../views/Iade.vue') },
+            
         ]
     },
 ]

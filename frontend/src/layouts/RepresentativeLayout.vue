@@ -40,9 +40,9 @@
           <span class="nav-icon">🔧</span>
           <span class="nav-label">Bakım Kayıtları</span>
         </router-link>
-        <router-link to="/representative/logs" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Teslimat Logları' : ''" @click="mobileOpen = false">
+        <router-link to="/representative/logs" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Teslimat Kayıtları' : ''" @click="mobileOpen = false">
           <span class="nav-icon">📝</span>
-          <span class="nav-label">Teslimat Logları</span>
+          <span class="nav-label">Teslimat Kayıtları</span>
         </router-link>
 
       </nav>
@@ -116,7 +116,7 @@ const pageTitles = {
   '/representative/rezervasyonlar': 'Rezervasyonlar',
   '/representative/araclar': 'Araçlar',
   '/representative/profil': 'Profil Ayarları',
-  '/representative/logs': 'Teslimat Logları',
+  '/representative/logs': 'Teslimat Kayıtları',
   '/representative/maintenance': 'Bakım Kayıtları',
 }
 const pageTitle = computed(() => pageTitles[route.path] || '')

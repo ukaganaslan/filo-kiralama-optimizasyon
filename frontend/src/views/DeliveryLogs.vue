@@ -1,7 +1,7 @@
 <template>
   <div class="content">
     <div class="section-header">
-      <h2>Teslimat ve İade Logları</h2>
+      <h2>Teslimat ve İade Kayıtları</h2>
       <span class="count-badge">{{ logs.length }} kayıt</span>
     </div>
 

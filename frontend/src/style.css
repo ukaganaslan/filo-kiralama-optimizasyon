@@ -79,7 +79,8 @@ a { text-decoration: none; }
 .badge-maintenance { background: #fef3c7; color: #92400e; }
 .badge-service     { background: #fee2e2; color: #DC2626; }
 .badge-inactive    { background: #f1f5f9; color: #64748B; }
-
+.badge-teslimat { background: #fff0cec6; color: #cd8f00; }
+.badge-iade { background: #c3f2ffdd; color: #00c8ff; }
 /* Rezervasyon durumu */
 .badge-pending   { background: #fef3c7; color: #92400e; }
 .badge-assigned  { background: #d1fae5; color: #16A34A; }

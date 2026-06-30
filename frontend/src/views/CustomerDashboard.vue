@@ -119,6 +119,7 @@
               :min-date="new Date()"
               color="indigo"
               is-expanded
+              :columns = 2
             />
           </template>
 
