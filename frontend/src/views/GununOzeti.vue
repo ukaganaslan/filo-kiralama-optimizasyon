@@ -17,7 +17,8 @@
           <span class="count-badge">{{ teslimlBugün.length }}</span>
         </div>
         <div v-if="teslimlBugün.length === 0" class="empty">Bugün teslim yok.</div>
-        <div v-for="r in teslimlBugün" :key="r.id" class="card-row">
+        <div v-for="r in teslimlBugün" :key="r.id" class="card-row clickable"
+             @click="router.push('/representative/teslim/' + r.id)">
           <span class="col-name">{{ musteriAdi(r) }}</span>
           <span class="col-group">{{ groupLabel(r.vehicle_group) }}</span>
           <span class="col-vehicle">{{ r.assigned_vehicle_id || '—' }}</span>
@@ -30,7 +31,8 @@
           <span class="count-badge">{{ iadelerBugün.length }}</span>
         </div>
         <div v-if="iadelerBugün.length === 0" class="empty">Bugün iade yok.</div>
-        <div v-for="r in iadelerBugün" :key="r.id" class="card-row">
+        <div v-for="r in iadelerBugün" :key="r.id" class="card-row clickable"
+             @click="router.push('/representative/iade/' + r.id)">
           <span class="col-name">{{ musteriAdi(r) }}</span>
           <span class="col-group">{{ groupLabel(r.vehicle_group) }}</span>
           <span class="col-vehicle">{{ r.assigned_vehicle_id || '—' }}</span>
@@ -69,8 +71,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from 'axios'
 
+const router = useRouter()
 const reservations = ref([])
 const vehicles = ref([])
 const branchName = ref('')
@@ -202,7 +206,10 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
   font-size: 13px;
 }
 
-.card-row:hover { background: #f8fafc; }
+.card-row:hover { background: #f6faff; }
+.clickable { cursor: pointer; }
+.card--green .clickable:hover { background: #f0fdf4; }
+.card--amber .clickable:hover { background: #fffbeb; }
 
 .col-name { flex: 1; font-weight: 500; color: #1e293b; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .col-group { color: #64748b; font-size: 12px; white-space: nowrap; }
