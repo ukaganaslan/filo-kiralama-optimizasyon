@@ -240,6 +240,9 @@
             <span>Yakıt: <b>{{ fuelLabel(selectedReservation.delivery_info.delivered_fuel) }}</b></span>
             <a v-if="selectedReservation.delivery_info.delivered_doc" :href="selectedReservation.delivery_info.delivered_doc" target="_blank">Belgeyi Görüntüle</a>
           </div>
+          <div class="form-actions" style="margin-top: 10px;">
+            <button class="btn-export" @click="router.push(`/representative/teslim/${selectedReservation.id}`)">PDF İndir</button>
+          </div>
         </template>
       </div>
 
