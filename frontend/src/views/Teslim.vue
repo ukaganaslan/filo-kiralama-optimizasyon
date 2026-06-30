@@ -122,6 +122,7 @@ onMounted(async () => {
 })
 
 async function submit() {
+  if (!form.value.km) { error.value = 'KM alanı zorunludur.'; return }
   saving.value = true
   error.value = ''
   try {

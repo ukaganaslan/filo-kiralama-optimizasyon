@@ -260,6 +260,9 @@
             <span>Yakıt: <b>{{ fuelLabel(selectedReservation.delivery_info.returned_fuel) }}</b></span>
             <a v-if="selectedReservation.delivery_info.returned_doc" :href="selectedReservation.delivery_info.returned_doc" target="_blank">Belgeyi Görüntüle</a>
           </div>
+          <div class="form-actions" style="margin-top: 10px;">
+            <button class="btn-export" @click="router.push(`/representative/iade/${selectedReservation.id}`)">PDF İndir</button>
+          </div>
         </template>
       </div>
 
@@ -621,6 +624,8 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
 .btn-save:hover:not(:disabled) { background: #4f46e5; }
 .btn-save:disabled { background: #a5b4fc; cursor: not-allowed; }
+.btn-export { padding: 8px 20px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.btn-export:hover { background: #0f172a; }
 .error { color: #dc2626; font-size: 13px; margin: 0; }
 .success { color: #16a34a; font-size: 13px; margin: 0; }
 .info-summary { display: flex; gap: 0; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }

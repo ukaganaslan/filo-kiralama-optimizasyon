@@ -134,6 +134,9 @@
         <div class="done-info">
           <span>KM: <b>{{ selectedReservation.delivery_info.returned_km ?? '—' }}</b></span>
         </div>
+        <div class="form-actions" style="margin-top: 10px;">
+          <button class="btn-export" @click="router.push(`/operator/iade/${selectedReservation.id}`)">PDF İndir</button>
+        </div>
       </template>
     </div>
 
@@ -401,6 +404,8 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .form-actions { display: flex; justify-content: flex-end; }
 .btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
 .btn-save:hover { background: #4f46e5; }
+.btn-export { padding: 8px 20px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.btn-export:hover { background: #0f172a; }
 .badge-delivered { background: #d1fae5; color: #065f46; }
 .badge-returned { background: #e9d5ff; color: #6b21a8; }
 </style>
