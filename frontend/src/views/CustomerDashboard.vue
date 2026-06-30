@@ -124,7 +124,7 @@
           </template>
 
           <div v-else class="no-avail">
-            <span>⚠️</span> Bu şube ve grupta müsait gün bulunmuyor.
+            <i class="pi pi-exclamation-triangle"></i> Bu şube ve grupta müsait gün bulunmuyor.
           </div>
         </div>
 

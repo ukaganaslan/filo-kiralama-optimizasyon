@@ -8,7 +8,7 @@
     </div>
 
     <div v-if="reservations.length === 0" class="empty-state">
-      <div class="empty-icon">📋</div>
+      <div class="empty-icon"><i class="pi pi-calendar"></i></div>
       <p>Henüz rezervasyonunuz yok.</p>
       <p class="empty-sub">Yeni bir araç kiralamak için "Yeni Rezervasyon" bölümüne gidin.</p>
     </div>
@@ -168,7 +168,7 @@ async function handleCancel(reservationId) {
 .section-title { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 800; color: #0f172a; }
 .count-badge { background: #ede9fe; color: #6366f1; font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 50px; }
 .empty-state { text-align: center; padding: 60px 24px; background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-.empty-icon { font-size: 36px; margin-bottom: 12px; }
+.empty-icon { font-size: 36px; margin-bottom: 12px; color: #cbd5e1; }
 .empty-state p { color: #475569; font-size: 15px; font-weight: 600; margin: 0 0 6px; }
 .empty-sub { color: #94a3b8; font-size: 13px; font-weight: 400 !important; }
 .table-wrap { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden; }

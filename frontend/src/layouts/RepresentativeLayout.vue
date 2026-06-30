@@ -25,23 +25,23 @@
       <!-- Nav -->
       <nav class="sidebar-nav">
         <router-link to="/representative" class="nav-item" exact-active-class="nav-item--active" active-class="" :title="collapsed ? 'Günün Özeti' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">📊</span>
+          <i class="pi pi-home nav-icon"></i>
           <span class="nav-label">Günün Özeti</span>
         </router-link>
         <router-link to="/representative/rezervasyonlar" class="nav-item" exact-active-class="nav-item--active" active-class="" :title="collapsed ? 'Rezervasyonlar' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">📋</span>
+          <i class="pi pi-list nav-icon"></i>
           <span class="nav-label">Rezervasyonlar</span>
         </router-link>
         <router-link to="/representative/araclar" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Araçlar' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">🚗</span>
+          <i class="pi pi-car nav-icon"></i>
           <span class="nav-label">Araçlar</span>
         </router-link>
         <router-link to="/representative/maintenance" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
-          <span class="nav-icon">🔧</span>
+          <i class="pi pi-wrench nav-icon"></i>
           <span class="nav-label">Bakım Kayıtları</span>
         </router-link>
         <router-link to="/representative/logs" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Teslimat Kayıtları' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">📝</span>
+          <i class="pi pi-clipboard nav-icon"></i>
           <span class="nav-label">Teslimat Kayıtları</span>
         </router-link>
 

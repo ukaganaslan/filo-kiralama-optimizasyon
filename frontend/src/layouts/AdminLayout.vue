@@ -25,31 +25,31 @@
       <!-- Nav -->
       <nav class="sidebar-nav">
         <router-link to="/operator" class="nav-item" exact-active-class="nav-item--active" active-class="" :title="collapsed ? 'Rezervasyonlar' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">📋</span>
+          <i class="pi pi-list nav-icon"></i>
           <span class="nav-label">Rezervasyonlar</span>
         </router-link>
         <router-link to="/operator/araclar" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Araçlar' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">🚗</span>
+          <i class="pi pi-car nav-icon"></i>
           <span class="nav-label">Araçlar</span>
         </router-link>
         <router-link to="/operator/subeler" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Şubeler' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">🏢</span>
+          <i class="pi pi-building nav-icon"></i>
           <span class="nav-label">Şubeler</span>
         </router-link>
         <router-link to="/operator/kullanıcılar" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Kullanıcılar' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">👥</span>
+          <i class="pi pi-users nav-icon"></i>
           <span class="nav-label">Kullanıcılar</span>
         </router-link>
         <router-link to="/operator/transfer-ucretleri" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Transfer Ücretleri' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">💸</span>
+          <i class="pi pi-arrows-h nav-icon"></i>
           <span class="nav-label">Transfer Ücretleri</span>
         </router-link>
         <router-link to="/operator/maintenance" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
-          <span class="nav-icon">🔧</span>
+          <i class="pi pi-wrench nav-icon"></i>
           <span class="nav-label">Bakım Kayıtları</span>
         </router-link>
         <router-link to="/operator/pricing" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
-          <span class="nav-icon">💰</span>
+          <i class="pi pi-tag nav-icon"></i>
           <span class="nav-label">Fiyatlandırma</span>
         </router-link>
 
@@ -57,15 +57,15 @@
         <div class="nav-section-label">Optimizasyon</div>
 
         <router-link to="/operator/optimizasyon-sonuc" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Sonuçlar' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">📊</span>
+          <i class="pi pi-chart-bar nav-icon"></i>
           <span class="nav-label">Sonuçlar</span>
         </router-link>
         <router-link to="/operator/karsılanamayan-rez" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Karşılanamayan' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">⚠️</span>
+          <i class="pi pi-exclamation-triangle nav-icon"></i>
           <span class="nav-label">Karşılanamayan</span>
         </router-link>
         <router-link to="/operator/logs" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Teslimat Kayıtları' : ''" @click="mobileOpen = false">
-          <span class="nav-icon">📝</span>
+          <i class="pi pi-clipboard nav-icon"></i>
           <span class="nav-label">Teslimat Kayıtları</span>
         </router-link>
       </nav>
