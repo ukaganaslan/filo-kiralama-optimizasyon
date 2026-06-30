@@ -10,7 +10,7 @@
 
     <div v-if="loading" class="loading">Yükleniyor...</div>
 
-    <div v-else-if="reservation" class="form-card">
+    <div v-else-if="reservation" ref="pdfArea" class="form-card">
       <div class="info-grid">
         <div class="info-item">
           <span class="info-label">MÜŞTERİ</span>
@@ -71,9 +71,11 @@
       <p v-if="success" class="success">{{ success }}</p>
 
       <div class="form-actions">
-        <button class="btn-save" @click="submit" :disabled="saving">
+        <button v-if="!success" class="btn-save" @click="submit" :disabled="saving">
           {{ saving ? 'Kaydediliyor...' : 'Teslim Et' }}
         </button>
+        <button v-if="success" class="btn-back" @click="router.back()">Geri Dön</button>
+        <button v-if="success" class="btn-export" @click="exportPdf">PDF İndir</button>
       </div>
     </div>
   </div>
@@ -87,6 +89,8 @@ import { useToast } from 'primevue/usetoast'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import CarDamageMap from '@/components/CarDamageMap.vue'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 
 const route = useRoute()
 const router = useRouter()
@@ -100,6 +104,7 @@ const file = ref(null)
 const toast = useToast()
 
 const form = ref({ km: '', fuel: 4, damage_map: {}, notes: '' })
+const pdfArea = ref(null)
 
 function fuelLabel(v) {
   return { 0: 'E', 1: '1/8', 2: '1/4', 3: '3/8', 4: '1/2', 5: '5/8', 6: '3/4', 7: '7/8', 8: 'F' }[v] ?? '—'
@@ -130,12 +135,27 @@ async function submit() {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
     success.value = 'Araç teslim edildi.'
-    setTimeout(() => router.back(), 1000)
   } catch (e) {
     error.value = e.response?.data?.error || 'İşlem başarısız.'
   } finally {
     saving.value = false
   }
+}
+
+async function exportPdf() {
+  const hideEls = pdfArea.value.querySelectorAll('.form-actions, .p-fileupload, .success, .error')
+  hideEls.forEach(el => el.style.visibility = 'hidden')
+
+  const canvas = await html2canvas(pdfArea.value, { useCORS: true })
+
+  hideEls.forEach(el => el.style.visibility = '')
+
+  const imgData = canvas.toDataURL('image/png')
+  const pdf = new jsPDF('p', 'mm', 'a4')
+  const width = pdf.internal.pageSize.getWidth()
+  const height = (canvas.height * width) / canvas.width
+  pdf.addImage(imgData, 'PNG', 0, 0, width, height)
+  pdf.save('Arac Teslim Belgesi.pdf')
 }
 </script>
 
@@ -165,6 +185,8 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
 .btn-save:hover:not(:disabled) { background: #4f46e5; }
 .btn-save:disabled { background: #a5b4fc; cursor: not-allowed; }
+.btn-export { padding: 8px 20px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.btn-export:hover { background: #0f172a; }
 .error { color: #dc2626; font-size: 13px; margin: 0; }
 .success { color: #16a34a; font-size: 13px; margin: 0; }
 :deep(.p-fileupload) { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }

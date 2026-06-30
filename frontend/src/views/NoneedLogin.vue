@@ -41,7 +41,8 @@
           </div>
           <h3>Rezervasyonunuz Alındı!</h3>
           <p class="success-sub">Rezervasyon kodunuzu saklayın. Durumu sorgulamak veya iptal etmek için bu kodu kullanın.</p>
-          <div class="code-box">{{ reservationCode }}</div>
+          <div class="code-box" @click="copyCode" title="Kopyalamak için tıkla">{{ reservationCode }}</div>
+          <p class="copy-hint" v-if="copied">Kopyalandı!</p>
           <div v-if="reservationPrice" class="price-box">
             Tahmini Tutar: <strong>{{ Number(reservationPrice).toLocaleString('tr-TR') }} ₺</strong>
           </div>
@@ -442,6 +443,16 @@ async function handleCancel() {
     queryResult.value = { ...queryResult.value, status: 'cancelled' }
   } catch (e) { cancelError.value = e.response?.data?.error || 'İptal işlemi başarısız.' }
 }
+
+const copied = ref(false)
+
+function copyCode(){
+  navigator.clipboard.writeText(reservationCode.value)
+  copied.value = true
+  setTimeout(() => copied.value = false, 2000)
+}
+
+
 </script>
 
 <style scoped>
