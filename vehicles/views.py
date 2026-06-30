@@ -835,11 +835,16 @@ def deliver_reservation(request, pk):
         return Response({'error': 'Yetkisiz'}, status=403)
     if reservation.status != 'assigned':
         return Response({'error': 'Rezervasyon onaylı değil'}, status=400)
+    deliver_km = request.data.get('delivery_km')
+    if deliver_km:
+        assignment = AssignmentResult.objects.filter(reservation=reservation).order_by('-id').first()
+        if assignment and assignment.vehicle and int(deliver_km) < assignment.vehicle.total_km:
+            return Response({'error': f'Teslim KM ({deliver_km}), aracın mevcut KM\'sinden ({assignment.vehicle.total_km}) az olamaz'}, status=400)
     log, _ = DeliveryLog.objects.get_or_create(reservation=reservation, event_type='delivered')
     if 'document' in request.FILES:
         log.document = request.FILES['document']
-    if request.data.get('delivery_km'):
-        log.delivery_km = request.data['delivery_km']
+    if deliver_km:
+        log.delivery_km = deliver_km
     if request.data.get('fuel_level') is not None:
         log.fuel_level = request.data['fuel_level']
     if request.data.get('damage_items'):
@@ -860,8 +865,13 @@ def return_reservation(request, pk):
         return Response({'error': 'Rezervasyon bulunamadı'}, status=404)
     if profile and profile.role == 'representative' and reservation.branch != profile.branch:
         return Response({'error': 'Yetkisiz'}, status=403)
-    if not DeliveryLog.objects.filter(reservation=reservation, event_type='delivered').exists():
+    delivered_log = DeliveryLog.objects.filter(reservation=reservation, event_type='delivered').first()
+    if not delivered_log:
         return Response({'error': 'Önce teslim işlemi yapılmalı'}, status=400)
+    return_km = request.data.get('delivery_km')
+    if return_km and delivered_log.delivery_km:
+        if int(return_km) <= int(delivered_log.delivery_km):
+            return Response({'error': f'İade KM ({return_km}), teslim KM\'sinden ({delivered_log.delivery_km}) büyük olmalı'}, status=400)
     log, _ = DeliveryLog.objects.get_or_create(reservation=reservation, event_type='returned')
     if 'document' in request.FILES:
         log.document = request.FILES['document']
