@@ -17,6 +17,8 @@
     "@fullcalendar/vue3": "^6.1.21",
     "@primevue/themes": "^4.5.4",
     "axios": "^1.18.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "pinia": "^3.0.4",
     "primeicons": "^7.0.0",
     "primevue": "^4.5.5",
