@@ -27,7 +27,7 @@ class VehicleSerializer(serializers.ModelSerializer):
     current_status = serializers.SerializerMethodField()
 
     def get_current_status(self, obj):
-        if obj.status in ('maintenance', 'service'):
+        if obj.status in ('maintenance', 'service', 'inactive'):
             return obj.status
         today = date.today()
         is_rented = obj.assignmentresult_set.filter(

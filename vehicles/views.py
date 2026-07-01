@@ -1148,3 +1148,42 @@ def reservation_pdf(request, pk, pdf_type):
     response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
+def admin_stats(request):
+    from django.db.models import Sum, Count
+
+    today = date.today()
+    this_month = today.month
+    this_year = today.year
+
+    if this_month == 1:
+        last_month , last_year = 12, this_year - 1
+
+    else:
+        last_month , last_year = this_month - 1, this_year
+    
+    this_month_revenue = Reservation.objects.filter(
+        start_date__year=this_year, start_date__month=this_month
+    ).aggregate(total=Sum('total_price'))['total'] or 0
+
+    last_month_revenue = Reservation.objects.filter(
+        start_date__year=last_year, start_date__month=last_month
+    ).aggregate(total=Sum('total_price'))['total'] or 0
+
+    branches = Branch.objects.all()
+    branch_stats = []
+    for b in branches:
+        total = Vehicle.objects.filter(branch=b).count()
+        active = AssignmentResult.objects.filter(vehicle__branch=b, reservation__start_date__lte=today, reservation__end_date__gte=today, reservation__status="assigned").values('vehicle').distinct().count()
+        branch_stats.append({'name': str(b), 'total': total, 'active': active})
+    
+    group_dist = list(
+        Reservation.objects.values('vehicle_group')
+        .annotate(count=Count('id'))
+        .order_by('vehicle_group')
+    )
+
+    return Response({'this_month': this_month_revenue, 'last_month': last_month_revenue, 'branches': branch_stats, 'groups': group_dist})
+    

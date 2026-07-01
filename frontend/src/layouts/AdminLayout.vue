@@ -52,12 +52,16 @@
           <i class="pi pi-tag nav-icon"></i>
           <span class="nav-label">Fiyatlandırma</span>
         </router-link>
+        <router-link to="/operator/admin-stats" class="nav-item" active-class="nav-item--active" @click="mobileOpen = false">
+          <i class="pi pi-chart-line nav-icon"></i>
+          <span class="nav-label">İstatistikler</span>
+        </router-link>
 
         <div class="nav-divider"></div>
         <div class="nav-section-label">Optimizasyon</div>
 
         <router-link to="/operator/optimizasyon-sonuc" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Sonuçlar' : ''" @click="mobileOpen = false">
-          <i class="pi pi-chart-bar nav-icon"></i>
+          <i class="pi pi-bullseye nav-icon"></i>
           <span class="nav-label">Sonuçlar</span>
         </router-link>
         <router-link to="/operator/karsılanamayan-rez" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Karşılanamayan' : ''" @click="mobileOpen = false">
