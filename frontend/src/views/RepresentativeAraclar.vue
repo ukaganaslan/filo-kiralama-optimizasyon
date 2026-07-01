@@ -131,7 +131,8 @@
             <th>Müşteri</th>
             <th>Başlangıç</th>
             <th>Bitiş</th>
-            <th>KM</th>
+            <th>Teslim KM</th>
+            <th>İade KM</th>
             <th>Fiyat</th>
             <th>Durum</th>
           </tr>
@@ -142,7 +143,8 @@
             <td>{{ r.customer_name }}</td>
             <td>{{ r.start_date }}</td>
             <td>{{ r.end_date }}</td>
-            <td>{{ r.km_driven ?? '—' }}</td>
+            <td>{{ r.delivered_km ?? '—' }}</td>
+            <td>{{ r.returned_km ?? '—' }}</td>
             <td>{{ r.total_price ? r.total_price + ' ₺' : '—' }}</td>
             <td><span :class="'badge-status badge-' + r.status">{{ statusLabel(r.status) }}</span></td>
           </tr>

@@ -124,6 +124,10 @@ onMounted(async () => {
       form.value.notes = d.delivered_notes || ''
       success.value = 'Teslim kaydı mevcut.'
     }
+    else {
+      form.value.km = reservation.value.assigned_vehicle_info?.total_km || ''
+      form.value.damage_map = reservation.value.assigned_vehicle_info?.damage_map || {}
+    }
   } catch {
     error.value = 'Rezervasyon bulunamadı.'
   } finally {

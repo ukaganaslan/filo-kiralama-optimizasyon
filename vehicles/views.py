@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import date, timedelta
 from rest_framework import viewsets, status, permissions
@@ -236,7 +237,13 @@ def _run_optimization():
     free = list(Reservation.objects.exclude(status='cancelled').exclude(id__in=locked_ids))
     vehicles = list(Vehicle.objects.all())
 
-    assignments, unassigned = greedy_solver_güncel.solve(free, vehicles)
+    initial_occupied = {}
+    for r in locked:
+        ar = AssignmentResult.objects.filter(reservation=r).order_by('-run__created_at').first()
+        if ar:
+            initial_occupied.setdefault(ar.vehicle.vehicle_id, []).append((r.start_date, r.end_date))
+
+    assignments, unassigned = greedy_solver_güncel.solve(free, vehicles, initial_occupied)
     score = calculate_score(assignments, unassigned)
 
     Reservation.objects.filter(id__in=[r.id for r in free]).update(status='pending')
@@ -889,7 +896,8 @@ def return_reservation(request, pk):
         assignment = AssignmentResult.objects.filter(reservation=reservation).order_by('-id').first()
         if assignment and assignment.vehicle:
             assignment.vehicle.total_km = int(request.data['delivery_km'])
-            assignment.vehicle.save(update_fields=['total_km'])
+            assignment.vehicle.damage_map = json.loads(request.data.get('damage_items', '{}'))
+            assignment.vehicle.save(update_fields=['total_km', 'damage_map'])
     return Response({'ok': True})
 
 @api_view(['GET'])
@@ -903,20 +911,35 @@ def vehicle_history (request, vehicle_id):
     profile = getattr(request.user, 'profile', None)
     if profile and profile.role not in ('admin', 'representative'):
         return Response({'error': 'Yetkisiz'}, status=403)
-    assignments = vehicle.assignments.select_related('reservation', 'reservation__customer', 'reservation__customer__profile').order_by('-reservation__start_date')
+    from django.db.models import OuterRef, Subquery
+    latest_ar_id = AssignmentResult.objects.filter(
+        reservation=OuterRef('reservation_id')
+    ).order_by('-run__created_at').values('id')[:1]
+
+    current_results = AssignmentResult.objects.filter(
+        id=Subquery(latest_ar_id),
+        vehicle=vehicle,
+    ).select_related(
+        'reservation', 'reservation__customer', 'reservation__customer__profile'
+    ).prefetch_related('reservation__delivery_logs').order_by('-reservation__start_date')
+
     reservations = []
-    for a in assignments:
-        r = a.reservation
+    for ar in current_results:
+        r = ar.reservation
+        logs = {log.event_type: log for log in r.delivery_logs.all()}
+        delivered = logs.get('delivered')
+        returned = logs.get('returned')
         reservations.append({
             'reservation_id': r.reservation_id,
             'start_date': r.start_date,
             'end_date': r.end_date,
             'status': r.status,
-            'km_driven': r.km_driven,
             'total_price': r.total_price,
             'customer_name': (
                 r.customer.profile.full_name if r.customer and hasattr(r.customer, 'profile') else r.guest_name or '-'
             ),
+            'delivered_km': delivered.delivery_km if delivered else None,
+            'returned_km': returned.delivery_km if returned else None,
         })
 
     logs = vehicle.maintenance_logs.order_by('-start_date').values(
