@@ -45,6 +45,7 @@ class Vehicle(models.Model):
 
     total_reservations = models.IntegerField(default=0)
     total_km = models.IntegerField(default=0)
+    damage_map = models.JSONField(default=dict, blank=True)  
     maintenance_due = models.BooleanField(default=False)
 
     maintenance_start_date = models.DateField(null=True, blank=True)

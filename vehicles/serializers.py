@@ -70,7 +70,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         if not result:
             return None
         v = result.vehicle
-        return {'plate': v.plate, 'brand': v.brand, 'model': v.model}
+        return {'plate': v.plate, 'brand': v.brand, 'model': v.model, 'total_km': v.total_km, 'damage_map': v.damage_map}
 
     def get_delivery_info(self, obj):
         logs = {log.event_type: log for log in obj.delivery_logs.all()}

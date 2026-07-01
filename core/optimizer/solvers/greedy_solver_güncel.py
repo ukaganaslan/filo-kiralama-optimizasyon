@@ -1,5 +1,5 @@
 from vehicles.models import TransferCost
-from ..validator import check_group, check_status, check_date_conflict
+from ..validator import check_group, check_status
 
 
 def get_transfer_cost(from_branch, to_branch):
@@ -93,12 +93,12 @@ def post_swap(assignments, unassigned, all_vehicles, occupied):
     return assignments, unassigned
 
 
-def solve(reservations, all_vehicles):
+def solve(reservations, all_vehicles, initial_occupied=None):
     reservations = sorted(reservations, key=lambda r: r.end_date)
 
     assignments = []
     unassigned = []
-    occupied = {}
+    occupied = {k: list(v) for k, v in initial_occupied.items()} if initial_occupied else {}
 
     for reservation in reservations:
         candidates = [
@@ -106,7 +106,6 @@ def solve(reservations, all_vehicles):
             if v.branch_id == reservation.branch_id
             and check_group(v.group, reservation.vehicle_group)
             and check_status(v)
-            and check_date_conflict(v, reservation.start_date, reservation.end_date)
             and not has_memory_conflict(v, reservation.start_date, reservation.end_date, occupied)
         ]
 
