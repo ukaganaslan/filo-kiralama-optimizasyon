@@ -221,6 +221,11 @@
   </tr>
 </table>
 
+{% if photo %}
+<div class="section-title">Araç Fotoğrafı</div>
+<img src="{{ photo }}" style="width: 100%; max-height: 300px;" />
+{% endif %}
+
 <div class="section-title">Hasar Haritası</div>
 <div style="text-align: center; margin: 12px 0;">
   {{ damage_svg|safe }}
