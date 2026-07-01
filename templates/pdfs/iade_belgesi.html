@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 13px;
+    color: #1e293b;
+    background: white;
+    padding: 40px;
+  }
+
+  .header {
+    border-bottom: 2px solid #0ea5e9;
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+  }
+
+  .header-top { display: table; width: 100%; }
+  .header-left { display: table-cell; vertical-align: middle; }
+  .header-right { display: table-cell; text-align: right; vertical-align: middle; }
+
+  .doc-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0ea5e9;
+    letter-spacing: -0.5px;
+  }
+
+  .doc-subtitle { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+  .res-id {
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
+    font-family: monospace;
+  }
+
+  .doc-date { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+
+  .section-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #0ea5e9;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    margin-top: 24px;
+  }
+
+  .info-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #e2e8f0;
+  }
+
+  .info-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+
+  .info-table tr:last-child td { border-bottom: none; }
+
+  .info-table .label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    width: 140px;
+  }
+
+  .info-table .value { font-size: 13px; font-weight: 600; color: #1e293b; }
+
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #e2e8f0;
+  }
+
+  .compare-table th {
+    background: #f8fafc;
+    padding: 8px 14px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .compare-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 13px;
+    vertical-align: middle;
+  }
+
+  .compare-table tr:last-child td { border-bottom: none; }
+
+  .compare-table .row-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    width: 120px;
+  }
+
+  .fuel-bar-wrap {
+    background: #f1f5f9;
+    border-radius: 4px;
+    height: 10px;
+    width: 120px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  .fuel-bar-delivered { background: #6366f1; height: 10px; border-radius: 4px; }
+  .fuel-bar-returned  { background: #0ea5e9; height: 10px; border-radius: 4px; }
+
+  .km-diff { font-size: 11px; color: #64748b; margin-left: 6px; }
+
+  .notes-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #475569;
+    margin-top: 24px;
+    min-height: 50px;
+  }
+
+  .footer {
+    margin-top: 48px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 16px;
+    display: table;
+    width: 100%;
+  }
+
+  .sign-box {
+    display: table-cell;
+    width: 50%;
+    padding: 0 16px;
+    text-align: center;
+  }
+
+  .sign-line {
+    border-top: 1px solid #cbd5e1;
+    margin-top: 48px;
+    padding-top: 6px;
+    font-size: 11px;
+    color: #94a3b8;
+  }
+
+  .watermark {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 10px;
+    color: #cbd5e1;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="header-left">
+      <div class="doc-title">Araç İade Belgesi</div>
+      <div class="doc-subtitle">{{ branch_name }}</div>
+    </div>
+    <div class="header-right">
+      <div class="res-id">{{ reservation_id }}</div>
+      <div class="doc-date">{{ returned_at }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="section-title">Müşteri Bilgileri</div>
+<table class="info-table">
+  <tr>
+    <td class="label">Ad Soyad</td>
+    <td class="value">{{ customer_name }}</td>
+  </tr>
+</table>
+
+<div class="section-title">Araç Bilgileri</div>
+<table class="info-table">
+  <tr>
+    <td class="label">Araç</td>
+    <td class="value">{{ brand }} {{ model }}</td>
+  </tr>
+  <tr>
+    <td class="label">Plaka</td>
+    <td class="value">{{ plate }}</td>
+  </tr>
+  <tr>
+    <td class="label">Kiralama Tarihleri</td>
+    <td class="value">{{ start_date }} → {{ end_date }}</td>
+  </tr>
+</table>
+
+<div class="section-title">Teslim / İade Karşılaştırması</div>
+<table class="compare-table">
+  <thead>
+    <tr>
+      <th></th>
+      <th>Teslim</th>
+      <th>İade</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="row-label">KM</td>
+      <td>{{ delivered_km|default:"—" }}</td>
+      <td>
+        {{ returned_km|default:"—" }}
+        {% if km_diff %}<span class="km-diff">(+{{ km_diff }} km)</span>{% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td class="row-label">Yakıt</td>
+      <td>
+        <span class="fuel-bar-wrap">
+          <span class="fuel-bar-delivered" style="width: {{ delivered_fuel_pct }}%;"></span>
+        </span>
+        {{ delivered_fuel_label }}
+      </td>
+      <td>
+        <span class="fuel-bar-wrap">
+          <span class="fuel-bar-returned" style="width: {{ returned_fuel_pct }}%;"></span>
+        </span>
+        {{ returned_fuel_label }}
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="section-title">Hasar Haritası</div>
+<table style="width: 100%; border-collapse: collapse; margin: 12px 0;">
+  <tr>
+    <td style="width: 50%; text-align: center; vertical-align: top; padding: 0 12px;">
+      <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;">Teslim</div>
+      {{ delivered_damage_svg|safe }}
+    </td>
+    <td style="width: 50%; text-align: center; vertical-align: top; padding: 0 12px;">
+      <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;">İade</div>
+      {{ returned_damage_svg|safe }}
+    </td>
+  </tr>
+</table>
+
+{% if returned_notes %}
+<div class="section-title">İade Notları</div>
+<div class="notes-box">{{ returned_notes }}</div>
+{% endif %}
+
+<div class="footer">
+  <div class="sign-box">
+    <div class="sign-line">Teslim Alan Temsilci</div>
+  </div>
+  <div class="sign-box">
+    <div class="sign-line">İade Eden Müşteri</div>
+  </div>
+</div>
+
+<div class="watermark">Bu belge sistem tarafından otomatik oluşturulmuştur.</div>
+
+</body>
+</html>

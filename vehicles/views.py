@@ -1,4 +1,5 @@
 import json
+import re
 import uuid
 from datetime import date, timedelta
 from rest_framework import viewsets, status, permissions
@@ -7,6 +8,10 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.template.loader import render_to_string
+from django.http import HttpResponse
+from django.conf import settings
+from weasyprint import HTML
 
 from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment
 from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer
@@ -956,3 +961,156 @@ def vehicle_history (request, vehicle_id):
         'reservations': reservations,
         'maintenance_logs': list(logs),
     })
+
+
+FUEL_LABELS = {0: 'E', 1: '1/8', 2: '1/4', 3: '3/8', 4: '1/2', 5: '5/8', 6: '3/4', 7: '7/8', 8: 'F'}
+
+DAMAGE_STATES = {
+    1: ('Sürtme',  '#fef9c3'),
+    2: ('Göçük',   '#fed7aa'),
+    3: ('Çizik',   '#fecaca'),
+    4: ('Leke',    '#dbeafe'),
+    5: ('Çatlak',  '#e9d5ff'),
+    6: ('Eksik',   '#fda4af'),
+}
+
+CAR_PART_LABELS = {
+    'on_tampon':         'Ön Tampon',
+    'kaput':             'Kaput',
+    'on_sol_camurluk':   'Ön Sol Çamurluk',
+    'on_sag_camurluk':   'Ön Sağ Çamurluk',
+    'on_sol_kapi':       'Ön Sol Kapı',
+    'tavan':             'Tavan',
+    'on_sag_kapi':       'Ön Sağ Kapı',
+    'arka_sol_kapi':     'Arka Sol Kapı',
+    'arka_sag_kapi':     'Arka Sağ Kapı',
+    'arka_sol_camurluk': 'Arka Sol Çamurluk',
+    'bagaj':             'Bagaj',
+    'arka_sag_camurluk': 'Arka Sağ Çamurluk',
+    'arka_tampon':       'Arka Tampon',
+}
+
+
+def build_damage_list(damage_items):
+    if not damage_items:
+        return []
+    result = []
+    for part_id, state in damage_items.items():
+        if state and state > 0 and state in DAMAGE_STATES:
+            label = CAR_PART_LABELS.get(part_id, part_id)
+            state_label, color = DAMAGE_STATES[state]
+            result.append({'label': label, 'state': state_label, 'color': color})
+    return result
+
+
+SVG_PATH = str(settings.BASE_DIR / 'frontend' / 'src' / 'assets' / 'cardamage_frame.svg')
+
+
+def build_damage_svg(damage_items):
+    try:
+        with open(SVG_PATH, 'r', encoding='utf-8') as f:
+            svg = f.read()
+    except FileNotFoundError:
+        return ''
+    svg = re.sub(r'width="387"', 'width="193"', svg)
+    svg = re.sub(r'height="516"', 'height="258"', svg)
+    for part_id in CAR_PART_LABELS:
+        state = (damage_items or {}).get(part_id, 0)
+        color = DAMAGE_STATES.get(state, (None, '#f1f5f9'))[1]
+        svg = re.sub(
+            rf'(id="{part_id}")',
+            rf'\1 fill="{color}" fill-opacity="0.6"',
+            svg
+        )
+    return svg
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def reservation_pdf(request, pk, pdf_type):
+    try:
+        reservation = Reservation.objects.select_related(
+            'branch', 'customer', 'customer__profile'
+        ).prefetch_related('delivery_logs').get(pk=pk)
+    except Reservation.DoesNotExist:
+        return HttpResponse(status=404)
+
+    logs = {log.event_type: log for log in reservation.delivery_logs.all()}
+    delivered = logs.get('delivered')
+    returned = logs.get('returned')
+
+    ar = AssignmentResult.objects.filter(reservation=reservation).order_by('-run__created_at').first()
+    vehicle = ar.vehicle if ar else None
+
+    customer_name = (
+        reservation.customer.profile.full_name
+        if reservation.customer and hasattr(reservation.customer, 'profile')
+        else reservation.guest_name or '—'
+    )
+
+    def fuel_pct(val):
+        return round((val / 8) * 100) if val is not None else 0
+
+    if pdf_type == 'teslim':
+        if not delivered:
+            return HttpResponse('Teslim kaydı bulunamadı.', status=400)
+        context = {
+            'reservation_id': reservation.reservation_id,
+            'branch_name': reservation.branch.name,
+            'customer_name': customer_name,
+            'brand': vehicle.brand if vehicle else '—',
+            'model': vehicle.model if vehicle else '—',
+            'plate': vehicle.plate if vehicle else '—',
+            'start_date': reservation.start_date,
+            'end_date': reservation.end_date,
+            'delivered_at': delivered.logged_at.strftime('%d.%m.%Y %H:%M'),
+            'delivered_km': delivered.delivery_km,
+            'fuel_label': FUEL_LABELS.get(delivered.fuel_level, '—'),
+            'fuel_pct': fuel_pct(delivered.fuel_level),
+            'damage_list': build_damage_list(delivered.damage_items),
+            'damage_svg': build_damage_svg(delivered.damage_items),
+            'delivered_notes': delivered.notes,
+        }
+        template = 'pdfs/teslim_belgesi.html'
+        filename = f'teslim-{reservation.reservation_id}.pdf'
+
+    elif pdf_type == 'iade':
+        if not returned:
+            return HttpResponse('İade kaydı bulunamadı.', status=400)
+        km_diff = None
+        if returned.delivery_km and delivered and delivered.delivery_km:
+            km_diff = returned.delivery_km - delivered.delivery_km
+        context = {
+            'reservation_id': reservation.reservation_id,
+            'branch_name': reservation.branch.name,
+            'customer_name': customer_name,
+            'brand': vehicle.brand if vehicle else '—',
+            'model': vehicle.model if vehicle else '—',
+            'plate': vehicle.plate if vehicle else '—',
+            'start_date': reservation.start_date,
+            'end_date': reservation.end_date,
+            'returned_at': returned.logged_at.strftime('%d.%m.%Y %H:%M'),
+            'delivered_km': delivered.delivery_km if delivered else None,
+            'returned_km': returned.delivery_km,
+            'km_diff': km_diff,
+            'delivered_fuel_label': FUEL_LABELS.get(delivered.fuel_level if delivered else None, '—'),
+            'delivered_fuel_pct': fuel_pct(delivered.fuel_level if delivered else None),
+            'returned_fuel_label': FUEL_LABELS.get(returned.fuel_level, '—'),
+            'returned_fuel_pct': fuel_pct(returned.fuel_level),
+            'delivered_damage_list': build_damage_list(delivered.damage_items if delivered else {}),
+            'delivered_damage_svg': build_damage_svg(delivered.damage_items if delivered else {}),
+            'returned_damage_list': build_damage_list(returned.damage_items),
+            'returned_damage_svg': build_damage_svg(returned.damage_items),
+            'returned_notes': returned.notes,
+        }
+        template = 'pdfs/iade_belgesi.html'
+        filename = f'iade-{reservation.reservation_id}.pdf'
+
+    else:
+        return HttpResponse('Geçersiz belge tipi.', status=400)
+
+    html_string = render_to_string(template, context)
+    pdf_file = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
