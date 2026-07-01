@@ -10,7 +10,7 @@
 
     <div v-if="loading" class="loading">Yükleniyor...</div>
 
-    <div v-else-if="reservation" ref="pdfArea" class="form-card">
+    <div v-else-if="reservation" class="form-card">
       <div class="info-grid">
         <div class="info-item">
           <span class="info-label">MÜŞTERİ</span>
@@ -91,8 +91,6 @@ import { useToast } from 'primevue/usetoast'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import CarDamageMap from '@/components/CarDamageMap.vue'
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
 
 const route = useRoute()
 const router = useRouter()
@@ -106,7 +104,6 @@ const file = ref(null)
 const toast = useToast()
 
 const form = ref({ km: '', fuel: 4, damage_map: {}, notes: '' })
-const pdfArea = ref(null)
 
 function fuelLabel(v) {
   return { 0: 'E', 1: '1/8', 2: '1/4', 3: '3/8', 4: '1/2', 5: '5/8', 6: '3/4', 7: '7/8', 8: 'F' }[v] ?? '—'
@@ -158,19 +155,13 @@ async function submit() {
 }
 
 async function exportPdf() {
-  const hideEls = pdfArea.value.querySelectorAll('.form-actions, .p-fileupload, .success, .error')
-  hideEls.forEach(el => el.style.visibility = 'hidden')
-
-  const canvas = await html2canvas(pdfArea.value, { useCORS: true })
-
-  hideEls.forEach(el => el.style.visibility = '')
-
-  const imgData = canvas.toDataURL('image/png')
-  const pdf = new jsPDF('p', 'mm', 'a4')
-  const width = pdf.internal.pageSize.getWidth()
-  const height = (canvas.height * width) / canvas.width
-  pdf.addImage(imgData, 'PNG', 0, 0, width, height)
-  pdf.save('Arac Teslim Belgesi.pdf')
+  const res = await axios.get(`/api/reservations/${route.params.id}/pdf/teslim/`, { responseType: 'blob' })
+  const url = URL.createObjectURL(res.data)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `teslim-${route.params.id}.pdf`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 </script>
 
