@@ -1005,6 +1005,7 @@ def build_damage_list(damage_items):
 
 
 SVG_PATH = str(settings.BASE_DIR / 'frontend' / 'src' / 'assets' / 'cardamage_frame.svg')
+CARDAMAGE_PNG_PATH = str(settings.BASE_DIR / 'frontend' / 'src' / 'assets' / 'cardamage.png')
 
 
 def build_damage_svg(damage_items):
@@ -1016,6 +1017,17 @@ def build_damage_svg(damage_items):
         return ''
     svg = re.sub(r'width="387"', 'width="193"', svg)
     svg = re.sub(r'height="516"', 'height="258"', svg)
+    # defs bloğunu (bozuk JPEG pattern) ve arka plan rect'ini kaldır
+    svg = re.sub(r'<defs>.*?</defs>', '', svg, flags=re.DOTALL)
+    svg = re.sub(r'<rect[^>]*fill="url\(#[^"]+\)"[^/]*/>', '', svg)
+    # cardamage.png'yi SVG <image> olarak en alta ekle (paths üstte kalır)
+    try:
+        with open(CARDAMAGE_PNG_PATH, 'rb') as f:
+            png_b64 = base64.b64encode(f.read()).decode()
+        png_tag = f'<image href="data:image/png;base64,{png_b64}" x="0" y="0" width="387" height="516"/>'
+        svg = re.sub(r'(<svg[^>]*>)', rf'\1{png_tag}', svg)
+    except Exception:
+        pass
     for part_id in CAR_PART_LABELS:
         state = (damage_items or {}).get(part_id, 0)
         color = DAMAGE_STATES.get(state, (None, '#f1f5f9'))[1]
@@ -1041,6 +1053,21 @@ def reservation_pdf(request, pk, pdf_type):
     logs = {log.event_type: log for log in reservation.delivery_logs.all()}
     delivered = logs.get('delivered')
     returned = logs.get('returned')
+
+    def make_photo(log):
+        import base64
+        if log and log.document:
+            try:
+                with open(log.document.path, 'rb') as f:
+                    ext = log.document.name.split('.')[-1]
+                    return f'data:image/{ext};base64,{base64.b64encode(f.read()).decode()}'
+            except Exception:
+                pass
+        return None
+
+    delivered_photo = make_photo(delivered)
+    returned_photo = make_photo(returned)
+
 
     ar = AssignmentResult.objects.filter(reservation=reservation).order_by('-run__created_at').first()
     vehicle = ar.vehicle if ar else None
@@ -1073,6 +1100,7 @@ def reservation_pdf(request, pk, pdf_type):
             'damage_list': build_damage_list(delivered.damage_items),
             'damage_svg': build_damage_svg(delivered.damage_items),
             'delivered_notes': delivered.notes,
+            'photo': delivered_photo,
         }
         template = 'pdfs/teslim_belgesi.html'
         filename = f'teslim-{reservation.reservation_id}.pdf'
@@ -1105,6 +1133,8 @@ def reservation_pdf(request, pk, pdf_type):
             'returned_damage_list': build_damage_list(returned.damage_items),
             'returned_damage_svg': build_damage_svg(returned.damage_items),
             'returned_notes': returned.notes,
+            'delivered_photo': delivered_photo,
+            'returned_photo': returned_photo,
         }
         template = 'pdfs/iade_belgesi.html'
         filename = f'iade-{reservation.reservation_id}.pdf'
