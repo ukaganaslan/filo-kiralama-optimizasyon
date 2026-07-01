@@ -11,7 +11,8 @@ from django.contrib.auth.models import User
 from django.template.loader import render_to_string
 from django.http import HttpResponse
 from django.conf import settings
-from weasyprint import HTML
+from io import BytesIO
+from xhtml2pdf import pisa
 
 from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment
 from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer
@@ -1007,6 +1008,7 @@ SVG_PATH = str(settings.BASE_DIR / 'frontend' / 'src' / 'assets' / 'cardamage_fr
 
 
 def build_damage_svg(damage_items):
+    import base64
     try:
         with open(SVG_PATH, 'r', encoding='utf-8') as f:
             svg = f.read()
@@ -1022,7 +1024,8 @@ def build_damage_svg(damage_items):
             rf'\1 fill="{color}" fill-opacity="0.6"',
             svg
         )
-    return svg
+    b64 = base64.b64encode(svg.encode('utf-8')).decode('utf-8')
+    return f'<img src="data:image/svg+xml;base64,{b64}" width="193" height="258" />'
 
 
 @api_view(['GET'])
@@ -1110,7 +1113,8 @@ def reservation_pdf(request, pk, pdf_type):
         return HttpResponse('Geçersiz belge tipi.', status=400)
 
     html_string = render_to_string(template, context)
-    pdf_file = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
-    response = HttpResponse(pdf_file, content_type='application/pdf')
+    buffer = BytesIO()
+    pisa.CreatePDF(html_string, dest=buffer, encoding='utf-8')
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
