@@ -1004,8 +1004,8 @@ def build_damage_list(damage_items):
     return result
 
 
-SVG_PATH = str(settings.BASE_DIR / 'frontend' / 'src' / 'assets' / 'cardamage_frame.svg')
-CARDAMAGE_PNG_PATH = str(settings.BASE_DIR / 'frontend' / 'src' / 'assets' / 'cardamage.png')
+SVG_PATH = str(settings.BASE_DIR / 'static' / 'damage' /  'cardamage_frame.svg')
+CARDAMAGE_PNG_PATH = str(settings.BASE_DIR / 'static' / 'damage' / 'cardamage.png')
 
 
 def build_damage_svg(damage_items):
