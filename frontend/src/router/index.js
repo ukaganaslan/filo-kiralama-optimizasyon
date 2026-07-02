@@ -33,6 +33,7 @@ const routes = [
             { path: 'maintenance', component: Maintenance },
             { path: 'teslim/:id', component: () => import('../views/Teslim.vue') },
             { path: 'iade/:id', component: () => import('../views/Iade.vue') },
+            { path: 'istatistikler', component: () => import('../views/RepresentativeIstatistikleri.vue') },
         ]
     },
     {
