@@ -12,6 +12,7 @@ axios.defaults.baseURL = import.meta.env.VITE_API_BASE
 import App from './App.vue'
 import { useAuthStore } from './stores/auth'
 import ToastService from 'primevue/toastservice'
+import VueApexCharts from "vue3-apexcharts"
 
 const pinia = createPinia()
 const app = createApp(App)
@@ -25,6 +26,8 @@ app.use(PrimeVue, {
     }
 })
 app.use(ToastService)
+app.use(VueApexCharts)
+app.component('apexchart', VueApexCharts)
 const auth = useAuthStore()
 auth.init()
 

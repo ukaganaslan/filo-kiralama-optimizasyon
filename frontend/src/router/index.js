@@ -53,6 +53,7 @@ const routes = [
             { path: 'pricing', component: () => import('../views/Pricing.vue') },
             { path: 'teslim/:id', component: () => import('../views/Teslim.vue') },
             { path: 'iade/:id', component: () => import('../views/Iade.vue') },
+            { path: 'admin-stats', component: () => import('../views/AdminIstatistikleri.vue'), meta: { requiresAuth: true}}
             
         ]
     },

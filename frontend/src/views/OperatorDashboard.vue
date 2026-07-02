@@ -21,7 +21,7 @@
     <div class="section-header">
       <h2>Tüm Rezervasyonlar</h2>
       <div class="header-actions">
-        <select v-model="selectedMonth" class="view-select">
+        <select v-if="activeView === 'list'" v-model="selectedMonth" class="view-select">
           <option value="">Tüm Aylar</option>
           <option v-for="m in availableMonths" :key="m" :value="m">{{ formatMonth(m) }}</option>
         </select>
