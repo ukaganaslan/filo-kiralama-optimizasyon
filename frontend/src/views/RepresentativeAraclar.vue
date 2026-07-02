@@ -11,17 +11,17 @@
     <table>
       <thead>
         <tr>
-          <th>Araç ID</th>
-          <th>Sasi Kodu</th>
-          <th>Marka / Model</th>
-          <th>Plaka</th>
-          <th>Grup</th>
-          <th>Durum</th>
+          <th class="sortable" @click="sortBy('vehicle_id')">Araç ID <span class="sort-ind">{{ sortArrow('vehicle_id') }}</span></th>
+          <th class="sortable" @click="sortBy('sasi')">Sasi Kodu <span class="sort-ind">{{ sortArrow('sasi') }}</span></th>
+          <th class="sortable" @click="sortBy('brand_model')">Marka / Model <span class="sort-ind">{{ sortArrow('brand_model') }}</span></th>
+          <th class="sortable" @click="sortBy('plate')">Plaka <span class="sort-ind">{{ sortArrow('plate') }}</span></th>
+          <th class="sortable" @click="sortBy('group')">Grup <span class="sort-ind">{{ sortArrow('group') }}</span></th>
+          <th class="sortable" @click="sortBy('status')">Durum <span class="sort-ind">{{ sortArrow('status') }}</span></th>
           <th></th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="v in vehicles" :key="v.id" @click="openHistory(v)" style="cursor: pointer;">
+        <tr v-for="v in sortedVehicles" :key="v.id" @click="openHistory(v)" style="cursor: pointer;">
           <td class="id">{{ v.vehicle_id }}</td>
           <td>{{ v.sasi }}</td>
           <td>{{ v.brand }} {{ v.model }}</td>
@@ -175,6 +175,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
+import { useTableSort } from '@/composables/useTableSort'
 
 const vehicles = ref([])
 const openMenuId = ref(null)
@@ -273,6 +274,12 @@ function groupLabel(g) {
 function statusLabel(s) {
   return { available: 'Müsait', rented: 'Kiralandı', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif' }[s] || s
 }
+
+const { sortBy, sortArrow, sorted: sortedVehicles } = useTableSort(vehicles, {
+  brand_model: v => `${v.brand} ${v.model}`,
+  group: v => groupLabel(v.group),
+  status: v => statusLabel(v.current_status),
+})
 </script>
 
 <style scoped>
@@ -286,6 +293,9 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 table { width: 100%; border-collapse: collapse; background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th:first-child { border-radius: 14px 0 0 0; } th:last-child { border-radius: 0 14px 0 0; } th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: #6366f1; }
+.sort-ind { font-size: 9px; color: #6366f1; }
 td { border-top: 1px solid #f1f5f9; color: #374151; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7), td:nth-child(8), th:nth-child(8) { text-align: center; }

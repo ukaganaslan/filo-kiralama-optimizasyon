@@ -17,18 +17,18 @@
       <table>
         <thead>
           <tr>
-            <th>Rezervasyon No</th>
-            <th>Şube</th>
-            <th>Grup</th>
-            <th>Başlangıç</th>
-            <th>Bitiş</th>
-            <th>Tutar</th>
-            <th>Durum</th>
+            <th class="sortable" @click="sortBy('reservation_id')">Rezervasyon No <span class="sort-ind">{{ sortArrow('reservation_id') }}</span></th>
+            <th class="sortable" @click="sortBy('branch_title')">Şube <span class="sort-ind">{{ sortArrow('branch_title') }}</span></th>
+            <th class="sortable" @click="sortBy('group')">Grup <span class="sort-ind">{{ sortArrow('group') }}</span></th>
+            <th class="sortable" @click="sortBy('start_date')">Başlangıç <span class="sort-ind">{{ sortArrow('start_date') }}</span></th>
+            <th class="sortable" @click="sortBy('end_date')">Bitiş <span class="sort-ind">{{ sortArrow('end_date') }}</span></th>
+            <th class="sortable" @click="sortBy('price')">Tutar <span class="sort-ind">{{ sortArrow('price') }}</span></th>
+            <th class="sortable" @click="sortBy('status')">Durum <span class="sort-ind">{{ sortArrow('status') }}</span></th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in reservations" :key="r.id">
+          <tr v-for="r in sorted" :key="r.id">
             <td class="res-id">#{{ r.reservation_id }}</td>
             <td>{{ r.branch_title }}</td>
             <td>{{ groupLabel(r.vehicle_group) }}</td>
@@ -119,6 +119,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import CarDamageMap from '@/components/CarDamageMap.vue'
+import { useTableSort } from '@/composables/useTableSort'
 
 const reservations = ref([])
 const error = ref('')
@@ -150,6 +151,12 @@ function fuelLabel(v) {
   return { 0: 'E', 1: '1/8', 2: '1/4', 3: '3/8', 4: '1/2', 5: '5/8', 6: '3/4', 7: '7/8', 8: 'F' }[v] ?? '—'
 }
 
+const { sortBy, sortArrow, sorted } = useTableSort(reservations, {
+  group: r => groupLabel(r.vehicle_group),
+  price: r => Number(r.total_price) || 0,
+  status: r => displayStatus(r),
+})
+
 onMounted(async () => {
   const res = await axios.get('/api/reservations/')
   reservations.value = res.data
@@ -179,6 +186,9 @@ async function handleCancel(reservationId) {
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th { background: #f8fafc; font-weight: 700; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #f1f5f9; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: #6366f1; }
+.sort-ind { font-size: 9px; color: #6366f1; }
 td { border-top: 1px solid #f8fafc; color: #1e293b; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }

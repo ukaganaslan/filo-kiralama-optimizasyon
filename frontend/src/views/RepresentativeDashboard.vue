@@ -5,6 +5,11 @@
         <h2>Şube Rezervasyonları</h2>
         <span class="count-badge">{{ reservations.length }} rezervasyon</span>
       </div>
+        <input v-if="activeView === 'list'" v-model="plateSearch" class="search-input" placeholder="Plaka ara..." />
+        <select v-if="activeView === 'list'" v-model="statusFilter" class="view-select">
+          <option value="">Tüm Durumlar</option>
+          <option v-for="o in statusOptions" :key="o.key" :value="o.key">{{ o.label }}</option>
+        </select>
         <select v-if="activeView === 'list'" v-model="selectedMonth" class="view-select">
           <option value="">Tüm Aylar</option>
           <option v-for="m in availableMonths" :key="m" :value="m">{{ formatMonth(m) }}</option>
@@ -21,17 +26,16 @@
     <table v-if="activeView === 'list'">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Araç</th>
-          <th>Müşteri</th>
-          <th>Grup</th>
-          <th>Başlangıç</th>
-          <th>Bitiş</th>
-          <th>İade Şube</th>
-          <th>Tutar</th>
-          <th>Durum</th>
+          <th class="sortable" @click="sortBy('id')">ID <span class="sort-ind">{{ sortArrow('id') }}</span></th>
+          <th class="sortable" @click="sortBy('vehicle')">Araç <span class="sort-ind">{{ sortArrow('vehicle') }}</span></th>
+          <th class="sortable" @click="sortBy('customer')">Müşteri <span class="sort-ind">{{ sortArrow('customer') }}</span></th>
+          <th class="sortable" @click="sortBy('group')">Grup <span class="sort-ind">{{ sortArrow('group') }}</span></th>
+          <th class="sortable" @click="sortBy('start')">Başlangıç <span class="sort-ind">{{ sortArrow('start') }}</span></th>
+          <th class="sortable" @click="sortBy('end')">Bitiş <span class="sort-ind">{{ sortArrow('end') }}</span></th>
+          <th class="sortable" @click="sortBy('return_branch')">İade Şube <span class="sort-ind">{{ sortArrow('return_branch') }}</span></th>
+          <th class="sortable" @click="sortBy('price')">Tutar <span class="sort-ind">{{ sortArrow('price') }}</span></th>
+          <th class="sortable" @click="sortBy('status')">Durum <span class="sort-ind">{{ sortArrow('status') }}</span></th>
           <th></th>
-          
         </tr>
       </thead>
       <tbody>
@@ -304,11 +308,88 @@ function goToIade() {
   router.push(`/representative/iade/${selectedReservation.value.id}`)
 }
 
-const filteredReservations = computed(() =>
-  selectedMonth.value
-    ? reservations.value.filter(r => r.start_date.startsWith(selectedMonth.value))
-    : reservations.value
-)
+const plateSearch = ref('')
+const statusFilter = ref('')
+const sortKey = ref('')
+const sortDir = ref('asc')
+
+const statusOptions = [
+  { key: 'pending', label: 'Bekliyor' },
+  { key: 'assigned', label: 'Onaylandı' },
+  { key: 'delivering', label: 'Teslim İşlemde' },
+  { key: 'delivered', label: 'Teslim Edildi' },
+  { key: 'returning', label: 'İade İşlemde' },
+  { key: 'returned', label: 'İade Edildi' },
+  { key: 'cancelled', label: 'İptal' },
+]
+const STATUS_RANK = { pending: 0, assigned: 1, delivering: 2, delivered: 3, returning: 4, returned: 5, cancelled: 6 }
+
+function statusKey(r) {
+  if (r.status === 'cancelled') return 'cancelled'
+  if (r.status === 'pending') return 'pending'
+  if (r.delivery_info?.returned) return 'returned'
+  if (r.delivery_info?.returned_stage) return 'returning'
+  if (r.delivery_info?.delivered) return 'delivered'
+  if (r.delivery_info?.delivered_stage) return 'delivering'
+  return 'assigned'
+}
+
+const vehiclePlateMap = computed(() => {
+  const m = {}
+  for (const v of vehicles.value) m[v.vehicle_id] = v.plate
+  return m
+})
+
+function sortBy(key) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = 'asc'
+  }
+}
+function sortArrow(key) {
+  if (sortKey.value !== key) return ''
+  return sortDir.value === 'asc' ? '▲' : '▼'
+}
+function sortValue(r, key) {
+  switch (key) {
+    case 'id': return r.reservation_id || ''
+    case 'vehicle': return r.assigned_vehicle_id || ''
+    case 'customer': return r.customer_username || r.guest_name || ''
+    case 'return_branch': return r.return_branch ? (r.return_branch_title || r.return_branch_name) : (r.branch_title || r.branch_name || '')
+    case 'group': return r.vehicle_group || ''
+    case 'start': return r.start_date || ''
+    case 'end': return r.end_date || ''
+    case 'price': return Number(r.total_price) || 0
+    case 'status': return STATUS_RANK[statusKey(r)] ?? 99
+    default: return ''
+  }
+}
+
+const filteredReservations = computed(() => {
+  let list = reservations.value
+  if (selectedMonth.value) list = list.filter(r => r.start_date.startsWith(selectedMonth.value))
+  if (plateSearch.value.trim()) {
+    const q = plateSearch.value.trim().toLowerCase()
+    list = list.filter(r => {
+      const plate = vehiclePlateMap.value[r.assigned_vehicle_id] || ''
+      return plate.toLowerCase().includes(q) || (r.assigned_vehicle_id || '').toLowerCase().includes(q)
+    })
+  }
+  if (statusFilter.value) list = list.filter(r => statusKey(r) === statusFilter.value)
+  if (sortKey.value) {
+    list = [...list].sort((a, b) => {
+      const va = sortValue(a, sortKey.value)
+      const vb = sortValue(b, sortKey.value)
+      const cmp = (typeof va === 'number' && typeof vb === 'number')
+        ? va - vb
+        : String(va).localeCompare(String(vb), 'tr')
+      return sortDir.value === 'asc' ? cmp : -cmp
+    })
+  }
+  return list
+})
 
 function toggleMenu(id) {
   openMenuId.value = openMenuId.value === id ? null : id
@@ -587,6 +668,12 @@ function fuelLabel(v) {
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .count-badge { padding: 3px 10px; background: #f1f5f9; color: #64748b; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .view-select { padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; color: #475569; outline: none; cursor: pointer; }
+.search-input { padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; color: #475569; outline: none; width: 150px; }
+.search-input:focus { border-color: #6366f1; }
+.search-input::placeholder { color: #94a3b8; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: #6366f1; }
+.sort-ind { font-size: 9px; color: #6366f1; }
 .btn-add { padding: 8px 18px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .btn-add:hover { background: #4f46e5; }
 table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }

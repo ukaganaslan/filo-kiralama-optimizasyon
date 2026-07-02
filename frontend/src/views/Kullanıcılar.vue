@@ -15,19 +15,19 @@
     <table>
       <thead>
         <tr>
-          <th>Kullanıcı Adı</th>
-          <th>Ad Soyad</th>
-          <th>E-posta</th>
-          <th>Telefon</th>
-          <th>Rol</th>
-          <th>Kayıt Tarihi</th>
-          <th>Rez. Sayısı</th>
-          <th>Durum</th>
+          <th class="sortable" @click="sortBy('username')">Kullanıcı Adı <span class="sort-ind">{{ sortArrow('username') }}</span></th>
+          <th class="sortable" @click="sortBy('full_name')">Ad Soyad <span class="sort-ind">{{ sortArrow('full_name') }}</span></th>
+          <th class="sortable" @click="sortBy('email')">E-posta <span class="sort-ind">{{ sortArrow('email') }}</span></th>
+          <th class="sortable" @click="sortBy('phone')">Telefon <span class="sort-ind">{{ sortArrow('phone') }}</span></th>
+          <th class="sortable" @click="sortBy('role')">Rol <span class="sort-ind">{{ sortArrow('role') }}</span></th>
+          <th class="sortable" @click="sortBy('date_joined')">Kayıt Tarihi <span class="sort-ind">{{ sortArrow('date_joined') }}</span></th>
+          <th class="sortable" @click="sortBy('reservation_count')">Rez. Sayısı <span class="sort-ind">{{ sortArrow('reservation_count') }}</span></th>
+          <th class="sortable" @click="sortBy('status')">Durum <span class="sort-ind">{{ sortArrow('status') }}</span></th>
           <th></th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="u in filtered" :key="u.id">
+        <tr v-for="u in sorted" :key="u.id">
           <td class="username">{{ u.username }}</td>
           <td>{{ u.full_name || '—' }}</td>
           <td>{{ u.email || '—' }}</td>
@@ -127,6 +127,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useTableSort } from '@/composables/useTableSort'
 import axios from 'axios'
 
 const users = ref([])
@@ -228,6 +229,11 @@ function branchName(id) {
   const b = branches.value.find(b => b.id === id)
   return b ? b.name : ''
 }
+
+const { sortBy, sortArrow, sorted } = useTableSort(filtered, {
+  role: u => roleLabel(u.role),
+  status: u => (u.is_active ? 1 : 0),
+})
 </script>
 
 <style scoped>
@@ -244,6 +250,9 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 table { width: 100%; border-collapse: collapse; background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th:first-child { border-radius: 14px 0 0 0; } th:last-child { border-radius: 0 14px 0 0; } th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: #6366f1; }
+.sort-ind { font-size: 9px; color: #6366f1; }
 td { border-top: 1px solid #f1f5f9; color: #374151; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }

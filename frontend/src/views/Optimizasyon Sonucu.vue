@@ -27,17 +27,17 @@
       <table>
         <thead>
           <tr>
-            <th>Rezervasyon</th>
-            <th>Müşteri</th>
-            <th>Araç</th>
-            <th>Başlangıç</th>
-            <th>Bitiş</th>
-            <th>Transfer</th>
-            <th>Upgrade</th>
+            <th class="sortable" @click="sortBy('reservation_id')">Rezervasyon <span class="sort-ind">{{ sortArrow('reservation_id') }}</span></th>
+            <th class="sortable" @click="sortBy('customer')">Müşteri <span class="sort-ind">{{ sortArrow('customer') }}</span></th>
+            <th class="sortable" @click="sortBy('vehicle_id')">Araç <span class="sort-ind">{{ sortArrow('vehicle_id') }}</span></th>
+            <th class="sortable" @click="sortBy('start_date')">Başlangıç <span class="sort-ind">{{ sortArrow('start_date') }}</span></th>
+            <th class="sortable" @click="sortBy('end_date')">Bitiş <span class="sort-ind">{{ sortArrow('end_date') }}</span></th>
+            <th class="sortable" @click="sortBy('transfer_cost')">Transfer <span class="sort-ind">{{ sortArrow('transfer_cost') }}</span></th>
+            <th class="sortable" @click="sortBy('is_upgrade')">Upgrade <span class="sort-ind">{{ sortArrow('is_upgrade') }}</span></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="a in result.assignments" :key="a.reservation_id">
+          <tr v-for="a in sorted" :key="a.reservation_id">
             <td>{{ a.reservation_id }}</td>
             <td>{{ a.customer_username || `Misafir - ${a.guest_name}` }}</td>
             <td>{{ a.vehicle_id }}</td>
@@ -56,9 +56,17 @@
 import { computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useOptimizationStore } from '../stores/optimization'
+import { useTableSort } from '@/composables/useTableSort'
 
 const optimizationStore = useOptimizationStore()
 const result = computed(() => optimizationStore.result)
+
+const assignments = computed(() => result.value?.assignments || [])
+const { sortBy, sortArrow, sorted } = useTableSort(assignments, {
+  customer: a => a.customer_username || a.guest_name || '',
+  transfer_cost: a => Number(a.transfer_cost) || 0,
+  is_upgrade: a => (a.is_upgrade ? 1 : 0),
+})
 
 onMounted(async () => {
   if (!optimizationStore.result) {
@@ -85,5 +93,8 @@ th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }
 th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: #6366f1; }
+.sort-ind { font-size: 9px; color: #6366f1; }
 td { border-top: 1px solid #f1f5f9; }
 </style>
