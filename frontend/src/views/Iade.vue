@@ -242,4 +242,5 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
   background: #38383880 !important;
   border-color: #38383880 !important;
 }
+:deep(.p-fileupload-file-badge) { display: none; }
 </style>

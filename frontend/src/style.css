@@ -69,19 +69,21 @@ a { text-decoration: none; }
 }
 
 /* Araç grubu */
-.badge-economy    { background: #dbeafe; color: #1d4ed8; }
-.badge-mid        { background: #fef3c7; color: #92400e; }
-.badge-suv        { background: #f3e8ff; color: #6b21a8; }
+.badge-economy    { background: #ede9fe; color: #5b21b6; }
+.badge-mid        { background: #dbeafe; color: #1e40af; }
+.badge-suv        { background: #d1fae5; color: #065f46; }
 
 /* Araç durumu */
-.badge-available   { background: #d1fae5; color: #16A34A; }
-.badge-rented      { background: #ede9ff; color: #1B1063; }
+.badge-available   { background: #d1fae5; color: #065f46; }
+.badge-rented      { background: #dbeafe; color: #1e40af; }
 .badge-maintenance { background: #fef3c7; color: #92400e; }
-.badge-service     { background: #fee2e2; color: #DC2626; }
-.badge-inactive    { background: #f1f5f9; color: #64748B; }
+.badge-service     { background: #fed7aa; color: #9a3412; }
+.badge-inactive    { background: #f1f5f9; color: #475569; }
 .badge-teslimat { background: #fff0cec6; color: #cd8f00; }
 .badge-iade { background: #c3f2ffdd; color: #00c8ff; }
 /* Rezervasyon durumu */
 .badge-pending   { background: #fef3c7; color: #92400e; }
 .badge-assigned  { background: #d1fae5; color: #16A34A; }
 .badge-cancelled { background: #fee2e2; color: #DC2626; }
+.badge-delivered { background: #d1fae5; color: #065f46; }
+.badge-returned  { background: #e9d5ff; color: #6b21a8; }

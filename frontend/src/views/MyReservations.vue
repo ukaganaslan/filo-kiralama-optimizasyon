@@ -190,8 +190,8 @@ tr:hover td { background: #fafbff; }
 .price-badge { font-size: 13px; font-weight: 700; color: #000000; }
 .price-na { color: #94a3b8; }
 
-.badge-delivered { background: #dbeafe; color: #1d4ed8; }
-.badge-returned { background: #d1fae5; color: #065f46; }
+.badge-delivered { background: #d1fae5; color: #065f46; }
+.badge-returned { background: #e9d5ff; color: #6b21a8; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1000; display: flex; align-items: center; justify-content: center; }
 .modal { background: white; border-radius: 14px; padding: 28px; width: 480px; max-width: 90vw; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
