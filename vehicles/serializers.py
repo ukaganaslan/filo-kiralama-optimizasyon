@@ -77,16 +77,20 @@ class ReservationSerializer(serializers.ModelSerializer):
         delivered = logs.get('delivered')
         returned = logs.get('returned')
         return {
-            'delivered': bool(delivered),
+            'delivered': bool(delivered) and delivered.stage == 'approved',
+            'delivered_stage': delivered.stage if delivered else None,
             'delivered_at': delivered.logged_at.isoformat() if delivered else None,
             'delivered_doc': delivered.document.url if delivered and delivered.document else None,
+            'delivered_photo': delivered.photo.url if delivered and delivered.photo else None,
             'delivered_km': delivered.delivery_km if delivered else None,
             'delivered_fuel': delivered.fuel_level if delivered else None,
             'delivered_damage': delivered.damage_items if delivered else [],
             'delivered_notes': delivered.notes if delivered else '',
-            'returned': bool(returned),
+            'returned': bool(returned) and returned.stage == 'approved',
+            'returned_stage': returned.stage if returned else None,
             'returned_at': returned.logged_at.isoformat() if returned else None,
             'returned_doc': returned.document.url if returned and returned.document else None,
+            'returned_photo': returned.photo.url if returned and returned.photo else None,
             'returned_km': returned.delivery_km if returned else None, 
             'returned_fuel': returned.fuel_level if returned else None,
             'returned_damage': returned.damage_items if returned else [],

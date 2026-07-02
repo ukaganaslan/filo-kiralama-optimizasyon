@@ -30,64 +30,130 @@
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-field">
-          <label>Teslim KM</label>
-          <input v-model="form.km" type="number" placeholder="Kilometre" />
+      <div class="step-bar">
+        <div class="step-node" :class="{ completed: uiStep > 1, active: uiStep === 1 }">
+          <div class="step-circle">1</div>
+          <span class="step-label">Bilgi Girişi</span>
         </div>
-        <div class="form-field">
-          <label>Yakıt — {{ fuelLabel(form.fuel) }}</label>
-          <input v-model="form.fuel" type="range" min="0" max="8" step="1" class="fuel-slider" />
-          <div class="fuel-labels"><span>E</span><span>F</span></div>
+        <div class="step-connector" :class="{ done: uiStep > 1 }"></div>
+        <div class="step-node" :class="{ completed: uiStep > 2, active: uiStep === 2 }">
+          <div class="step-circle">2</div>
+          <span class="step-label">Belge Yükleme</span>
+        </div>
+        <div class="step-connector" :class="{ done: uiStep > 2 }"></div>
+        <div class="step-node" :class="{ completed: uiStep > 3, active: uiStep === 3 }">
+          <div class="step-circle">3</div>
+          <span class="step-label">Fotoğraf &amp; Onay</span>
         </div>
       </div>
 
-      <div class="section-label">Hasar Haritası</div>
-      <div :style="success ? 'pointer-events: none; opacity: 0.85' : ''">
+      <!-- Adım 1: Bilgi girişi -->
+      <template v-if="uiStep === 1">
+        <div class="form-row">
+          <div class="form-field">
+            <label>Teslim KM</label>
+            <input v-model="form.km" type="number" placeholder="Kilometre" />
+          </div>
+          <div class="form-field">
+            <label>Yakıt — {{ fuelLabel(form.fuel) }}</label>
+            <input v-model="form.fuel" type="range" min="0" max="8" step="1" class="fuel-slider" />
+            <div class="fuel-labels"><span>E</span><span>F</span></div>
+          </div>
+        </div>
+
+        <div class="section-label">Hasar Haritası</div>
         <CarDamageMap v-model="form.damage_map" />
-      </div>
 
-      <div class="form-field">
-        <label>Notlar</label>
-        <textarea v-model="form.notes" rows="3" placeholder="Teslim notu..."></textarea>
-      </div>
+        <div class="form-field">
+          <label>Notlar</label>
+          <textarea v-model="form.notes" rows="3" placeholder="Teslim notu..."></textarea>
+        </div>
 
-      <Toast />
-      <FileUpload
-        name="document"
-        accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
-        :maxFileSize="5000000"
-        :multiple="false"
-        customUpload
-        @select="e => file = e.files[0]"
-        @uploader="submit"
-        :showUploadButton="false"
-        :showCancelButton="false"
-      >
-        <template #empty>
-          <span>Belgeyi buraya sürükle bırak.</span>
-        </template>
-      </FileUpload>
+        <p v-if="error" class="error">{{ error }}</p>
 
-      <p v-if="error" class="error">{{ error }}</p>
-      <p v-if="success" class="success">{{ success }}</p>
+        <div class="form-actions">
+          <button class="btn-save" @click="submitStage1" :disabled="saving">
+            {{ saving ? 'İşleniyor...' : 'PDF İndir ve Devam Et' }}
+          </button>
+        </div>
+      </template>
 
-      <div class="form-actions">
-        <button v-if="!success" class="btn-save" @click="submit" :disabled="saving">
-          {{ saving ? 'Kaydediliyor...' : 'Teslim Et' }}
-        </button>
-        <button v-if="success" class="btn-back" @click="router.back()">Geri Dön</button>
-        <button v-if="success" class="btn-export" @click="exportPdf">PDF İndir</button>
-      </div>
+      <!-- Adım 2: Belge yükleme -->
+      <template v-else-if="uiStep === 2">
+        <p class="step-hint">İndirilen belgeyi yazdırıp imzalattıktan sonra, taranmış/fotoğraflanmış halini buraya yükleyin.</p>
+        <FileUpload
+          name="document"
+          accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
+          :maxFileSize="5000000"
+          :multiple="false"
+          customUpload
+          @select="e => documentFile = e.files[0]"
+          @uploader="submitDocument"
+          :showUploadButton="false"
+          :showCancelButton="false"
+        >
+          <template #empty>
+            <span>İmzalı belgeyi buraya sürükle bırak.</span>
+          </template>
+        </FileUpload>
+
+        <p v-if="error" class="error">{{ error }}</p>
+
+        <div class="form-actions">
+          <button class="btn-export" @click="exportPdf">PDF'i Tekrar İndir</button>
+          <button class="btn-save" @click="submitDocument" :disabled="saving || !documentFile">
+            {{ saving ? 'Yükleniyor...' : 'Belgeyi Yükle ve Devam Et' }}
+          </button>
+        </div>
+      </template>
+
+      <!-- Adım 3: Fotoğraf + onay -->
+      <template v-else-if="uiStep === 3">
+        <p class="step-hint">Aracın son halini gösteren bir fotoğraf yükleyip teslim işlemini tamamlayın.</p>
+        <FileUpload
+          name="photo"
+          accept=".jpg,.jpeg,.png"
+          :maxFileSize="5000000"
+          :multiple="false"
+          customUpload
+          @select="e => photoFile = e.files[0]"
+          @uploader="submitPhoto"
+          :showUploadButton="false"
+          :showCancelButton="false"
+        >
+          <template #empty>
+            <span>Araç fotoğrafını buraya sürükle bırak.</span>
+          </template>
+        </FileUpload>
+
+        <p v-if="error" class="error">{{ error }}</p>
+
+        <div class="form-actions">
+          <button class="btn-save" @click="submitPhoto" :disabled="saving || !photoFile">
+            {{ saving ? 'Onaylanıyor...' : 'Teslim Et' }}
+          </button>
+        </div>
+      </template>
+
+      <!-- Tamamlandı -->
+      <template v-else>
+        <div class="section-label">Hasar Haritası</div>
+        <div style="pointer-events: none; opacity: 0.85">
+          <CarDamageMap v-model="form.damage_map" />
+        </div>
+        <p class="success">{{ success }}</p>
+        <div class="form-actions">
+          <button class="btn-back" @click="router.back()">Geri Dön</button>
+          <button class="btn-export" @click="exportPdf">PDF İndir</button>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import FileUpload from 'primevue/fileupload'
-import Toast from 'primevue/toast'
-import { useToast } from 'primevue/usetoast'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import CarDamageMap from '@/components/CarDamageMap.vue'
@@ -100,8 +166,8 @@ const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
 const success = ref('')
-const file = ref(null)
-const toast = useToast()
+const documentFile = ref(null)
+const photoFile = ref(null)
 
 const form = ref({ km: '', fuel: 4, damage_map: {}, notes: '' })
 
@@ -109,22 +175,33 @@ function fuelLabel(v) {
   return { 0: 'E', 1: '1/8', 2: '1/4', 3: '3/8', 4: '1/2', 5: '5/8', 6: '3/4', 7: '7/8', 8: 'F' }[v] ?? '—'
 }
 
+const uiStep = computed(() => {
+  const stage = reservation.value?.delivery_info?.delivered_stage
+  if (stage === 'pending') return 2
+  if (stage === 'photo_pending') return 3
+  if (stage === 'approved') return 4
+  return 1
+})
+
+async function reload() {
+  const res = await axios.get(`/api/reservations/${route.params.id}/`)
+  reservation.value = res.data
+}
+
 onMounted(async () => {
   try {
-    const res = await axios.get(`/api/reservations/${route.params.id}/`)
-    reservation.value = res.data
-    const d = res.data.delivery_info
-    if (d?.delivered) {
+    await reload()
+    const d = reservation.value.delivery_info
+    if (d?.delivered_stage) {
       form.value.km = d.delivered_km ?? ''
       form.value.fuel = d.delivered_fuel ?? 4
       form.value.damage_map = d.delivered_damage || {}
       form.value.notes = d.delivered_notes || ''
-      success.value = 'Teslim kaydı mevcut.'
-    }
-    else {
+    } else {
       form.value.km = reservation.value.assigned_vehicle_info?.total_km || ''
       form.value.damage_map = reservation.value.assigned_vehicle_info?.damage_map || {}
     }
+    if (d?.delivered) success.value = 'Araç teslim edildi.'
   } catch {
     error.value = 'Rezervasyon bulunamadı.'
   } finally {
@@ -132,7 +209,7 @@ onMounted(async () => {
   }
 })
 
-async function submit() {
+async function submitStage1() {
   if (!form.value.km) { error.value = 'KM alanı zorunludur.'; return }
   saving.value = true
   error.value = ''
@@ -142,10 +219,47 @@ async function submit() {
     fd.append('fuel_level', form.value.fuel)
     fd.append('damage_items', JSON.stringify(form.value.damage_map))
     fd.append('notes', form.value.notes)
-    if (file.value) fd.append('document', file.value)
     await axios.post(`/api/reservations/${route.params.id}/deliver/`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
+    await reload()
+    await exportPdf()
+  } catch (e) {
+    error.value = e.response?.data?.error || 'İşlem başarısız.'
+  } finally {
+    saving.value = false
+  }
+}
+
+async function submitDocument() {
+  if (!documentFile.value) { error.value = 'Belge seçmelisiniz.'; return }
+  saving.value = true
+  error.value = ''
+  try {
+    const fd = new FormData()
+    fd.append('document', documentFile.value)
+    await axios.post(`/api/reservations/${route.params.id}/deliver/document/`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    await reload()
+  } catch (e) {
+    error.value = e.response?.data?.error || 'İşlem başarısız.'
+  } finally {
+    saving.value = false
+  }
+}
+
+async function submitPhoto() {
+  if (!photoFile.value) { error.value = 'Araç fotoğrafı seçmelisiniz.'; return }
+  saving.value = true
+  error.value = ''
+  try {
+    const fd = new FormData()
+    fd.append('photo', photoFile.value)
+    await axios.post(`/api/reservations/${route.params.id}/deliver/photo/`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    await reload()
     success.value = 'Araç teslim edildi.'
   } catch (e) {
     error.value = e.response?.data?.error || 'İşlem başarısız.'
@@ -178,16 +292,34 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .info-item { background: white; padding: 12px 14px; }
 .info-label { display: block; font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 3px; }
 .info-value { display: block; font-size: 13px; font-weight: 600; color: #1e293b; }
+
+.step-bar { display: flex; align-items: flex-start; padding: 4px 8px; }
+.step-node { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; }
+.step-circle {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800;
+  background: white; border: 2px solid #d1d5db; color: #9ca3af;
+  transition: all 0.2s ease;
+}
+.step-node.active .step-circle { border-color: #6366f1; color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,0.1); }
+.step-node.completed .step-circle { background: #6366f1; border-color: #6366f1; color: white; }
+.step-label { font-size: 10px; font-weight: 600; color: #9ca3af; white-space: nowrap; }
+.step-node.active .step-label { color: #6366f1; font-weight: 700; }
+.step-node.completed .step-label { color: #64748b; }
+.step-connector { flex: 1; height: 2px; background: #e5e7eb; margin-top: 15px; transition: background 0.2s; }
+.step-connector.done { background: #6366f1; }
+.step-hint { font-size: 13px; color: #64748b; margin: 0; }
+
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-field { display: flex; flex-direction: column; gap: 5px; }
 .form-field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.06em; text-transform: uppercase; }
 .form-field input[type="number"], .form-field textarea { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; color: #1e293b; resize: vertical; }
 .form-field input[type="number"]:focus, .form-field textarea:focus { border-color: #6366f1; }
-.form-field input[type="file"] { font-size: 13px; color: #475569; }
 .fuel-slider { width: 100%; accent-color: #6366f1; }
 .fuel-labels { display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; }
 .section-label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.06em; text-transform: uppercase; }
-.form-actions { display: flex; justify-content: flex-end; }
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
 .btn-save:hover:not(:disabled) { background: #4f46e5; }
 .btn-save:disabled { background: #a5b4fc; cursor: not-allowed; }
@@ -198,7 +330,6 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 :deep(.p-fileupload) { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
 :deep(.p-fileupload-header) { background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 10px 14px; }
 :deep(.p-fileupload-content) { background: white; padding: 16px; color: #475569; font-size: 13px; }
-:deep(.p-button) { background: #ffffffa0; border-color: #6366f1; font-size: 13px; }
 :deep(.p-button) { background: #ffffffa0; border-color: #1c1c1ca0; font-size: 13px; }
 :deep(.p-button:hover) { background: #ffffffa0; border-color: #1c1c1ca0; }
 :deep(.p-button.p-button-danger) { background: #f1f5f9; border-color: #e2e8f0; color: #475569; }

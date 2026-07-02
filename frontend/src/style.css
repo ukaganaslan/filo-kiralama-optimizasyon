@@ -87,3 +87,4 @@ a { text-decoration: none; }
 .badge-cancelled { background: #fee2e2; color: #DC2626; }
 .badge-delivered { background: #d1fae5; color: #065f46; }
 .badge-returned  { background: #e9d5ff; color: #6b21a8; }
+.badge-processing { background: #fed7aa; color: #9a3412; }

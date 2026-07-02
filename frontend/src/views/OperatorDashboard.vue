@@ -217,10 +217,12 @@ function reservationStatus(r) {
   if (r.status === 'cancelled') return { label: 'İptal', cls: 'badge-cancelled' }
   if (r.status === 'pending') return { label: 'Bekliyor', cls: 'badge-pending' }
   if (r.delivery_info?.returned) return { label: 'İade Alındı', cls: 'badge-returned' }
+  if (r.delivery_info?.returned_stage) return { label: 'İade İşlemde', cls: 'badge-processing' }
   if (r.delivery_info?.delivered) {
     if (r.end_date == bugun) return { label: 'İade Günü', cls: 'badge-iade' }
     return { label: 'Teslim Edildi', cls: 'badge-delivered' }
   }
+  if (r.delivery_info?.delivered_stage) return { label: 'Teslim İşlemde', cls: 'badge-processing' }
   if (r.status == 'assigned' && r.start_date == bugun) return { label: 'Teslim Günü', cls: 'badge-teslimat' }
   return { label: 'Onaylandı', cls: 'badge-assigned' }
 }
@@ -411,6 +413,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .btn-export:hover { background: #0f172a; }
 .badge-delivered { background: #d1fae5; color: #065f46; }
 .badge-returned { background: #e9d5ff; color: #6b21a8; }
+.badge-processing { background: #fed7aa; color: #9a3412; }
 </style>
 
 <style>

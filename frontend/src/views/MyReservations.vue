@@ -134,12 +134,16 @@ function statusLabel(s) {
 }
 function displayStatus(r) {
   if (r.delivery_info?.returned) return 'İade Edildi'
+  if (r.delivery_info?.returned_stage) return 'İade İşlemde'
   if (r.delivery_info?.delivered) return 'Teslim Edildi'
+  if (r.delivery_info?.delivered_stage) return 'Teslim İşlemde'
   return statusLabel(r.status)
 }
 function displayStatusKey(r) {
   if (r.delivery_info?.returned) return 'returned'
+  if (r.delivery_info?.returned_stage) return 'processing'
   if (r.delivery_info?.delivered) return 'delivered'
+  if (r.delivery_info?.delivered_stage) return 'processing'
   return r.status
 }
 function fuelLabel(v) {
@@ -192,6 +196,7 @@ tr:hover td { background: #fafbff; }
 
 .badge-delivered { background: #d1fae5; color: #065f46; }
 .badge-returned { background: #e9d5ff; color: #6b21a8; }
+.badge-processing { background: #fed7aa; color: #9a3412; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1000; display: flex; align-items: center; justify-content: center; }
 .modal { background: white; border-radius: 14px; padding: 28px; width: 480px; max-width: 90vw; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
