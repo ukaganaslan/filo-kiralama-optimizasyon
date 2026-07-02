@@ -40,6 +40,11 @@
           <i class="pi pi-wrench nav-icon"></i>
           <span class="nav-label">Bakım Kayıtları</span>
         </router-link>
+        <router-link to="/representative/istatistikler" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'İstatistikler' : ''" @click="mobileOpen = false">
+          <i class="pi pi-chart-line nav-icon"></i>
+          <span class="nav-label">İstatistikler</span>
+        </router-link>
+
         <router-link to="/representative/logs" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Teslimat Kayıtları' : ''" @click="mobileOpen = false">
           <i class="pi pi-clipboard nav-icon"></i>
           <span class="nav-label">Teslimat Kayıtları</span>

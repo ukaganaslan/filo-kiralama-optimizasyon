@@ -1178,9 +1178,14 @@ def reservation_pdf(request, pk, pdf_type):
     return response
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAdminUser])
+@permission_classes([permissions.IsAuthenticated])
 def admin_stats(request):
     from django.db.models import Sum, Count
+
+    profile = getattr(request.user, 'profile', None)
+    role = profile.role if profile else ('admin' if request.user.is_staff else None)
+    if role not in ('admin', 'representative'):
+        return Response({'error': 'Yetkisiz'}, status=status.HTTP_403_FORBIDDEN)
 
     today = date.today()
 
@@ -1193,7 +1198,10 @@ def admin_stats(request):
     if group_end < group_start:
         group_start, group_end = group_end, group_start
 
-    branch_id = request.GET.get('branch') or None
+    if role == 'representative':
+        branch_id = profile.branch_id
+    else:
+        branch_id = request.GET.get('branch') or None
 
     def reservations_qs():
         qs = Reservation.objects.exclude(status='cancelled')
