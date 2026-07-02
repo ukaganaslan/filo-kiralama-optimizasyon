@@ -1155,22 +1155,67 @@ def admin_stats(request):
     from django.db.models import Sum, Count
 
     today = date.today()
-    this_month = today.month
-    this_year = today.year
 
-    if this_month == 1:
-        last_month , last_year = 12, this_year - 1
+    try:
+        group_start = date.fromisoformat(request.GET['start'])
+        group_end = date.fromisoformat(request.GET['end'])
+    except (KeyError, ValueError):
+        group_start, group_end = today.replace(day=1), today
 
-    else:
-        last_month , last_year = this_month - 1, this_year
-    
+    if group_end < group_start:
+        group_start, group_end = group_end, group_start
+
     this_month_revenue = Reservation.objects.filter(
-        start_date__year=this_year, start_date__month=this_month
-    ).aggregate(total=Sum('total_price'))['total'] or 0
+        start_date__year=today.year, start_date__month=today.month
+    ).exclude(status='cancelled').aggregate(total=Sum('total_price'))['total'] or 0
 
-    last_month_revenue = Reservation.objects.filter(
-        start_date__year=last_year, start_date__month=last_month
-    ).aggregate(total=Sum('total_price'))['total'] or 0
+    # Son 12 ayın aylık ciro trendi
+    from django.db.models.functions import TruncMonth
+
+    trend_start = today.replace(day=1)
+    for _ in range(11):
+        trend_start = (trend_start - timedelta(days=1)).replace(day=1)
+
+    monthly_totals = {
+        r['month']: r['total']
+        for r in Reservation.objects.exclude(status='cancelled')
+        .filter(start_date__gte=trend_start)
+        .annotate(month=TruncMonth('start_date'))
+        .values('month')
+        .annotate(total=Sum('total_price'))
+    }
+
+    monthly_revenue = []
+    m = trend_start
+    while m <= today:
+        monthly_revenue.append({'month': m.isoformat()[:7], 'total': monthly_totals.get(m, 0)})
+        m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+
+    # Son 30 günün günlük doluluk oranı — her rezervasyon için en güncel run'ın ataması geçerli
+    window_start = today - timedelta(days=29)
+    total_vehicle_count = Vehicle.objects.count()
+
+    overlapping = (
+        AssignmentResult.objects
+        .filter(
+            reservation__status='assigned',
+            reservation__start_date__lte=today,
+            reservation__end_date__gte=window_start,
+        )
+        .order_by('run_id')
+        .values('reservation_id', 'vehicle_id', 'reservation__start_date', 'reservation__end_date')
+    )
+    latest_assignments = {r['reservation_id']: r for r in overlapping}
+
+    daily_occupancy = []
+    for i in range(30):
+        d = window_start + timedelta(days=i)
+        busy = {
+            r['vehicle_id'] for r in latest_assignments.values()
+            if r['reservation__start_date'] <= d <= r['reservation__end_date']
+        }
+        pct = round(len(busy) / total_vehicle_count * 100) if total_vehicle_count else 0
+        daily_occupancy.append({'date': d.isoformat(), 'occupancy': pct})
 
     branches = Branch.objects.all()
     branch_stats = []
@@ -1180,10 +1225,20 @@ def admin_stats(request):
         branch_stats.append({'name': str(b), 'total': total, 'active': active})
     
     group_dist = list(
-        Reservation.objects.values('vehicle_group')
+        Reservation.objects.exclude(status='cancelled')
+        .filter(start_date__gte=group_start, start_date__lte=group_end)
+        .values('vehicle_group')
         .annotate(count=Count('id'))
         .order_by('vehicle_group')
     )
 
-    return Response({'this_month': this_month_revenue, 'last_month': last_month_revenue, 'branches': branch_stats, 'groups': group_dist})
+    return Response({
+        'group_start': group_start.isoformat(),
+        'group_end': group_end.isoformat(),
+        'this_month': this_month_revenue,
+        'monthly_revenue': monthly_revenue,
+        'daily_occupancy': daily_occupancy,
+        'branches': branch_stats,
+        'groups': group_dist,
+    })
     
