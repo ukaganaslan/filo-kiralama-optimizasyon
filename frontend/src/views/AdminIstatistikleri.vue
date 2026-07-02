@@ -6,6 +6,10 @@
         <h2>İstatistikler</h2>
         <span class="sub">{{ tarihYazi }}</span>
       </div>
+      <select v-model="selectedBranch" class="branch-select" @change="fetchStats">
+        <option value="">Tüm Şubeler (Toplam)</option>
+        <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
+      </select>
     </div>
 
     <div v-if="stats" class="stats-grid">
@@ -66,6 +70,8 @@ import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
 const stats = ref(null)
+const branches = ref([])
+const selectedBranch = ref('')
 
 const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const now = new Date()
@@ -75,9 +81,14 @@ const endDate = ref(isoDate(now))
 async function fetchStats() {
   if (!startDate.value || !endDate.value) return
   const res = await axios.get('/api/admin-stats/', {
-    params: { start: startDate.value, end: endDate.value }
+    params: { start: startDate.value, end: endDate.value, branch: selectedBranch.value || undefined }
   })
   stats.value = res.data
+}
+
+async function fetchBranches() {
+  const res = await axios.get('/api/branches/')
+  branches.value = res.data
 }
 
 const slides = [
@@ -181,7 +192,10 @@ const groupSeries = computed(() =>
   stats.value ? stats.value.groups.map(g => g.count) : []
 )
 
-onMounted(fetchStats)
+onMounted(() => {
+  fetchStats()
+  fetchBranches()
+})
 </script>
 
 <style scoped>
@@ -197,6 +211,21 @@ onMounted(fetchStats)
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
 
 .sub { font-size: 13px; color: #64748b; font-weight: 400; text-transform: capitalize; }
+
+.branch-select {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  background: white;
+  cursor: pointer;
+}
+.branch-select:focus {
+  outline: none;
+  border-color: #6366f1;
+}
 
 .slide-header {
   display: flex;

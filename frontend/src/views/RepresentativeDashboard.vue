@@ -5,7 +5,7 @@
         <h2>Şube Rezervasyonları</h2>
         <span class="count-badge">{{ reservations.length }} rezervasyon</span>
       </div>
-        <select v-model="selectedMonth" class="view-select">
+        <select v-if="activeView === 'list'" v-model="selectedMonth" class="view-select">
           <option value="">Tüm Aylar</option>
           <option v-for="m in availableMonths" :key="m" :value="m">{{ formatMonth(m) }}</option>
         </select>

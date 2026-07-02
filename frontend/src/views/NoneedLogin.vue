@@ -251,6 +251,8 @@
             <span class="status-badge" :class="queryResult.status">{{ statusLabel(queryResult.status) }}</span>
           </div>
 
+          <button class="btn-detail" @click="showDetail = true">Detayları Gör</button>
+
           <div v-if="queryResult.status !== 'cancelled'" class="cancel-area">
             <div class="q-field">
               <label>E-posta (doğrulama)</label>
@@ -264,6 +266,67 @@
       </div>
 
     </div>
+
+    <!-- Rezervasyon Detay Modalı -->
+    <div v-if="showDetail && queryResult" class="modal-overlay" @click.self="showDetail = false">
+      <div class="modal">
+        <div class="modal-header">
+          <span class="modal-res-id">#{{ queryResult.reservation_id }}</span>
+          <button class="modal-close" @click="showDetail = false">✕</button>
+        </div>
+
+        <div class="modal-grid">
+          <div class="mrow"><span class="mlabel">Araç Grubu</span><span class="mval">{{ groupLabel(queryResult.vehicle_group) }}</span></div>
+          <div class="mrow"><span class="mlabel">Tarih</span><span class="mval">{{ queryResult.start_date }} → {{ queryResult.end_date }}</span></div>
+          <div class="mrow" v-if="queryResult.assigned_vehicle_info">
+            <span class="mlabel">Araç</span>
+            <span class="mval">{{ queryResult.assigned_vehicle_info.brand }} {{ queryResult.assigned_vehicle_info.model }} · {{ queryResult.assigned_vehicle_info.plate }}</span>
+          </div>
+          <div class="mrow" v-if="queryResult.total_price">
+            <span class="mlabel">Tutar</span>
+            <span class="mval">{{ Number(queryResult.total_price).toLocaleString('tr-TR') }} ₺</span>
+          </div>
+        </div>
+
+        <template v-if="queryResult.delivery_info?.delivered">
+          <div class="modal-section-title">Teslim</div>
+          <div class="modal-grid">
+            <div class="mrow"><span class="mlabel">Teslim KM</span><span class="mval">{{ queryResult.delivery_info.delivered_km ?? '—' }}</span></div>
+            <div class="mrow"><span class="mlabel">Yakıt</span><span class="mval">{{ fuelLabel(queryResult.delivery_info.delivered_fuel) }}</span></div>
+            <div class="mrow" v-if="queryResult.delivery_info.delivered_notes">
+              <span class="mlabel">Not</span><span class="mval">{{ queryResult.delivery_info.delivered_notes }}</span>
+            </div>
+            <div class="mrow" v-if="queryResult.delivery_info.delivered_doc">
+              <span class="mlabel">Belge</span><a class="mval mlink" :href="queryResult.delivery_info.delivered_doc" target="_blank">Görüntüle</a>
+            </div>
+          </div>
+          <div class="damage-readonly">
+            <CarDamageMap :model-value="queryResult.delivery_info.delivered_damage || {}" />
+          </div>
+        </template>
+
+        <template v-if="queryResult.delivery_info?.returned">
+          <div class="modal-section-title">İade</div>
+          <div class="modal-grid">
+            <div class="mrow"><span class="mlabel">İade KM</span><span class="mval">{{ queryResult.delivery_info.returned_km ?? '—' }}</span></div>
+            <div class="mrow"><span class="mlabel">Yakıt</span><span class="mval">{{ fuelLabel(queryResult.delivery_info.returned_fuel) }}</span></div>
+            <div class="mrow" v-if="queryResult.delivery_info.returned_notes">
+              <span class="mlabel">Not</span><span class="mval">{{ queryResult.delivery_info.returned_notes }}</span>
+            </div>
+            <div class="mrow" v-if="queryResult.delivery_info.returned_doc">
+              <span class="mlabel">Belge</span><a class="mval mlink" :href="queryResult.delivery_info.returned_doc" target="_blank">Görüntüle</a>
+            </div>
+          </div>
+          <div class="damage-readonly">
+            <CarDamageMap :model-value="queryResult.delivery_info.returned_damage || {}" />
+          </div>
+        </template>
+
+        <div v-if="!queryResult.delivery_info?.delivered" class="modal-empty">
+          Henüz araç teslimi yapılmamış.
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -274,6 +337,7 @@ import StepItem from 'primevue/stepitem'
 import Step from 'primevue/step'
 import StepPanel from 'primevue/steppanel'
 import axios from 'axios'
+import CarDamageMap from '@/components/CarDamageMap.vue'
 
 const currentStep = ref(1)
 const direction = ref('forward')
@@ -297,6 +361,7 @@ const queryResult = ref(null)
 const queryError = ref('')
 const cancelError = ref('')
 const cancelSuccess = ref('')
+const showDetail = ref(false)
 
 const groups = [
   { value: 'economy', label: 'Ekonomi',desc: 'Şehir içi, yakıt dostu' },
@@ -338,6 +403,9 @@ function branchName(id) {
 }
 function groupLabel(v) { return groups.find(g => g.value === v)?.label || v }
 function statusLabel(s) { return { pending: 'Bekliyor', assigned: 'Onaylandı', cancelled: 'İptal' }[s] || s }
+function fuelLabel(v) {
+  return { 0: 'E', 1: '1/8', 2: '1/4', 3: '3/8', 4: '1/2', 5: '5/8', 6: '3/4', 7: '7/8', 8: 'F' }[v] ?? '—'
+}
 
 function nextStep() {
   if (!canAdvance.value) return
@@ -426,6 +494,7 @@ async function handleQuery() {
   queryResult.value = null
   cancelError.value = ''
   cancelSuccess.value = ''
+  showDetail.value = false
   if (!query.value.code || query.value.code.length < 8) { queryError.value = '8 haneli kodu girin.'; return }
   try {
     const res = await axios.get('/api/guest-reservation/query/', { params: { code: query.value.code } })
@@ -676,6 +745,25 @@ function copyCode(){
 .cancel-area { margin-top: 14px; padding-top: 14px; border-top: 1px solid #f1f5f9; }
 .btn-cancel { width: 100%; padding: 10px; background: #fff1f2; color: #DC2626; border: 1.5px solid #fecdd3; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 10px; }
 .btn-cancel:hover { background: #fee2e2; border-color: #DC2626; }
+
+.btn-detail { width: 100%; padding: 10px; background: white; color: #1B1063; border: 1.5px solid #c4beff; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 10px; }
+.btn-detail:hover { background: #edeaff; }
+
+/* ── Detay Modalı ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.modal { background: white; border-radius: 14px; padding: 28px; width: 480px; max-width: 90vw; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-res-id { font-size: 16px; font-weight: 800; color: #1e293b; }
+.modal-close { background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer; padding: 0 4px; }
+.modal-close:hover { color: #1e293b; }
+.modal-section-title { font-size: 11px; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 0.08em; margin: 16px 0 8px; border-top: 1px solid #f1f5f9; padding-top: 16px; }
+.modal-grid { display: flex; flex-direction: column; gap: 8px; }
+.mrow { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f8fafc; }
+.mlabel { font-size: 12px; font-weight: 600; color: #94a3b8; }
+.mval { font-size: 13px; font-weight: 600; color: #1e293b; text-align: right; }
+.mlink { color: #1B1063; text-decoration: underline; cursor: pointer; }
+.modal-empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 20px 0; }
+.damage-readonly { pointer-events: none; margin-top: 12px; }
 
 /* ── Transitions ── */
 .step-fwd-enter-active { transition: all 0.28s ease; }

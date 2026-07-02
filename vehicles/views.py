@@ -236,8 +236,7 @@ def _run_optimization():
     today = date.today()
     locked = list(Reservation.objects.filter(
         status='assigned',
-        start_date__lte=today,
-        end_date__gte=today
+        start_date__lte=today
     ))
     locked_ids = [r.id for r in locked]
     free = list(Reservation.objects.exclude(status='cancelled').exclude(id__in=locked_ids))
@@ -729,6 +728,33 @@ def guest_reservation_detail(request):
     if not reservation:
         return Response({'error': 'Rezervasyon bulunamadı'}, status=status.HTTP_404_NOT_FOUND)
 
+    vehicle_info = None
+    if reservation.status == 'assigned' and reservation.start_date <= date.today():
+        result = reservation.assignmentresult_set.order_by('-run__created_at').first()
+        if result:
+            v = result.vehicle
+            vehicle_info = {'plate': v.plate, 'brand': v.brand, 'model': v.model}
+
+    logs = {log.event_type: log for log in reservation.delivery_logs.all()}
+    delivered = logs.get('delivered')
+    returned = logs.get('returned')
+    delivery_info = {
+        'delivered': bool(delivered),
+        'delivered_at': delivered.logged_at.isoformat() if delivered else None,
+        'delivered_doc': delivered.document.url if delivered and delivered.document else None,
+        'delivered_km': delivered.delivery_km if delivered else None,
+        'delivered_fuel': delivered.fuel_level if delivered else None,
+        'delivered_damage': delivered.damage_items if delivered else [],
+        'delivered_notes': delivered.notes if delivered else '',
+        'returned': bool(returned),
+        'returned_at': returned.logged_at.isoformat() if returned else None,
+        'returned_doc': returned.document.url if returned and returned.document else None,
+        'returned_km': returned.delivery_km if returned else None,
+        'returned_fuel': returned.fuel_level if returned else None,
+        'returned_damage': returned.damage_items if returned else [],
+        'returned_notes': returned.notes if returned else '',
+    }
+
     return Response({
         'reservation_id': reservation.reservation_id,
         'code': reservation.reservation_id[:8].upper(),
@@ -739,6 +765,8 @@ def guest_reservation_detail(request):
         'end_date': str(reservation.end_date),
         'status': reservation.status,
         'total_price': str(reservation.total_price) if reservation.total_price else None,
+        'assigned_vehicle_info': vehicle_info,
+        'delivery_info': delivery_info,
     })
 
 
@@ -1165,9 +1193,17 @@ def admin_stats(request):
     if group_end < group_start:
         group_start, group_end = group_end, group_start
 
-    this_month_revenue = Reservation.objects.filter(
+    branch_id = request.GET.get('branch') or None
+
+    def reservations_qs():
+        qs = Reservation.objects.exclude(status='cancelled')
+        if branch_id:
+            qs = qs.filter(branch_id=branch_id)
+        return qs
+
+    this_month_revenue = reservations_qs().filter(
         start_date__year=today.year, start_date__month=today.month
-    ).exclude(status='cancelled').aggregate(total=Sum('total_price'))['total'] or 0
+    ).aggregate(total=Sum('total_price'))['total'] or 0
 
     # Son 12 ayın aylık ciro trendi
     from django.db.models.functions import TruncMonth
@@ -1178,7 +1214,7 @@ def admin_stats(request):
 
     monthly_totals = {
         r['month']: r['total']
-        for r in Reservation.objects.exclude(status='cancelled')
+        for r in reservations_qs()
         .filter(start_date__gte=trend_start)
         .annotate(month=TruncMonth('start_date'))
         .values('month')
@@ -1193,7 +1229,8 @@ def admin_stats(request):
 
     # Son 30 günün günlük doluluk oranı — her rezervasyon için en güncel run'ın ataması geçerli
     window_start = today - timedelta(days=29)
-    total_vehicle_count = Vehicle.objects.count()
+    vehicle_qs = Vehicle.objects.filter(branch_id=branch_id) if branch_id else Vehicle.objects.all()
+    total_vehicle_count = vehicle_qs.count()
 
     overlapping = (
         AssignmentResult.objects
@@ -1201,6 +1238,7 @@ def admin_stats(request):
             reservation__status='assigned',
             reservation__start_date__lte=today,
             reservation__end_date__gte=window_start,
+            **({'vehicle__branch_id': branch_id} if branch_id else {})
         )
         .order_by('run_id')
         .values('reservation_id', 'vehicle_id', 'reservation__start_date', 'reservation__end_date')
@@ -1217,15 +1255,15 @@ def admin_stats(request):
         pct = round(len(busy) / total_vehicle_count * 100) if total_vehicle_count else 0
         daily_occupancy.append({'date': d.isoformat(), 'occupancy': pct})
 
-    branches = Branch.objects.all()
+    branches = Branch.objects.filter(id=branch_id) if branch_id else Branch.objects.all()
     branch_stats = []
     for b in branches:
         total = Vehicle.objects.filter(branch=b).count()
         active = AssignmentResult.objects.filter(vehicle__branch=b, reservation__start_date__lte=today, reservation__end_date__gte=today, reservation__status="assigned").values('vehicle').distinct().count()
         branch_stats.append({'name': str(b), 'total': total, 'active': active})
-    
+
     group_dist = list(
-        Reservation.objects.exclude(status='cancelled')
+        reservations_qs()
         .filter(start_date__gte=group_start, start_date__lte=group_end)
         .values('vehicle_group')
         .annotate(count=Count('id'))
