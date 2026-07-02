@@ -863,17 +863,25 @@ class DailyPriceViewSet(viewsets.ModelViewSet):
             )
             current += timedelta(days=1)
         return Response({'ok': True})
+def _require_staff_role(request, reservation):
+    profile = getattr(request.user, 'profile', None)
+    role = profile.role if profile else None
+    if role not in ['admin', 'representative']:
+        return Response({'error': 'Yetkisiz'}, status=403)
+    if role == 'representative' and reservation.branch != profile.branch:
+        return Response({'error': 'Yetkisiz'}, status=403)
+    return None
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def deliver_reservation(request, pk):
-    profile = getattr(request.user, 'profile', None)
     try:
         reservation = Reservation.objects.get(pk=pk)
     except Reservation.DoesNotExist:
         return Response({'error': 'Rezervasyon bulunamadı'}, status=404)
-    if profile and profile.role == 'representative' and reservation.branch != profile.branch:
-        return Response({'error': 'Yetkisiz'}, status=403)
+    auth_error = _require_staff_role(request, reservation)
+    if auth_error:
+        return auth_error
     if reservation.status != 'assigned':
         return Response({'error': 'Rezervasyon onaylı değil'}, status=400)
     deliver_km = request.data.get('delivery_km')
@@ -882,8 +890,7 @@ def deliver_reservation(request, pk):
         if assignment and assignment.vehicle and int(deliver_km) < assignment.vehicle.total_km:
             return Response({'error': f'Teslim KM ({deliver_km}), aracın mevcut KM\'sinden ({assignment.vehicle.total_km}) az olamaz'}, status=400)
     log, _ = DeliveryLog.objects.get_or_create(reservation=reservation, event_type='delivered')
-    if 'document' in request.FILES:
-        log.document = request.FILES['document']
+    log.stage = 'pending'
     if deliver_km:
         log.delivery_km = deliver_km
     if request.data.get('fuel_level') is not None:
@@ -894,30 +901,69 @@ def deliver_reservation(request, pk):
     if request.data.get('notes'):
         log.notes = request.data['notes']
     log.save()
-    return Response({'ok': True})
+    return Response({'ok': True, 'stage': log.stage})
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
-def return_reservation(request, pk):
-    profile = getattr(request.user, 'profile', None)
+def deliver_document(request, pk):
     try:
         reservation = Reservation.objects.get(pk=pk)
     except Reservation.DoesNotExist:
         return Response({'error': 'Rezervasyon bulunamadı'}, status=404)
-    if profile and profile.role == 'representative' and reservation.branch != profile.branch:
-        return Response({'error': 'Yetkisiz'}, status=403)
+    auth_error = _require_staff_role(request, reservation)
+    if auth_error:
+        return auth_error
+    log = DeliveryLog.objects.filter(reservation=reservation, event_type='delivered').first()
+    if not log:
+        return Response({'error': 'Önce teslim formu doldurulmalı'}, status=400)
+    if 'document' not in request.FILES:
+        return Response({'error': 'Belge gerekli'}, status=400)
+    log.document = request.FILES['document']
+    log.stage = 'photo_pending'
+    log.save()
+    return Response({'ok': True, 'stage': log.stage})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def deliver_photo(request, pk):
+    try:
+        reservation = Reservation.objects.get(pk=pk)
+    except Reservation.DoesNotExist:
+        return Response({'error': 'Rezervasyon bulunamadı'}, status=404)
+    auth_error = _require_staff_role(request, reservation)
+    if auth_error:
+        return auth_error
+    log = DeliveryLog.objects.filter(reservation=reservation, event_type='delivered').first()
+    if not log or log.stage != 'photo_pending':
+        return Response({'error': 'Önce imzalı belge yüklenmeli'}, status=400)
+    if 'photo' not in request.FILES:
+        return Response({'error': 'Araç fotoğrafı gerekli'}, status=400)
+    log.photo = request.FILES['photo']
+    log.stage = 'approved'
+    log.save()
+    return Response({'ok': True, 'stage': log.stage})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def return_reservation(request, pk):
+    try:
+        reservation = Reservation.objects.get(pk=pk)
+    except Reservation.DoesNotExist:
+        return Response({'error': 'Rezervasyon bulunamadı'}, status=404)
+    auth_error = _require_staff_role(request, reservation)
+    if auth_error:
+        return auth_error
     delivered_log = DeliveryLog.objects.filter(reservation=reservation, event_type='delivered').first()
-    if not delivered_log:
-        return Response({'error': 'Önce teslim işlemi yapılmalı'}, status=400)
+    if not delivered_log or delivered_log.stage != 'approved':
+        return Response({'error': 'Önce teslim işlemi tamamlanmalı'}, status=400)
     return_km = request.data.get('delivery_km')
     if return_km and delivered_log.delivery_km:
         if int(return_km) <= int(delivered_log.delivery_km):
             return Response({'error': f'İade KM ({return_km}), teslim KM\'sinden ({delivered_log.delivery_km}) büyük olmalı'}, status=400)
     log, _ = DeliveryLog.objects.get_or_create(reservation=reservation, event_type='returned')
-    if 'document' in request.FILES:
-        log.document = request.FILES['document']
-    if request.data.get('delivery_km'):
-        log.delivery_km = request.data['delivery_km']
+    log.stage = 'pending'
+    if return_km:
+        log.delivery_km = return_km
     if request.data.get('fuel_level') is not None:
         log.fuel_level = request.data['fuel_level']
     if request.data.get('damage_items'):
@@ -926,13 +972,52 @@ def return_reservation(request, pk):
     if request.data.get('notes'):
         log.notes = request.data['notes']
     log.save()
-    if request.data.get('delivery_km'):
-        assignment = AssignmentResult.objects.filter(reservation=reservation).order_by('-id').first()
-        if assignment and assignment.vehicle:
-            assignment.vehicle.total_km = int(request.data['delivery_km'])
-            assignment.vehicle.damage_map = json.loads(request.data.get('damage_items', '{}'))
-            assignment.vehicle.save(update_fields=['total_km', 'damage_map'])
-    return Response({'ok': True})
+    return Response({'ok': True, 'stage': log.stage})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def return_document(request, pk):
+    try:
+        reservation = Reservation.objects.get(pk=pk)
+    except Reservation.DoesNotExist:
+        return Response({'error': 'Rezervasyon bulunamadı'}, status=404)
+    auth_error = _require_staff_role(request, reservation)
+    if auth_error:
+        return auth_error
+    log = DeliveryLog.objects.filter(reservation=reservation, event_type='returned').first()
+    if not log:
+        return Response({'error': 'Önce iade formu doldurulmalı'}, status=400)
+    if 'document' not in request.FILES:
+        return Response({'error': 'Belge gerekli'}, status=400)
+    log.document = request.FILES['document']
+    log.stage = 'photo_pending'
+    log.save()
+    return Response({'ok': True, 'stage': log.stage})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def return_photo(request, pk):
+    try:
+        reservation = Reservation.objects.get(pk=pk)
+    except Reservation.DoesNotExist:
+        return Response({'error': 'Rezervasyon bulunamadı'}, status=404)
+    auth_error = _require_staff_role(request, reservation)
+    if auth_error:
+        return auth_error
+    log = DeliveryLog.objects.filter(reservation=reservation, event_type='returned').first()
+    if not log or log.stage != 'photo_pending':
+        return Response({'error': 'Önce imzalı belge yüklenmeli'}, status=400)
+    if 'photo' not in request.FILES:
+        return Response({'error': 'Araç fotoğrafı gerekli'}, status=400)
+    log.photo = request.FILES['photo']
+    log.stage = 'approved'
+    log.save()
+    assignment = AssignmentResult.objects.filter(reservation=reservation).order_by('-id').first()
+    if assignment and assignment.vehicle and log.delivery_km:
+        assignment.vehicle.total_km = log.delivery_km
+        assignment.vehicle.damage_map = log.damage_items
+        assignment.vehicle.save(update_fields=['total_km', 'damage_map'])
+    return Response({'ok': True, 'stage': log.stage})
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
@@ -1082,21 +1167,6 @@ def reservation_pdf(request, pk, pdf_type):
     delivered = logs.get('delivered')
     returned = logs.get('returned')
 
-    def make_photo(log):
-        import base64
-        if log and log.document:
-            try:
-                with open(log.document.path, 'rb') as f:
-                    ext = log.document.name.split('.')[-1]
-                    return f'data:image/{ext};base64,{base64.b64encode(f.read()).decode()}'
-            except Exception:
-                pass
-        return None
-
-    delivered_photo = make_photo(delivered)
-    returned_photo = make_photo(returned)
-
-
     ar = AssignmentResult.objects.filter(reservation=reservation).order_by('-run__created_at').first()
     vehicle = ar.vehicle if ar else None
 
@@ -1106,8 +1176,12 @@ def reservation_pdf(request, pk, pdf_type):
         else reservation.guest_name or '—'
     )
 
-    def fuel_pct(val):
-        return round((val / 8) * 100) if val is not None else 0
+    def fuel_segments(val):
+        n = val if val is not None else 0
+        return [i < n for i in range(8)]
+
+    def km_display(km):
+        return f'{int(km):06d}' if km is not None else '——————'
 
     if pdf_type == 'teslim':
         if not delivered:
@@ -1122,13 +1196,12 @@ def reservation_pdf(request, pk, pdf_type):
             'start_date': reservation.start_date,
             'end_date': reservation.end_date,
             'delivered_at': delivered.logged_at.strftime('%d.%m.%Y %H:%M'),
-            'delivered_km': delivered.delivery_km,
+            'delivered_km_display': km_display(delivered.delivery_km),
             'fuel_label': FUEL_LABELS.get(delivered.fuel_level, '—'),
-            'fuel_pct': fuel_pct(delivered.fuel_level),
+            'fuel_segments': fuel_segments(delivered.fuel_level),
             'damage_list': build_damage_list(delivered.damage_items),
             'damage_svg': build_damage_svg(delivered.damage_items),
             'delivered_notes': delivered.notes,
-            'photo': delivered_photo,
         }
         template = 'pdfs/teslim_belgesi.html'
         filename = f'teslim-{reservation.reservation_id}.pdf'
@@ -1149,20 +1222,18 @@ def reservation_pdf(request, pk, pdf_type):
             'start_date': reservation.start_date,
             'end_date': reservation.end_date,
             'returned_at': returned.logged_at.strftime('%d.%m.%Y %H:%M'),
-            'delivered_km': delivered.delivery_km if delivered else None,
-            'returned_km': returned.delivery_km,
+            'delivered_km_display': km_display(delivered.delivery_km if delivered else None),
+            'returned_km_display': km_display(returned.delivery_km),
             'km_diff': km_diff,
             'delivered_fuel_label': FUEL_LABELS.get(delivered.fuel_level if delivered else None, '—'),
-            'delivered_fuel_pct': fuel_pct(delivered.fuel_level if delivered else None),
+            'delivered_fuel_segments': fuel_segments(delivered.fuel_level if delivered else None),
             'returned_fuel_label': FUEL_LABELS.get(returned.fuel_level, '—'),
-            'returned_fuel_pct': fuel_pct(returned.fuel_level),
+            'returned_fuel_segments': fuel_segments(returned.fuel_level),
             'delivered_damage_list': build_damage_list(delivered.damage_items if delivered else {}),
             'delivered_damage_svg': build_damage_svg(delivered.damage_items if delivered else {}),
             'returned_damage_list': build_damage_list(returned.damage_items),
             'returned_damage_svg': build_damage_svg(returned.damage_items),
             'returned_notes': returned.notes,
-            'delivered_photo': delivered_photo,
-            'returned_photo': returned_photo,
         }
         template = 'pdfs/iade_belgesi.html'
         filename = f'iade-{reservation.reservation_id}.pdf'

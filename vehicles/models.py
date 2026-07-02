@@ -168,8 +168,17 @@ class DeliveryLog(models.Model):
         ('delivered', 'Teslim Edildi'),
         ('returned', 'İade Alındı'),
     ]
+
+    STAGE_CHOICES = [
+        ('pending', 'Belge Bekleniyor'),
+        ('photo_pending', 'Fotoğraf Bekleniyor'),
+        ('approved', 'Onaylandı'),
+    ]
+
     reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, related_name='delivery_logs')
     event_type = models.CharField(max_length=20, choices=EVENT_CHOICES)
+    stage = models.CharField(max_length=20, choices=STAGE_CHOICES, default='approved')
+    photo = models.ImageField(upload_to='delivery_photos/', null=True, blank=True)
     logged_at = models.DateTimeField(auto_now_add=True)
     document = models.FileField(upload_to='delivery_docs/', null=True, blank=True)
     delivery_km = models.IntegerField(null=True, blank=True)
