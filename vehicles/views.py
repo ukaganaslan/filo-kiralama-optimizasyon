@@ -184,6 +184,13 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         vehicle = serializer.validated_data.get('vehicle')
         current_km = serializer.validated_data.get('current_km')
 
+        acik_bakim = MaintenanceLog.objects.filter(
+            vehicle=vehicle,
+            end_date__isnull=True
+        ).exists()
+        if acik_bakim:
+            raise ValidationError('Bu araç zaten bakımda, önce mevcut kaydı kapatın.')
+
         aktif_atama = AssignmentResult.objects.filter(
             vehicle=vehicle,
             reservation__start_date__lte=date.today(),

@@ -54,8 +54,13 @@
         <label>Araç</label>
         <select v-model="form.vehicle" :disabled="!!editingId">
           <option value="">Seçin</option>
-          <option v-for="v in vehicles" :key="v.id" :value="v.id">
-            {{ v.plate }} — {{ v.brand }} {{ v.model }} ({{ v.vehicle_id }})
+          <option
+            v-for="v in vehicles"
+            :key="v.id"
+            :value="v.id"
+            :disabled="!editingId && openMaintenanceVehicleIds.has(v.id)"
+          >
+            {{ v.plate }} — {{ v.brand }} {{ v.model }} ({{ v.vehicle_id }}){{ !editingId && openMaintenanceVehicleIds.has(v.id) ? ' — bakımda' : '' }}
           </option>
         </select>
       </div>
@@ -160,7 +165,7 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 </style>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useTableSort } from '@/composables/useTableSort'
 
@@ -191,6 +196,10 @@ const { sortBy, sortArrow, sorted } = useTableSort(logs, {
   reason: log => reasonLabel(log.reason),
   current_km: log => Number(log.current_km) || 0,
 })
+
+const openMaintenanceVehicleIds = computed(() =>
+  new Set(logs.value.filter(l => !l.end_date).map(l => l.vehicle))
+)
 
 function toggleMenu(id) { openMenuId.value = openMenuId.value === id ? null : id }
 function closeMenu() { openMenuId.value = null }
