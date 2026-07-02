@@ -77,5 +77,5 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .price-badge { font-size: 13px; font-weight: 700; color: #000000; }
 .price-na { color: #94a3b8; }
 .badge-event-delivered { background: #d1fae5; color: #065f46; display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.badge-event-returned { background: #dbeafe; color: #1d4ed8; display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
+.badge-event-returned { background: #e9d5ff; color: #6b21a8; display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
 </style>

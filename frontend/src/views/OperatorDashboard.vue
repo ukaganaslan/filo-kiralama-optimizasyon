@@ -402,7 +402,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .process-section-header { display: flex; justify-content: space-between; align-items: center; }
 .process-title { font-size: 14px; font-weight: 700; color: #1e293b; }
 .done-badge { padding: 3px 10px; background: #d1fae5; color: #065f46; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.done-badge.done-return { background: #dbeafe; color: #1d4ed8; }
+.done-badge.done-return { background: #e9d5ff; color: #6b21a8; }
 .done-info { display: flex; gap: 16px; font-size: 13px; color: #475569; }
 .form-actions { display: flex; justify-content: flex-end; }
 .btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }

@@ -663,7 +663,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .process-section-header { display: flex; justify-content: space-between; align-items: center; }
 .process-title { font-size: 14px; font-weight: 700; color: #1e293b; }
 .done-badge { padding: 3px 10px; background: #d1fae5; color: #065f46; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.done-badge.done-return { background: #dbeafe; color: #1d4ed8; }
+.done-badge.done-return { background: #e9d5ff; color: #6b21a8; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-field { display: flex; flex-direction: column; gap: 5px; }
 .form-field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.06em; text-transform: uppercase; }
@@ -689,9 +689,9 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .done-info a:hover { text-decoration: underline; }
 .form-actions { display: flex; justify-content: flex-end; }
 .badge { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.badge-pending { background: #fef9c3; color: #854d0e; }
-.badge-assigned { background: #dbeafe; color: #1d4ed8; }
-.badge-cancelled { background: #fee2e2; color: #991b1b; }
+.badge-pending { background: #fef3c7; color: #92400e; }
+.badge-assigned { background: #d1fae5; color: #16A34A; }
+.badge-cancelled { background: #fee2e2; color: #DC2626; }
 .badge-delivered { background: #d1fae5; color: #065f46; }
 .badge-returned { background: #e9d5ff; color: #6b21a8; }
 </style>
