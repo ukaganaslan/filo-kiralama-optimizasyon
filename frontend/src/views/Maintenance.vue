@@ -10,18 +10,18 @@
     <table>
       <thead>
         <tr>
-          <th>Araç</th>
-          <th>Plaka</th>
-          <th>Bakım Türü</th>
-          <th>Başlangıç</th>
-          <th>Bitiş</th>
-          <th>KM</th>
+          <th class="sortable" @click="sortBy('vehicle_id')">Araç <span class="sort-ind">{{ sortArrow('vehicle_id') }}</span></th>
+          <th class="sortable" @click="sortBy('vehicle_plate')">Plaka <span class="sort-ind">{{ sortArrow('vehicle_plate') }}</span></th>
+          <th class="sortable" @click="sortBy('reason')">Bakım Türü <span class="sort-ind">{{ sortArrow('reason') }}</span></th>
+          <th class="sortable" @click="sortBy('start_date')">Başlangıç <span class="sort-ind">{{ sortArrow('start_date') }}</span></th>
+          <th class="sortable" @click="sortBy('end_date')">Bitiş <span class="sort-ind">{{ sortArrow('end_date') }}</span></th>
+          <th class="sortable" @click="sortBy('current_km')">KM <span class="sort-ind">{{ sortArrow('current_km') }}</span></th>
           <th>Notlar</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="log in logs" :key="log.id">
+        <tr v-for="log in sorted" :key="log.id">
           <td>{{ log.vehicle_id }}</td>
           <td>{{ log.vehicle_plate }}</td>
           <td>{{ reasonLabel(log.reason) }}</td>
@@ -125,6 +125,9 @@ th:first-child { border-radius: 14px 0 0 0; }
 th:last-child { border-radius: 0 14px 0 0; }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: #6366f1; }
+.sort-ind { font-size: 9px; color: #6366f1; }
 td { border-top: 1px solid #f1f5f9; color: #374151; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 .actions { text-align: center !important; }
@@ -159,6 +162,7 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
+import { useTableSort } from '@/composables/useTableSort'
 
 const logs = ref([])
 const vehicles = ref([])
@@ -182,6 +186,11 @@ const formError = ref('')
 function reasonLabel(r) {
   return { routine: 'Rutin Bakım', cleaning: 'Temizlik', repair: 'Hasar Onarım' }[r] || r
 }
+
+const { sortBy, sortArrow, sorted } = useTableSort(logs, {
+  reason: log => reasonLabel(log.reason),
+  current_km: log => Number(log.current_km) || 0,
+})
 
 function toggleMenu(id) { openMenuId.value = openMenuId.value === id ? null : id }
 function closeMenu() { openMenuId.value = null }

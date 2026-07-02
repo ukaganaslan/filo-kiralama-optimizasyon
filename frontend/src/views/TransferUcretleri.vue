@@ -11,14 +11,14 @@
     <table>
       <thead>
         <tr>
-          <th>Çıkış Şubesi</th>
-          <th>Varış Şubesi</th>
-          <th>Ücret (₺)</th>
+          <th class="sortable" @click="sortBy('from_branch_name')">Çıkış Şubesi <span class="sort-ind">{{ sortArrow('from_branch_name') }}</span></th>
+          <th class="sortable" @click="sortBy('to_branch_name')">Varış Şubesi <span class="sort-ind">{{ sortArrow('to_branch_name') }}</span></th>
+          <th class="sortable" @click="sortBy('cost')">Ücret (₺) <span class="sort-ind">{{ sortArrow('cost') }}</span></th>
           <th></th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="c in costs" :key="c.id">
+        <tr v-for="c in sorted" :key="c.id">
           <td>{{ c.from_branch_name }}</td>
           <td>{{ c.to_branch_name }}</td>
           <td class="cost-cell">{{ c.cost }} ₺</td>
@@ -86,10 +86,15 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
+import { useTableSort } from '@/composables/useTableSort'
 
 const costs = ref([])
 const branches = ref([])
 const openMenuId = ref(null)
+
+const { sortBy, sortArrow, sorted } = useTableSort(costs, {
+  cost: c => Number(c.cost) || 0,
+})
 const formModal = ref(false)
 const editingId = ref(null)
 const form = ref({ from_branch: '', to_branch: '', cost: '' })
@@ -180,6 +185,9 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 table { width: 100%; border-collapse: collapse; background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th:first-child { border-radius: 14px 0 0 0; } th:last-child { border-radius: 0 14px 0 0; } th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: #6366f1; }
+.sort-ind { font-size: 9px; color: #6366f1; }
 tr:not(:last-child) td { border-bottom: 1px solid #f1f5f9; }
 .cost-cell { font-weight: 700; color: #000000; }
 .actions { text-align: center !important; }

@@ -11,15 +11,15 @@
     <table>
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Sube İsmi</th>
-          <th>Sehir</th>
-          <th>Araç Sayısı</th>
+          <th class="sortable" @click="sortBy('id')">ID <span class="sort-ind">{{ sortArrow('id') }}</span></th>
+          <th class="sortable" @click="sortBy('title')">Sube İsmi <span class="sort-ind">{{ sortArrow('title') }}</span></th>
+          <th class="sortable" @click="sortBy('name')">Sehir <span class="sort-ind">{{ sortArrow('name') }}</span></th>
+          <th class="sortable" @click="sortBy('vehicle_count')">Araç Sayısı <span class="sort-ind">{{ sortArrow('vehicle_count') }}</span></th>
           <th></th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="b in branches" :key="b.id">
+        <tr v-for="b in sorted" :key="b.id">
           <td class="id">{{ b.id }}</td>
           <td class="name">{{ b.title || '—' }}</td>
           <td class="city">{{ b.name }}</td>
@@ -88,6 +88,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
+import { useTableSort } from '@/composables/useTableSort'
 
 const sehirler = [
   'Adana','Adıyaman','Afyonkarahisar','Ağrı','Amasya','Ankara','Antalya','Artvin',
@@ -105,6 +106,11 @@ const sehirler = [
 
 const branches = ref([])
 const openMenuId = ref(null)
+
+const { sortBy, sortArrow, sorted } = useTableSort(branches, {
+  id: b => Number(b.id) || 0,
+  vehicle_count: b => Number(b.vehicle_count) || 0,
+})
 const addModal = ref(false)
 const addForm = ref({ name: '', title: '' })
 const addError = ref('')
@@ -180,6 +186,9 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 table { width: 100%; border-collapse: collapse; background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th:first-child { border-radius: 14px 0 0 0; } th:last-child { border-radius: 0 14px 0 0; } th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: #6366f1; }
+.sort-ind { font-size: 9px; color: #6366f1; }
 td { border-top: 1px solid #f1f5f9; color: #374151; }
 .id { color: #94a3b8; font-size: 13px; }
 .name { font-weight: 600; color: #1e293b; }
