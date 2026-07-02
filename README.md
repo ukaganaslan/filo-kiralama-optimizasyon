@@ -8,6 +8,8 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 - Python 3 / Django 4
 - Django REST Framework (Token tabanlı auth)
 - PostgreSQL
+- xhtml2pdf (sunucu taraflı PDF üretimi — teslim/iade belgeleri)
+- Gunicorn + WhiteNoise + dj-database-url (production/Railway)
 
 **Frontend**
 - Vue 3 (Composition API + `<script setup>`)
@@ -15,11 +17,15 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 - Pinia (state management)
 - Vue Router (nested routes + layout inheritance)
 - Axios
-- PrimeVue 4 (Aura teması — FileUpload, Toast, Stepper)
+- PrimeVue 4 (Aura teması — FileUpload, Toast, Stepper) + PrimeIcons
 - FullCalendar (ResourceTimeline — Gantt görünümü)
 - V-Calendar (iki aylı tarih aralığı seçici)
-- html2canvas + jsPDF (PDF export)
+- ApexCharts (vue3-apexcharts) — istatistik grafikleri
 - Inter font (Google Fonts)
+
+**Deployment**
+- Backend: Railway (Django + PostgreSQL + Gunicorn)
+- Frontend: Vercel
 
 ## Kullanıcı Rolleri ve Özellikler
 
@@ -28,12 +34,14 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 - Şube, araç grubu ve tarih seçimi
 - Rezervasyon kodu ile sorgulama ve iptal (kod + e-posta doğrulaması)
 - Rezervasyon koduna tıklayarak panoya kopyalama
+- Detay modalı: araç bilgisi (teslim günü geldiyse plaka/marka/model), teslim/iade KM-yakıt-not, hasar haritası ve yüklenen belge — kayıtlı müşteriyle aynı görünüm
 
 ### Müşteri
 - Şube ve araç grubu (Ekonomi / Orta Sınıf / SUV) seçerek rezervasyon oluşturma
 - Farklı iade şubesi seçimi ve transfer ücreti önizlemesi
 - Müsait günleri iki aylı takvim üzerinde görme
 - Rezervasyonları listeleme ve iptal etme
+- Rezervasyon detay modalı: araç bilgisi, teslim/iade KM-yakıt-not, hasar haritası (readonly), belge; durum etiketi teslim/iade durumuna göre dinamik
 - Profil bilgilerini düzenleme (kullanıcı adı, ad soyad, e-posta, telefon, şifre)
 
 ### Temsilci
@@ -42,8 +50,10 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 - Müşteri adına rezervasyon oluşturma (searchable dropdown ile müşteri seçimi)
 - Şubesine ait araçları listeleme — gerçek zamanlı durum gösterimi (Müsait / Kiralandı / Bakımda / Serviste)
 - Araç geçmişi modalı (rezervasyon + bakım logları, toplam KM)
-- **Araç Teslimi:** KM, yakıt seviyesi, SVG tabanlı hasar haritası, notlar, belge yükleme → PDF export
-- **Araç İadesi:** Teslim kaydıyla yan yana readonly karşılaştırma, KM/yakıt/hasar/notlar girişi → PDF export
+- **Araç Teslimi:** KM, yakıt seviyesi, SVG tabanlı hasar haritası, notlar, belge yükleme → sunucu taraflı PDF export
+- **Araç İadesi:** Teslim kaydıyla yan yana readonly karşılaştırma, KM/yakıt/hasar/notlar girişi → sunucu taraflı PDF export
+- Tamamlanmış teslim/iade formları tekrar açıldığında mevcut veriyle dolup PDF tekrar indirilebiliyor, hasar haritası salt-okunur kilitleniyor
+- Günün özeti kartlarındaki teslim/iade satırlarına tıklayınca ilgili forma yönlendirme
 - Teslimat logları listeleme
 - Bakım kayıtları oluşturma ve takip
 - Günün özeti: bugün teslim / bugün iade / bakımda araç kartları
@@ -63,6 +73,7 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 - Fiyatlandırma: FullCalendar üzerinde araç grubu ve tarih aralığı bazlı günlük fiyat tanımlama
 - Bakım kayıtları yönetimi
 - Teslimat logları görüntüleme
+- **İstatistik sayfası:** bu ay ciro, ortalama doluluk, toplam araç kartları; aylık ciro trendi (son 12 ay), günlük doluluk trendi (son 30 gün), şube bazlı doluluk ve araç grubu talep dağılımı grafikleri (ApexCharts, carousel); tarih aralığı ve şube filtreleme
 
 ## Araç Teslim / İade Akışı
 
@@ -72,12 +83,15 @@ Temsilci ve admin panelinde rezervasyon detayından açılan ayrı sayfalardır.
 - Teslim KM, yakıt seviyesi (kaydırıcı, 1/8 hassasiyet)
 - SVG tabanlı interaktif hasar haritası (13 araç bölgesi, 7 hasar tipi: Orijinal / Sürtme / Göçük / Çizik / Leke / Çatlak / Eksik)
 - Notlar ve belge yükleme (PDF, DOCX, JPG, PNG)
-- İşlem sonrası PDF export
+- Aracın son KM'si ve mevcut hasar haritası forma otomatik ön dolu gelir
+- İşlem sonrası sunucu taraflı (xhtml2pdf) PDF export
 
 **İade Formu (`/representative/iade/:id`)**
 - Sol panel: teslim anındaki KM, yakıt, notlar ve hasar haritası (readonly karşılaştırma)
 - Sağ panel: iade KM, yakıt, hasar haritası, notlar, belge yükleme
-- İşlem sonrası PDF export (her iki panel dahil)
+- İşlem sonrası sunucu taraflı (xhtml2pdf) PDF export (her iki panel dahil)
+
+PDF belgeleri; SVG hasar haritasını (base64 gömülü), yüklenen araç fotoğrafını ve KM doğrulama kurallarını (teslim KM ≥ aracın mevcut KM'si, iade KM > teslim KM) içerir. Tamamlanmış bir kayıt varsa form yeniden açıldığında mevcut veriyle dolar ve PDF tekrar indirilebilir.
 
 ## Optimizasyon Algoritması
 
@@ -88,7 +102,7 @@ Akıllı Greedy algoritması + post-swap iyileştirmesi:
 3. En düşük maliyetli aracı seç (aynı grup → 0 puan, upgrade → -10 puan)
 4. Transfer maliyeti yalnızca **iade şubesi** farklıysa uygulanır
 5. Atama yapılamayan rezervasyonlar için post-swap: mevcut atamaları takasa sokarak yeni slot aç
-6. Aktif rezervasyonlar (bugün müşterideki araçlar) kilitlenir — optimizer tarafından değiştirilemez
+6. Başlangıç tarihi bugün veya öncesinde olan rezervasyonlar (aktif veya tamamlanmış) kilitlenir — sadece **gelecekteki** rezervasyonlar optimizer tarafından yeniden atanabilir
 
 **Puan sistemi:**
 
@@ -159,6 +173,11 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 │   ├── views.py            # Tüm API endpoint'leri
 │   └── fixtures/
 │       └── initial_data.json
+├── templates/
+│   └── pdfs/
+│       ├── teslim_belgesi.html    # xhtml2pdf ile üretilen teslim belgesi
+│       └── iade_belgesi.html      # xhtml2pdf ile üretilen iade belgesi
+├── media/                  # Yüklenen teslim/iade belgeleri (delivery_docs/)
 └── frontend/
     └── src/
         ├── assets/
@@ -166,7 +185,7 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
         ├── components/
         │   └── CarDamageMap.vue          # İnteraktif hasar haritası bileşeni
         ├── layouts/        # AdminLayout, RepresentativeLayout, CustomerLayout
-        ├── views/          # Tüm sayfa bileşenleri
+        ├── views/          # Tüm sayfa bileşenleri (AdminIstatistikleri.vue dahil)
         ├── stores/         # auth, optimization (Pinia)
         ├── router/         # Rol tabanlı route koruması
         └── style.css       # Global badge renk standardı
@@ -180,13 +199,15 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 | POST | `/api/logout/` | Çıkış | Auth |
 | POST | `/api/register/` | Müşteri kaydı | Herkese açık |
 | GET/PATCH | `/api/profile/` | Profil görüntüle / güncelle | Auth |
-| GET | `/api/branches/` | Şube listesi | Auth |
+| GET/POST/PATCH/DELETE | `/api/branches/` | Şube CRUD | Okuma: Herkese açık, Yazma: Admin |
 | GET/POST/PATCH/DELETE | `/api/vehicles/` | Araç CRUD | Okuma: Auth, Yazma: Admin |
 | GET | `/api/vehicles/{id}/history/` | Araç rezervasyon + bakım geçmişi | Auth |
-| GET/POST | `/api/reservations/` | Rezervasyon listesi / oluşturma | Auth |
-| DELETE | `/api/reservations/{id}/` | Rezervasyon silme | Admin |
+| GET/POST/DELETE | `/api/reservations/` | Rezervasyon listesi / oluşturma / silme | Auth |
+| POST | `/api/reservations/{reservation_id}/cancel/` | Rezervasyon iptali | Auth |
 | POST | `/api/reservations/{id}/deliver/` | Araç teslim kaydı | Temsilci / Admin |
 | POST | `/api/reservations/{id}/return/` | Araç iade kaydı | Temsilci / Admin |
+| GET | `/api/reservations/{id}/pdf/{teslim\|iade}/` | Teslim/iade PDF belgesi indirme | Auth |
+| GET | `/api/admin-stats/` | İstatistik verisi (ciro, doluluk, grup dağılımı) — `start`/`end`/`branch` filtreleri | Admin |
 | GET | `/api/availability/` | Şube + grup bazlı müsait günler | Herkese açık |
 | GET | `/api/transfer-cost/` | İki şube arası transfer ücreti | Auth |
 | GET/POST/PATCH/DELETE | `/api/transfer-costs/` | Transfer ücreti CRUD | Admin |
@@ -202,5 +223,5 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 | PATCH | `/api/users/{id}/update/` | Kullanıcı güncelleme | Admin |
 | POST | `/api/users/{id}/toggle-active/` | Aktif/pasif toggle | Admin |
 | POST | `/api/guest-reservation/` | Misafir rezervasyon oluşturma | Herkese açık |
-| GET | `/api/guest-reservation/query/` | Rezervasyon kodu ile sorgulama | Herkese açık |
+| GET | `/api/guest-reservation/query/` | Rezervasyon kodu ile sorgulama (araç, teslim/iade bilgisi dahil) | Herkese açık |
 | POST | `/api/guest-reservation/cancel/` | Misafir rezervasyon iptali | Herkese açık |
