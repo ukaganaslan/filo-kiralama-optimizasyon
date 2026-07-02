@@ -9,6 +9,7 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 - Django REST Framework (Token tabanlı auth)
 - PostgreSQL
 - xhtml2pdf (sunucu taraflı PDF üretimi — teslim/iade belgeleri)
+- Pillow (araç fotoğrafı `ImageField` desteği)
 - Gunicorn + WhiteNoise + dj-database-url (production/Railway)
 
 **Frontend**
@@ -50,13 +51,13 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 - Müşteri adına rezervasyon oluşturma (searchable dropdown ile müşteri seçimi)
 - Şubesine ait araçları listeleme — gerçek zamanlı durum gösterimi (Müsait / Kiralandı / Bakımda / Serviste)
 - Araç geçmişi modalı (rezervasyon + bakım logları, toplam KM)
-- **Araç Teslimi:** KM, yakıt seviyesi, SVG tabanlı hasar haritası, notlar, belge yükleme → sunucu taraflı PDF export
-- **Araç İadesi:** Teslim kaydıyla yan yana readonly karşılaştırma, KM/yakıt/hasar/notlar girişi → sunucu taraflı PDF export
-- Tamamlanmış teslim/iade formları tekrar açıldığında mevcut veriyle dolup PDF tekrar indirilebiliyor, hasar haritası salt-okunur kilitleniyor
+- **Araç Teslimi / İadesi:** 3 aşamalı onay süreci (bkz. "Araç Teslim / İade Akışı" bölümü)
+- Sayfa yarım kalmış bir süreçle tekrar açıldığında kaldığı adıma otomatik yönlendirme
 - Günün özeti kartlarındaki teslim/iade satırlarına tıklayınca ilgili forma yönlendirme
 - Teslimat logları listeleme
 - Bakım kayıtları oluşturma ve takip
 - Günün özeti: bugün teslim / bugün iade / bakımda araç kartları
+- **İstatistik sayfası:** kendi şubesiyle sınırlı ciro/doluluk/talep dağılımı grafikleri (admin sayfasıyla aynı yapıda, şube kıyaslama grafiği hariç)
 - Profil bilgilerini düzenleme
 
 ### Admin (Operatör)
@@ -77,21 +78,26 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 
 ## Araç Teslim / İade Akışı
 
-Temsilci ve admin panelinde rezervasyon detayından açılan ayrı sayfalardır.
+Temsilci ve admin panelinde rezervasyon detayından açılan, fiziksel imza sürecine uygun **3 aşamalı** bir onay süreci:
+
+| Aşama | `stage` | Açıklama |
+|-------|---------|----------|
+| 1 | `pending` | KM, yakıt seviyesi, SVG hasar haritası, notlar girilir → belge (imzasız) PDF olarak indirilir |
+| 2 | `photo_pending` | Fiziksel olarak imzalanan belge taranıp/fotoğraflanıp sisteme geri yüklenir |
+| 3 | `approved` | Aracın son hali fotoğraflanıp yüklenir ve "Teslim Et"/"İade Al" ile süreç onaylanır |
+
+Rezervasyonun/aracın gerçek durumu (KM, hasar haritası güncellemesi, "teslim edildi" sayılması) **yalnızca 3. aşamada** tetiklenir — süreç yarım kalırsa "Teslim İşlemde"/"İade İşlemde" ara rozeti gösterilir. Sayfa yarım kalmış bir süreçle tekrar açılırsa kullanıcı otomatik olarak kaldığı adıma yönlendirilir. İade süreci, ilgili teslimin `approved` durumuna ulaşmasını şart koşar.
 
 **Teslim Formu (`/representative/teslim/:id`)**
-- Teslim KM, yakıt seviyesi (kaydırıcı, 1/8 hassasiyet)
-- SVG tabanlı interaktif hasar haritası (13 araç bölgesi, 7 hasar tipi: Orijinal / Sürtme / Göçük / Çizik / Leke / Çatlak / Eksik)
-- Notlar ve belge yükleme (PDF, DOCX, JPG, PNG)
-- Aracın son KM'si ve mevcut hasar haritası forma otomatik ön dolu gelir
-- İşlem sonrası sunucu taraflı (xhtml2pdf) PDF export
+- 1. aşama: KM, yakıt seviyesi (kaydırıcı, 1/8 hassasiyet), SVG tabanlı interaktif hasar haritası (13 araç bölgesi, 7 hasar tipi), notlar — aracın son KM'si ve mevcut hasar haritası forma otomatik ön dolu gelir
+- 2. aşama: imzalı belge yükleme (PDF, DOCX, JPG, PNG)
+- 3. aşama: araç fotoğrafı yükleme (JPG, PNG) + onay
 
 **İade Formu (`/representative/iade/:id`)**
-- Sol panel: teslim anındaki KM, yakıt, notlar ve hasar haritası (readonly karşılaştırma)
-- Sağ panel: iade KM, yakıt, hasar haritası, notlar, belge yükleme
-- İşlem sonrası sunucu taraflı (xhtml2pdf) PDF export (her iki panel dahil)
+- Sol panel: teslim anındaki KM, yakıt, notlar ve hasar haritası (readonly referans)
+- Sağ panel: aynı 3 aşamalı süreç (KM/yakıt/hasar/not → belge → fotoğraf + onay)
 
-PDF belgeleri; SVG hasar haritasını (base64 gömülü), yüklenen araç fotoğrafını ve KM doğrulama kurallarını (teslim KM ≥ aracın mevcut KM'si, iade KM > teslim KM) içerir. Tamamlanmış bir kayıt varsa form yeniden açıldığında mevcut veriyle dolar ve PDF tekrar indirilebilir.
+**PDF belgeleri** (`/api/reservations/{id}/pdf/{teslim|iade}/`) tek sayfalık, kurumsal bir "tutanak" formatında üretilir — antetli üst bant, KM'nin "kilometre sayacı" gibi gösterildiği ve yakıt seviyesinin segmentli bir gösterge olarak sunulduğu bir bilgi bloğu, SVG hasar haritası + renkli lejant, ve imza satırları içerir. Belge, hangi aşamada indirilirse indirilsin **aynı içeriği** üretir (fiziksel imzalanan kağıtla sistemdeki nihai belge arasında tutarsızlık olmaması için) — araç fotoğrafı bu yüzden PDF'e hiç dahil edilmez, yalnızca sistemde iç kayıt olarak saklanır. KM doğrulama kuralları (teslim KM ≥ aracın mevcut KM'si, iade KM > teslim KM) 1. aşamada uygulanır.
 
 ## Optimizasyon Algoritması
 
@@ -168,7 +174,7 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 │   ├── settings.py
 │   └── urls.py
 ├── vehicles/
-│   ├── models.py           # Branch, Vehicle, Reservation, DeliveryLog, MaintenanceLog, DailyPrice...
+│   ├── models.py           # Branch, Vehicle, Reservation, DeliveryLog (stage/photo dahil), MaintenanceLog, DailyPrice...
 │   ├── serializers.py      # current_status, delivery_info dahil tüm serializer'lar
 │   ├── views.py            # Tüm API endpoint'leri
 │   └── fixtures/
@@ -185,10 +191,10 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
         ├── components/
         │   └── CarDamageMap.vue          # İnteraktif hasar haritası bileşeni
         ├── layouts/        # AdminLayout, RepresentativeLayout, CustomerLayout
-        ├── views/          # Tüm sayfa bileşenleri (AdminIstatistikleri.vue dahil)
+        ├── views/          # Tüm sayfa bileşenleri (AdminIstatistikleri.vue, RepresentativeIstatistikleri.vue dahil)
         ├── stores/         # auth, optimization (Pinia)
         ├── router/         # Rol tabanlı route koruması
-        └── style.css       # Global badge renk standardı
+        └── style.css       # Global badge renk standardı (pending/assigned/cancelled/delivered/returned/processing)
 ```
 
 ## API Endpoint'leri
@@ -204,10 +210,14 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 | GET | `/api/vehicles/{id}/history/` | Araç rezervasyon + bakım geçmişi | Auth |
 | GET/POST/DELETE | `/api/reservations/` | Rezervasyon listesi / oluşturma / silme | Auth |
 | POST | `/api/reservations/{reservation_id}/cancel/` | Rezervasyon iptali | Auth |
-| POST | `/api/reservations/{id}/deliver/` | Araç teslim kaydı | Temsilci / Admin |
-| POST | `/api/reservations/{id}/return/` | Araç iade kaydı | Temsilci / Admin |
+| POST | `/api/reservations/{id}/deliver/` | Teslim 1. aşama — KM/yakıt/hasar/not kaydı | Temsilci / Admin |
+| POST | `/api/reservations/{id}/deliver/document/` | Teslim 2. aşama — imzalı belge yükleme | Temsilci / Admin |
+| POST | `/api/reservations/{id}/deliver/photo/` | Teslim 3. aşama — araç fotoğrafı yükleme + onay | Temsilci / Admin |
+| POST | `/api/reservations/{id}/return/` | İade 1. aşama — KM/yakıt/hasar/not kaydı | Temsilci / Admin |
+| POST | `/api/reservations/{id}/return/document/` | İade 2. aşama — imzalı belge yükleme | Temsilci / Admin |
+| POST | `/api/reservations/{id}/return/photo/` | İade 3. aşama — araç fotoğrafı yükleme + onay | Temsilci / Admin |
 | GET | `/api/reservations/{id}/pdf/{teslim\|iade}/` | Teslim/iade PDF belgesi indirme | Auth |
-| GET | `/api/admin-stats/` | İstatistik verisi (ciro, doluluk, grup dağılımı) — `start`/`end`/`branch` filtreleri | Admin |
+| GET | `/api/admin-stats/` | İstatistik verisi (ciro, doluluk, grup dağılımı) — `start`/`end`/`branch` filtreleri | Admin (tüm şubeler) / Temsilci (kendi şubesiyle sınırlı) |
 | GET | `/api/availability/` | Şube + grup bazlı müsait günler | Herkese açık |
 | GET | `/api/transfer-cost/` | İki şube arası transfer ücreti | Auth |
 | GET/POST/PATCH/DELETE | `/api/transfer-costs/` | Transfer ücreti CRUD | Admin |
