@@ -123,6 +123,7 @@ const pageTitles = {
   '/representative/profil': 'Profil Ayarları',
   '/representative/logs': 'Teslimat Kayıtları',
   '/representative/maintenance': 'Bakım Kayıtları',
+  '/representative/istatistikler': 'İstatistikler',
 }
 const pageTitle = computed(() => pageTitles[route.path] || '')
 

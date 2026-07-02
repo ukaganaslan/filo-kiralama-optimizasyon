@@ -148,6 +148,9 @@ const pageTitles = {
   '/operator/karsılanamayan-rez': 'Karşılanamayan Rezervasyonlar',
   '/operator/profil': 'Profil Ayarları',
   '/operator/logs': 'Teslimat Kayıtları',
+  '/operator/maintenance': 'Bakım Kayıtları',
+  '/operator/pricing': 'Fiyatlandırma',
+  '/operator/admin-stats': 'İstatistikler',
 }
 const pageTitle = computed(() => pageTitles[route.path] || '')
 
