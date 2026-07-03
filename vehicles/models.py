@@ -85,6 +85,11 @@ class Reservation(models.Model):
     guest_phone = models.CharField(max_length=20, blank=True)
     guest_email = models.EmailField(blank=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['status', 'start_date', 'end_date']),
+        ]
+
     def __str__(self):
         return f"{self.reservation_id} - {self.branch} - {self.get_vehicle_group_display()}"
 
@@ -106,6 +111,11 @@ class MaintenanceLog(models.Model):
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['vehicle', 'end_date']),
+        ]
 
     def __str__(self):
         return f"{self.vehicle} - {self.date}"

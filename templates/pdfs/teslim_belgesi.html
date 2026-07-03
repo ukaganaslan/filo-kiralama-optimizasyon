@@ -3,75 +3,89 @@
 <head>
 <meta charset="UTF-8">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,500&display=swap');
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  @font-face { font-family: 'Vera'; src: url('vera-regular.ttf'); }
+  @font-face { font-family: 'Vera'; src: url('vera-bold.ttf'); font-weight: bold; }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: 'Inter', Arial, sans-serif;
-    font-size: 12.5px;
+    font-family: 'Vera', Arial, sans-serif;
+    font-size: 11px;
     color: #1c1a2e;
     background: white;
   }
 
-  .topband { height: 7px; background: #1B1063; }
-  .page { padding: 20px 38px 26px; }
+  .topband { height: 6px; background: #1B1063; }
+  .page { padding: 24px 40px 28px; }
 
   table { border-collapse: collapse; width: 100%; }
 
-  .masthead-table { margin-bottom: 14px; }
+  /* Başlık */
+  .masthead-table { margin-bottom: 12px; }
   .masthead-table td { vertical-align: bottom; }
+  .wordmark { font-size: 10px; font-weight: 700; color: #4c46a3; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 3px; }
+  .doc-title { font-size: 19px; font-weight: 700; color: #1B1063; letter-spacing: 0.3px; }
+  .doc-meta { text-align: right; }
+  .doc-meta-code { font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #1B1063; }
+  .doc-meta-sub { font-size: 9.5px; color: #6f6f83; margin-top: 4px; }
 
-  .wordmark { font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 500; font-size: 12px; color: #4c46a3; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .doc-title { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 21px; color: #1B1063; letter-spacing: 0.2px; }
+  .headrule { border: 0; border-top: 2px solid #1B1063; margin-bottom: 16px; }
 
-  .doc-meta-code { font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #1c1a2e; background: #f6f5fb; border: 1px solid #ddd9ee; padding: 3px 10px; border-radius: 3px; }
-  .doc-meta-sub { font-size: 10.5px; color: #6f6f83; margin-top: 6px; }
+  /* Bölüm başlığı */
+  .section-bar {
+    background: #1B1063; color: #fff;
+    font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+    padding: 5px 10px; margin-bottom: 0;
+  }
 
-  .rule { border-top: 1px solid #ddd9ee; margin-bottom: 18px; }
+  /* Kenarlıklı form alanları */
+  .form-grid { border: 1px solid #b9b4d6; border-top: 0; margin-bottom: 18px; }
+  .form-grid td { border-left: 1px solid #d8d4ec; border-top: 1px solid #d8d4ec; padding: 6px 10px; vertical-align: top; }
+  .form-grid tr:first-child td { border-top: 0; }
+  .form-grid td:first-child { border-left: 0; }
+  .fg-label { font-size: 7.5px; font-weight: 700; color: #6f6f83; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 2px; }
+  .fg-value { font-size: 12px; font-weight: 700; color: #1c1a2e; }
+  .fg-value-sm { font-size: 10px; font-weight: 500; color: #4a4860; margin-top: 1px; }
 
-  .eyebrow { font-size: 9.5px; font-weight: 700; color: #4c46a3; letter-spacing: 1.3px; text-transform: uppercase; margin-bottom: 8px; }
+  /* Teslim ölçüm bloğu (KM + Yakıt) */
+  .readout-table { border: 1px solid #b9b4d6; border-top: 0; margin-bottom: 18px; }
+  .readout-table td { border-left: 1px solid #d8d4ec; padding: 10px 14px; vertical-align: middle; }
+  .readout-table td:first-child { border-left: 0; }
+  .ro-km-cell { width: 44%; }
+  .ro-label { font-size: 7.5px; font-weight: 700; color: #6f6f83; text-transform: uppercase; letter-spacing: 0.9px; margin-bottom: 4px; }
+  .ro-km { font-family: 'Courier New', monospace; font-size: 24px; font-weight: 700; color: #1B1063; letter-spacing: 1.5px; }
+  .ro-km-unit { font-size: 8.5px; font-weight: 600; color: #9a96b5; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
 
-  .info-table { margin-bottom: 20px; }
-  .info-table td { width: 33.33%; border-left: 2px solid #ddd9ee; padding: 2px 0 2px 12px; vertical-align: top; }
-  .info-table td:first-child { border-left: none; padding-left: 0; }
-  .info-label { font-size: 9px; font-weight: 700; color: #6f6f83; text-transform: uppercase; letter-spacing: 0.9px; margin-bottom: 3px; }
-  .info-value { font-size: 13px; font-weight: 600; color: #1c1a2e; }
-  .info-value-sm { font-size: 11px; font-weight: 500; color: #1c1a2e; margin-top: 1px; }
+  .fuel-value { font-size: 13px; font-weight: 700; color: #1c1a2e; margin-bottom: 5px; }
+  .gauge-seg-table { width: auto; border-collapse: separate; border-spacing: 2px 0; }
+  .seg { width: 20px; height: 10px; padding: 0; border: 1px solid #c9c4e0; }
+  .seg-on { background: #1B1063; border-color: #1B1063; }
+  .seg-off { background: #fff; }
 
-  .instrument-table { margin-bottom: 22px; }
-  .instrument-table td { vertical-align: middle; }
-  .odo-cell { width: 190px; padding-right: 14px; }
-  .odo-plate { background: #1c1a2e; border-radius: 5px; padding: 9px 14px; }
-  .odo-digits { font-family: 'Courier New', monospace; font-size: 22px; font-weight: 700; color: #f6f5fb; letter-spacing: 0.7px; }
-  .odo-unit { font-size: 9px; color: #a8a4c9; letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
-
-  .gauge-cell { padding-left: 22px; }
-  .gauge-label-table { width: 210px; margin-bottom: 6px; }
-  .gauge-label-table td { font-size: 9.5px; font-weight: 700; color: #6f6f83; letter-spacing: 0.9px; text-transform: uppercase; }
-  .gauge-label-table td.r { text-align: right; color: #1B1063; }
-  .gauge-seg-table { width: auto; border-collapse: separate; border-spacing: 3px 0; }
-  .seg { width: 22px; height: 11px; border-radius: 2px; }
-  .seg-on { background: #1B1063; }
-  .seg-off { background: #e5e2f2; }
-
-  .damage-table { margin-bottom: 20px; }
-  .damage-diagram-cell { width: 200px; text-align: center; vertical-align: top; }
-  .damage-legend-cell { padding-left: 18px; vertical-align: top; }
-  .legend-table td { padding: 5px 6px; border-bottom: 1px solid #f0eef8; font-size: 11.5px; vertical-align: middle; }
-  .legend-dot-cell { width: 16px; padding: 5px 6px 5px 0; }
+  /* Hasar haritası */
+  .damage-table { border: 1px solid #b9b4d6; border-top: 0; margin-bottom: 18px; }
+  .damage-diagram-cell { width: 190px; text-align: center; vertical-align: top; padding: 12px; border-right: 1px solid #d8d4ec; }
+  .damage-legend-cell { padding: 10px 14px; vertical-align: top; }
+  .legend-table td { padding: 4px 4px; border-bottom: 1px solid #eeecf6; font-size: 10.5px; vertical-align: middle; }
+  .legend-dot-cell { width: 14px; padding: 4px 6px 4px 0; }
+  .legend-dot { display: block; width: 11px; height: 11px; border: 1px solid #b9b4d6; }
   .legend-part-cell { font-weight: 600; color: #1c1a2e; }
-  .legend-state-cell { text-align: right; font-size: 10.5px; color: #6f6f83; }
-  .legend-empty { font-size: 11.5px; color: #6f6f83; font-style: italic; }
+  .legend-state-cell { text-align: right; font-size: 9.5px; color: #6f6f83; }
+  .legend-empty { font-size: 10.5px; color: #6f6f83; font-style: italic; padding: 8px 0; }
 
-  .notes-box { background: #f6f5fb; border-left: 2px solid #ddd9ee; padding: 10px 14px; font-size: 12px; color: #4a4860; margin-bottom: 20px; }
+  /* Notlar */
+  .notes-box { border: 1px solid #d8d4ec; border-top: 0; padding: 10px 14px; font-size: 11px; color: #4a4860; margin-bottom: 18px; min-height: 34px; }
 
-  .footer-table { margin-top: 22px; }
-  .sign-cell { width: 50%; padding-right: 24px; }
-  .sign-line { border-top: 1px solid #1c1a2e; padding-top: 6px; font-size: 10px; color: #6f6f83; text-transform: uppercase; letter-spacing: 0.7px; }
+  /* İmza */
+  .footer-table { margin-top: 26px; }
+  .sign-cell { width: 50%; padding-right: 28px; vertical-align: top; }
+  .sign-cell.r { padding-right: 0; padding-left: 28px; }
+  .sign-role { font-size: 9px; font-weight: 700; color: #1B1063; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 26px; }
+  .sign-field { border-top: 1px solid #1c1a2e; padding-top: 4px; font-size: 8.5px; color: #6f6f83; text-transform: uppercase; letter-spacing: 0.6px; }
+  .sign-sub-table { margin-top: 14px; }
+  .sign-sub-table td { font-size: 8.5px; color: #6f6f83; }
 
-  .fineprint { text-align: center; margin-top: 20px; font-size: 9px; color: #b7b4cf; letter-spacing: 0.5px; }
+  .fineprint { text-align: center; margin-top: 22px; padding-top: 10px; border-top: 1px solid #eeecf6; font-size: 8.5px; color: #b7b4cf; letter-spacing: 0.5px; }
 </style>
 </head>
 <body>
@@ -80,54 +94,71 @@
 
   <table class="masthead-table"><tr>
     <td>
-      <div class="wordmark">FiloRent</div>
+      <div class="wordmark">FiloRent Filo Yönetim Sistemi</div>
       <div class="doc-title">ARAÇ TESLİM TUTANAĞI</div>
     </td>
-    <td style="text-align: right;">
-      <span class="doc-meta-code">{{ reservation_id }}</span>
-      <div class="doc-meta-sub">{{ branch_name }} · {{ delivered_at }}</div>
+    <td class="doc-meta">
+      <div class="doc-meta-code">{{ reservation_id }}</div>
+      <div class="doc-meta-sub">{{ branch_name }}<br>{{ delivered_at }}</div>
     </td>
   </tr></table>
-  <div class="rule"></div>
+  <hr class="headrule">
 
-  <table class="info-table"><tr>
-    <td>
-      <div class="info-label">Müşteri</div>
-      <div class="info-value">{{ customer_name }}</div>
+  <div class="section-bar">Araç ve Müşteri Bilgileri</div>
+  <table class="form-grid">
+    <tr>
+      <td style="width: 40%;">
+        <div class="fg-label">Müşteri</div>
+        <div class="fg-value">{{ customer_name }}</div>
+      </td>
+      <td style="width: 35%;">
+        <div class="fg-label">Araç</div>
+        <div class="fg-value">{{ brand }} {{ model }}</div>
+        <div class="fg-value-sm">{{ plate }}</div>
+      </td>
+      <td style="width: 25%;">
+        <div class="fg-label">Rezervasyon No</div>
+        <div class="fg-value">{{ reservation_id }}</div>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <div class="fg-label">Kiralama Başlangıç</div>
+        <div class="fg-value">{{ start_date }}</div>
+      </td>
+      <td>
+        <div class="fg-label">Beklenen İade</div>
+        <div class="fg-value">{{ end_date }}</div>
+      </td>
+      <td>
+        <div class="fg-label">Teslim Şubesi</div>
+        <div class="fg-value">{{ branch_name }}</div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="section-bar">Teslim Bilgileri</div>
+  <table class="readout-table"><tr>
+    <td class="ro-km-cell">
+      <div class="ro-label">Teslim Kilometresi</div>
+      <div class="ro-km">{{ delivered_km_display }}</div>
+      <div class="ro-km-unit">Kilometre</div>
     </td>
     <td>
-      <div class="info-label">Araç</div>
-      <div class="info-value">{{ brand }} {{ model }}</div>
-      <div class="info-value-sm">{{ plate }}</div>
-    </td>
-    <td>
-      <div class="info-label">Kiralama Tarihleri</div>
-      <div class="info-value-sm">{{ start_date }} → {{ end_date }}</div>
+      <div class="ro-label">Yakıt Seviyesi</div>
+      <div class="ro-km">{{ fuel_label }}</div>
+      <div class="ro-km-unit">Depo Oranı (E – F)</div>
     </td>
   </tr></table>
 
-  <div class="eyebrow">Teslim Bilgileri</div>
-  <table class="instrument-table"><tr>
-    <td class="odo-cell">
-      <div class="odo-plate"><div class="odo-digits">{{ delivered_km_display }}</div></div>
-      <div class="odo-unit">Kilometre</div>
-    </td>
-    <td class="gauge-cell">
-      <table class="gauge-label-table"><tr><td>Yakıt Seviyesi</td><td class="r">{{ fuel_label }}</td></tr></table>
-      <table class="gauge-seg-table"><tr>
-        {% for filled in fuel_segments %}<td class="seg {% if filled %}seg-on{% else %}seg-off{% endif %}"></td>{% endfor %}
-      </tr></table>
-    </td>
-  </tr></table>
-
-  <div class="eyebrow">Hasar Haritası</div>
+  <div class="section-bar">Hasar Haritası</div>
   <table class="damage-table"><tr>
     <td class="damage-diagram-cell">{{ damage_svg|safe }}</td>
     <td class="damage-legend-cell">
       <table class="legend-table">
         {% for item in damage_list %}
         <tr>
-          <td class="legend-dot-cell" style="background: {{ item.color }};">&nbsp;</td>
+          <td class="legend-dot-cell"><span class="legend-dot" style="background: {{ item.color }};"></span></td>
           <td class="legend-part-cell">{{ item.label }}</td>
           <td class="legend-state-cell">{{ item.state }}</td>
         </tr>
@@ -138,17 +169,29 @@
     </td>
   </tr></table>
 
-  {% if delivered_notes %}
-  <div class="eyebrow">Notlar</div>
-  <div class="notes-box">{{ delivered_notes }}</div>
-  {% endif %}
+  <div class="section-bar">Teslim Notları</div>
+  <div class="notes-box">{{ delivered_notes|default:"—" }}</div>
 
   <table class="footer-table"><tr>
-    <td class="sign-cell"><div class="sign-line">Teslim Eden Temsilci</div></td>
-    <td class="sign-cell"><div class="sign-line">Teslim Alan Müşteri</div></td>
+    <td class="sign-cell">
+      <div class="sign-role">Teslim Eden — Temsilci</div>
+      <div class="sign-field">Ad Soyad</div>
+      <table class="sign-sub-table"><tr>
+        <td style="width: 60%;">Tarih / Saat</td>
+        <td style="text-align: right;">İmza</td>
+      </tr></table>
+    </td>
+    <td class="sign-cell r">
+      <div class="sign-role">Teslim Alan — Müşteri</div>
+      <div class="sign-field">Ad Soyad</div>
+      <table class="sign-sub-table"><tr>
+        <td style="width: 60%;">Tarih / Saat</td>
+        <td style="text-align: right;">İmza</td>
+      </tr></table>
+    </td>
   </tr></table>
 
-  <div class="fineprint">BU BELGE FİLORENT SİSTEMİ TARAFINDAN OLUŞTURULMUŞTUR</div>
+  <div class="fineprint">Bu belge FiloRent sistemi tarafından elektronik olarak oluşturulmuştur. Taraflarca imzalandığında geçerlidir.</div>
 
 </div>
 </body>
