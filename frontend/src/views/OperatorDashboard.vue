@@ -191,21 +191,27 @@ const sortDir = ref('asc')
 const statusOptions = [
   { key: 'pending', label: 'Bekliyor' },
   { key: 'assigned', label: 'Onaylandı' },
+  { key: 'delivery_day', label: 'Teslim Günü' },
   { key: 'delivering', label: 'Teslim İşlemde' },
   { key: 'delivered', label: 'Teslim Edildi' },
+  { key: 'return_day', label: 'İade Günü' },
   { key: 'returning', label: 'İade İşlemde' },
   { key: 'returned', label: 'İade Edildi' },
   { key: 'cancelled', label: 'İptal' },
 ]
-const STATUS_RANK = { pending: 0, assigned: 1, delivering: 2, delivered: 3, returning: 4, returned: 5, cancelled: 6 }
+const STATUS_RANK = { pending: 0, assigned: 1, delivery_day: 2, delivering: 3, delivered: 4, return_day: 5, returning: 6, returned: 7, cancelled: 8 }
 
 function statusKey(r) {
   if (r.status === 'cancelled') return 'cancelled'
   if (r.status === 'pending') return 'pending'
   if (r.delivery_info?.returned) return 'returned'
   if (r.delivery_info?.returned_stage) return 'returning'
-  if (r.delivery_info?.delivered) return 'delivered'
+  if (r.delivery_info?.delivered) {
+    if (r.end_date == bugun) return 'return_day'
+    return 'delivered'
+  }
   if (r.delivery_info?.delivered_stage) return 'delivering'
+  if (r.status === 'assigned' && r.start_date == bugun) return 'delivery_day'
   return 'assigned'
 }
 
