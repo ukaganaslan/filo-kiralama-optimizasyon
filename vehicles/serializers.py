@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog, DailyPrice
+from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog, DailyPrice, ReservationExtension
 from datetime import date
 
 
@@ -146,3 +146,30 @@ class DailyPriceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyPrice
         fields = ['id', 'date', 'vehicle_group', 'price_per_day']
+
+
+class ReservationExtensionSerializer(serializers.ModelSerializer):
+    reservation_code = serializers.CharField(source='reservation.reservation_id', read_only=True)
+    current_end_date = serializers.DateField(source='reservation.end_date', read_only=True)
+    branch_title = serializers.CharField(source='reservation.branch.title', read_only=True)
+    branch_name = serializers.CharField(source='reservation.branch.name', read_only=True)
+    customer_name = serializers.SerializerMethodField()
+    plate = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ReservationExtension
+        fields = [
+            'id', 'reservation', 'reservation_code', 'current_end_date', 'requested_end_date',
+            'status', 'extra_price', 'reject_reason', 'created_at', 'decided_at',
+            'customer_name', 'plate', 'branch_title', 'branch_name',
+        ]
+
+    def get_customer_name(self, obj):
+        r = obj.reservation
+        if r.customer and hasattr(r.customer, 'profile'):
+            return r.customer.profile.full_name or r.customer.username
+        return r.guest_name or '—'
+
+    def get_plate(self, obj):
+        ar = obj.reservation.assignmentresult_set.order_by('-run__created_at').first()
+        return ar.vehicle.plate if ar and ar.vehicle else None
