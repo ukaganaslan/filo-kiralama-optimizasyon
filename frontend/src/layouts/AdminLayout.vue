@@ -152,7 +152,11 @@ const pageTitles = {
   '/operator/pricing': 'Fiyatlandırma',
   '/operator/admin-stats': 'İstatistikler',
 }
-const pageTitle = computed(() => pageTitles[route.path] || '')
+const pageTitle = computed(() => {
+  if (pageTitles[route.path]) return pageTitles[route.path]
+  if (route.path.startsWith('/operator/rezervasyonlar/')) return 'Rezervasyon Detayı'
+  return ''
+})
 
 function handleHamburger() {
   if (window.matchMedia('(max-width: 768px)').matches) {

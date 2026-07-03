@@ -1083,6 +1083,17 @@ def _extension_has_conflict(vehicle, window_start, window_end, exclude_reservati
     return False
 
 
+def _extension_customer_conflict(reservation, window_start, window_end):
+    """window_start..window_end aralığında bu müşterinin başka bir aktif
+    rezervasyonu (pending/assigned) var mı?"""
+    return Reservation.objects.filter(
+        customer=reservation.customer,
+        status__in=['pending', 'assigned'],
+        start_date__lte=window_end,
+        end_date__gte=window_start,
+    ).exclude(pk=reservation.pk).exists()
+
+
 def _extension_price(reservation, new_end_date):
     """Uzatılan günlerin (mevcut end_date+1 .. new_end_date) DailyPrice toplamı.
     (toplam, eksik_fiyat_var_mı) döner."""
@@ -1148,13 +1159,16 @@ def extend_reservation(request, pk):
         return Response({'error': 'Geçersiz tarih formatı.'}, status=400)
     if new_end_date <= reservation.end_date:
         return Response({'error': 'Yeni bitiş tarihi mevcut bitiş tarihinden sonra olmalı.'}, status=400)
+    window_start = reservation.end_date + timedelta(days=1)
+    # Müşterinin uzatma penceresinde başka bir aktif rezervasyonu var mı?
+    if _extension_customer_conflict(reservation, window_start, new_end_date):
+        return Response({'error': 'Seçilen tarih aralığında başka bir rezervasyonunuz var.'}, status=400)
     # Fiyat (uzatılan günlerde fiyat tanımlı olmalı)
     extra_price, missing = _extension_price(reservation, new_end_date)
     if missing:
         return Response({'error': 'Uzatılan tarih aralığında fiyatlandırılmamış gün var.'}, status=400)
     # Müsaitlik: araç uzatma penceresinde başka rezervasyona atanmış mı?
     vehicle = _vehicle_for_reservation(reservation)
-    window_start = reservation.end_date + timedelta(days=1)
     if _extension_has_conflict(vehicle, window_start, new_end_date, reservation):
         ext = ReservationExtension.objects.create(
             reservation=reservation, requested_end_date=new_end_date,
@@ -1216,6 +1230,13 @@ def approve_extension(request, ext_id):
     # Yarış durumu: onay anında müsaitliği tekrar kontrol et
     vehicle = _vehicle_for_reservation(reservation)
     window_start = reservation.end_date + timedelta(days=1)
+    if _extension_customer_conflict(reservation, window_start, ext.requested_end_date):
+        ext.status = 'rejected'
+        ext.reject_reason = 'Müşterinin bu tarihlerde başka bir rezervasyonu var.'
+        ext.decided_at = timezone.now()
+        ext.save()
+        # TODO(106): müşteriye otomatik red bildirimi
+        return Response({'status': 'rejected', 'reason': ext.reject_reason}, status=200)
     if _extension_has_conflict(vehicle, window_start, ext.requested_end_date, reservation):
         ext.status = 'rejected'
         ext.reject_reason = 'Araç bu tarihlerde artık müsait değil.'
