@@ -190,6 +190,15 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         ).exists()
         if acik_bakim:
             raise ValidationError('Bu araç zaten bakımda, önce mevcut kaydı kapatın.')
+        
+        mevcut_bakim = MaintenanceLog.objects.filter(
+            vehicle=vehicle,
+            start_date__lte=date.today(),
+            end_date__gte=date.today()
+            
+        ).exists()
+        if mevcut_bakim:
+            raise ValidationError('Bu araç bu tarihler aralğında bakımdadır, önce mevcut bakımının bitmesi gerekir.')
 
         aktif_atama = AssignmentResult.objects.filter(
             vehicle=vehicle,

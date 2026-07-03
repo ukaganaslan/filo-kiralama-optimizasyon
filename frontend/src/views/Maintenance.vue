@@ -52,17 +52,33 @@
 
       <div class="field">
         <label>Araç</label>
-        <select v-model="form.vehicle" :disabled="!!editingId">
-          <option value="">Seçin</option>
-          <option
-            v-for="v in vehicles"
-            :key="v.id"
-            :value="v.id"
-            :disabled="!editingId && openMaintenanceVehicleIds.has(v.id)"
-          >
-            {{ v.plate }} — {{ v.brand }} {{ v.model }} ({{ v.vehicle_id }}){{ !editingId && openMaintenanceVehicleIds.has(v.id) ? ' — bakımda' : '' }}
-          </option>
-        </select>
+        <div class="vehicle-search" ref="vehicleSearchRef">
+          <input
+            v-model="vehicleQuery"
+            type="text"
+            :placeholder="selectedVehicleLabel || 'Plaka veya araç kodu ara...'"
+            :class="['vehicle-input', { 'has-value': selectedVehicleLabel }]"
+            :disabled="!!editingId"
+            @input="vehicleDropdownOpen = true"
+            @focus="vehicleDropdownOpen = true"
+          />
+          <button v-if="selectedVehicleLabel && !editingId" type="button" class="vehicle-clear" @click="clearVehicle">x</button>
+          <div v-if="vehicleDropdownOpen && !editingId && filteredVehicles.length > 0" class="vehicle-dropdown">
+            <div
+              v-for="v in filteredVehicles"
+              :key="v.id"
+              class="vehicle-option"
+              :class="{ disabled: openMaintenanceVehicleIds.has(v.id) }"
+              @mousedown.prevent="!openMaintenanceVehicleIds.has(v.id) && selectVehicle(v)"
+            >
+              <span class="vehicle-plate">{{ v.plate || '—' }}</span>
+              <span class="vehicle-meta">{{ v.brand }} {{ v.model }} ({{ v.vehicle_id }}){{ openMaintenanceVehicleIds.has(v.id) ? ' — bakımda' : '' }}</span>
+            </div>
+          </div>
+          <div v-if="vehicleDropdownOpen && !editingId && vehicleQuery && filteredVehicles.length === 0" class="vehicle-dropdown">
+            <div class="vehicle-empty">Araç bulunamadı.</div>
+          </div>
+        </div>
       </div>
 
       <div class="field">
@@ -154,6 +170,20 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: #6366f1; }
 .field input:disabled, .field select:disabled { background: #f8fafc; color: #94a3b8; cursor: not-allowed; }
 .field textarea { resize: vertical; min-height: 80px; }
+.vehicle-search { position: relative; }
+.vehicle-input { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; background: white; color: #1e293b; }
+.vehicle-input:focus { border-color: #6366f1; }
+.vehicle-input.has-value::placeholder { color: #1e293b; }
+.vehicle-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 14px; line-height: 1; padding: 4px; }
+.vehicle-clear:hover { color: #dc2626; }
+.vehicle-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); z-index: 300; max-height: 260px; overflow-y: auto; }
+.vehicle-option { display: flex; flex-direction: column; gap: 2px; padding: 9px 14px; cursor: pointer; }
+.vehicle-option:hover { background: #f8fafc; }
+.vehicle-option.disabled { opacity: 0.5; cursor: not-allowed; }
+.vehicle-option.disabled:hover { background: none; }
+.vehicle-plate { font-size: 14px; font-weight: 600; color: #1e293b; }
+.vehicle-meta { font-size: 12px; color: #64748b; }
+.vehicle-empty { padding: 12px 14px; font-size: 13px; color: #94a3b8; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
 .btn-cancel-modal { padding: 8px 16px; background: white; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
@@ -176,6 +206,10 @@ const editingId = ref(null)
 const openMenuId = ref(null)
 const deleteModal = ref(false)
 const deletingLog = ref(null)
+
+const vehicleQuery = ref('')
+const vehicleDropdownOpen = ref(false)
+const vehicleSearchRef = ref(null)
 
 const form = ref({
   vehicle: null,
@@ -201,14 +235,50 @@ const openMaintenanceVehicleIds = computed(() =>
   new Set(logs.value.filter(l => !l.end_date).map(l => l.vehicle))
 )
 
+const filteredVehicles = computed(() => {
+  const q = vehicleQuery.value.toLowerCase().trim()
+  const list = q
+    ? vehicles.value.filter(v =>
+        (v.plate || '').toLowerCase().includes(q) ||
+        (v.vehicle_id || '').toLowerCase().includes(q)
+      )
+    : vehicles.value
+  return list.slice(0, 10)
+})
+
+const selectedVehicleLabel = computed(() => {
+  if (!form.value.vehicle) return ''
+  const v = vehicles.value.find(x => x.id === form.value.vehicle)
+  return v ? `${v.plate || '—'} — ${v.brand} ${v.model} (${v.vehicle_id})` : ''
+})
+
+function selectVehicle(v) {
+  form.value.vehicle = v.id
+  vehicleQuery.value = ''
+  vehicleDropdownOpen.value = false
+}
+
+function clearVehicle() {
+  form.value.vehicle = null
+  vehicleQuery.value = ''
+}
+
 function toggleMenu(id) { openMenuId.value = openMenuId.value === id ? null : id }
 function closeMenu() { openMenuId.value = null }
-onMounted(() => document.addEventListener('click', closeMenu))
-onUnmounted(() => document.removeEventListener('click', closeMenu))
+function handleOutsideClick(e) {
+  closeMenu()
+  if (vehicleSearchRef.value && !vehicleSearchRef.value.contains(e.target)) {
+    vehicleDropdownOpen.value = false
+  }
+}
+onMounted(() => document.addEventListener('click', handleOutsideClick))
+onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 function openAdd() {
   editingId.value = null
   form.value = { vehicle: null, current_km: '', reason: '', start_date: '', end_date: '', notes: '' }
+  vehicleQuery.value = ''
+  vehicleDropdownOpen.value = false
   formError.value = ''
   showModal.value = true
 }
@@ -223,6 +293,8 @@ function openEdit(log) {
     end_date: log.end_date || '',
     notes: log.notes || ''
   }
+  vehicleQuery.value = ''
+  vehicleDropdownOpen.value = false
   formError.value = ''
   showModal.value = true
 }

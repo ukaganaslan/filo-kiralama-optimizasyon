@@ -3,9 +3,12 @@
     <div class="section-header">
       <div class="header-left">
         <h2>Araç Yönetimi</h2>
-        <span class="count-badge">{{ vehicles.length }} araç</span>
+        <span class="count-badge">{{ filteredVehicles.length }} araç</span>
       </div>
-      <button class="btn-add" @click="openAdd">+ Araç Ekle</button>
+      <div class="header-right">
+        <input v-model="search" class="search-input" placeholder="Plaka veya araç kodu ara..." />
+        <button class="btn-add" @click="openAdd">+ Araç Ekle</button>
+      </div>
     </div>
 
     <table>
@@ -40,7 +43,7 @@
             </div>
           </td>
         </tr>
-        <tr v-if="vehicles.length === 0">
+        <tr v-if="sortedVehicles.length === 0">
           <td colspan="9" class="empty">Araç bulunamadı.</td>
         </tr>
       </tbody>
@@ -177,11 +180,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useTableSort } from '@/composables/useTableSort'
 
 const vehicles = ref([])
+const search = ref('')
 const branches = ref([])
 const openMenuId = ref(null)
 const formModal = ref(false)
@@ -219,7 +223,16 @@ function statusLabel(s) {
   return { available: 'Müsait', rented: 'Kiralandı', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif' }[s] || s
 }
 
-const { sortBy, sortArrow, sorted: sortedVehicles } = useTableSort(vehicles, {
+const filteredVehicles = computed(() => {
+  const q = search.value.toLowerCase().trim()
+  if (!q) return vehicles.value
+  return vehicles.value.filter(v =>
+    (v.plate || '').toLowerCase().includes(q) ||
+    (v.vehicle_id || '').toLowerCase().includes(q)
+  )
+})
+
+const { sortBy, sortArrow, sorted: sortedVehicles } = useTableSort(filteredVehicles, {
   brand_model: v => `${v.brand} ${v.model}`,
   group: v => groupLabel(v.group),
   status: v => statusLabel(v.current_status),
@@ -293,6 +306,10 @@ async function doDelete() {
 .content { padding: 32px 40px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .header-left { display: flex; align-items: center; gap: 12px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.search-input { padding: 8px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; color: #475569; outline: none; width: 220px; }
+.search-input:focus { border-color: #6366f1; }
+.search-input::placeholder { color: #94a3b8; }
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .count-badge { padding: 3px 10px; background: #f1f5f9; color: #64748b; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .btn-add { padding: 8px 18px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
