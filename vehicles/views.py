@@ -1169,6 +1169,17 @@ def build_damage_svg(damage_items):
     return f'<img src="data:image/svg+xml;base64,{b64}" width="193" height="258" />'
 
 
+def _pdf_link_callback(uri, rel):
+    """xhtml2pdf @font-face token'larını gerçek TTF yollarına çevirir; diğer URI'leri (data: vb.) olduğu gibi bırakır."""
+    import os, reportlab
+    fonts_dir = os.path.join(os.path.dirname(reportlab.__file__), 'fonts')
+    mapping = {
+        'vera-regular.ttf': os.path.join(fonts_dir, 'Vera.ttf'),
+        'vera-bold.ttf': os.path.join(fonts_dir, 'VeraBd.ttf'),
+    }
+    return mapping.get(uri, uri)
+
+
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def reservation_pdf(request, pk, pdf_type):
@@ -1259,7 +1270,7 @@ def reservation_pdf(request, pk, pdf_type):
 
     html_string = render_to_string(template, context)
     buffer = BytesIO()
-    pisa.CreatePDF(html_string, dest=buffer, encoding='utf-8')
+    pisa.CreatePDF(html_string, dest=buffer, encoding='utf-8', link_callback=_pdf_link_callback)
     response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
