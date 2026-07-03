@@ -11,11 +11,12 @@ from django.contrib.auth.models import User
 from django.template.loader import render_to_string
 from django.http import HttpResponse
 from django.conf import settings
+from django.utils import timezone
 from io import BytesIO
 from xhtml2pdf import pisa
 
-from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment
-from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer
+from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment, ReservationExtension
+from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer, ReservationExtensionSerializer
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
 
@@ -1034,6 +1035,207 @@ def return_photo(request, pk):
         assignment.vehicle.damage_map = log.damage_items
         assignment.vehicle.save(update_fields=['total_km', 'damage_map'])
     return Response({'ok': True, 'stage': log.stage})
+
+
+
+def _vehicle_for_reservation(reservation):
+    ar = AssignmentResult.objects.filter(reservation=reservation).order_by('-run__created_at').first()
+    return ar.vehicle if ar else None
+
+
+def _extension_has_conflict(vehicle, window_start, window_end, exclude_reservation):
+    """window_start..window_end aralığında bu araca hâlihazırda atanmış (status=assigned)
+    başka bir rezervasyon var mı? Her adayın EN GÜNCEL atamasına bakılır."""
+    if not vehicle:
+        return False
+    candidates = Reservation.objects.filter(
+        status='assigned',
+        start_date__lte=window_end,
+        end_date__gte=window_start,
+    ).exclude(pk=exclude_reservation.pk)
+    for c in candidates:
+        ar = AssignmentResult.objects.filter(reservation=c).order_by('-run__created_at').first()
+        if ar and ar.vehicle_id == vehicle.id:
+            return True
+    return False
+
+
+def _extension_price(reservation, new_end_date):
+    """Uzatılan günlerin (mevcut end_date+1 .. new_end_date) DailyPrice toplamı.
+    (toplam, eksik_fiyat_var_mı) döner."""
+    start = reservation.end_date + timedelta(days=1)
+    days = (new_end_date - start).days + 1
+    if days <= 0:
+        return None, False
+    prices = {
+        p.date: p.price_per_day
+        for p in DailyPrice.objects.filter(
+            vehicle_group=reservation.vehicle_group, date__gte=start, date__lte=new_end_date
+        )
+    }
+    if len(prices) < days:
+        return None, True
+    total = sum(prices.get(start + timedelta(days=i), 0) for i in range(days))
+    return total, False
+
+
+def _expire_stale_extensions():
+    """İade günü gelmiş (end_date <= bugün) ama hâlâ sonuçlanmamış talepleri otomatik reddeder."""
+    ReservationExtension.objects.filter(
+        status='pending',
+        reservation__end_date__lte=date.today(),
+    ).update(
+        status='rejected',
+        reject_reason='İade günü geldiği için talep zamanında sonuçlandırılmadı, otomatik reddedildi.',
+        decided_at=timezone.now(),
+    )
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def extend_reservation(request, pk):
+    try:
+        reservation = Reservation.objects.get(pk=pk)
+    except Reservation.DoesNotExist:
+        return Response({'error': 'Rezervasyon bulunamadı'}, status=404)
+    # Sadece rezervasyon sahibi müşteri talep edebilir
+    if reservation.customer_id != request.user.id:
+        return Response({'error': 'Yetkisiz'}, status=403)
+    # Araç teslim alınmış ve henüz iade edilmemiş olmalı (backend'de de zorunlu)
+    logs = {l.event_type: l for l in reservation.delivery_logs.all()}
+    delivered = logs.get('delivered')
+    returned = logs.get('returned')
+    if not (delivered and delivered.stage == 'approved'):
+        return Response({'error': 'Sadece teslim alınmış araçlar için uzatma talep edilebilir.'}, status=400)
+    if returned and returned.stage == 'approved':
+        return Response({'error': 'İade edilmiş rezervasyon uzatılamaz.'}, status=400)
+    # İade günü geldiyse artık uzatma talep edilemez
+    if reservation.end_date <= date.today():
+        return Response({'error': 'İade günü geldiği için artık uzatma talep edilemez.'}, status=400)
+    # Aynı rezervasyonda bekleyen başka talep olmamalı
+    if reservation.extensions.filter(status='pending').exists():
+        return Response({'error': 'Bu rezervasyon için zaten bekleyen bir uzatma talebi var.'}, status=400)
+    # Tarih doğrulama
+    raw = request.data.get('requested_end_date')
+    if not raw:
+        return Response({'error': 'Yeni bitiş tarihi gerekli.'}, status=400)
+    try:
+        new_end_date = date.fromisoformat(str(raw))
+    except ValueError:
+        return Response({'error': 'Geçersiz tarih formatı.'}, status=400)
+    if new_end_date <= reservation.end_date:
+        return Response({'error': 'Yeni bitiş tarihi mevcut bitiş tarihinden sonra olmalı.'}, status=400)
+    # Fiyat (uzatılan günlerde fiyat tanımlı olmalı)
+    extra_price, missing = _extension_price(reservation, new_end_date)
+    if missing:
+        return Response({'error': 'Uzatılan tarih aralığında fiyatlandırılmamış gün var.'}, status=400)
+    # Müsaitlik: araç uzatma penceresinde başka rezervasyona atanmış mı?
+    vehicle = _vehicle_for_reservation(reservation)
+    window_start = reservation.end_date + timedelta(days=1)
+    if _extension_has_conflict(vehicle, window_start, new_end_date, reservation):
+        ext = ReservationExtension.objects.create(
+            reservation=reservation, requested_end_date=new_end_date,
+            status='rejected', extra_price=extra_price,
+            reject_reason='Araç bu tarihlerde başka bir rezervasyona atanmış.',
+            decided_at=timezone.now(),
+        )
+        # TODO(106): müşteriye otomatik red bildirimi
+        return Response({'status': 'rejected', 'reason': ext.reject_reason}, status=200)
+    ext = ReservationExtension.objects.create(
+        reservation=reservation, requested_end_date=new_end_date,
+        status='pending', extra_price=extra_price,
+    )
+    # TODO(106): şube temsilcisine yeni talep bildirimi
+    return Response(ReservationExtensionSerializer(ext).data, status=201)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def extension_list(request):
+    _expire_stale_extensions()
+    user = request.user
+    profile = getattr(user, 'profile', None)
+    role = profile.role if profile else None
+    qs = ReservationExtension.objects.select_related('reservation', 'reservation__branch').order_by('-created_at')
+    if role == 'admin' or user.is_superuser:
+        pass
+    elif role == 'representative' and profile.branch:
+        qs = qs.filter(reservation__branch=profile.branch)
+    else:
+        qs = qs.filter(reservation__customer=user)
+    status_f = request.query_params.get('status')
+    if status_f:
+        qs = qs.filter(status=status_f)
+    return Response(ReservationExtensionSerializer(qs, many=True).data)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def approve_extension(request, ext_id):
+    try:
+        ext = ReservationExtension.objects.select_related('reservation').get(pk=ext_id)
+    except ReservationExtension.DoesNotExist:
+        return Response({'error': 'Talep bulunamadı'}, status=404)
+    reservation = ext.reservation
+    auth_error = _require_staff_role(request, reservation)
+    if auth_error:
+        return auth_error
+    if ext.status != 'pending':
+        return Response({'error': 'Bu talep zaten sonuçlandırılmış.'}, status=400)
+    # İade günü geldiyse (veya araç iade edildiyse) onaylanamaz — otomatik reddet
+    returned = reservation.delivery_logs.filter(event_type='returned', stage='approved').exists()
+    if reservation.end_date <= date.today() or returned:
+        ext.status = 'rejected'
+        ext.reject_reason = 'İade günü geldiği için talep otomatik reddedildi.'
+        ext.decided_at = timezone.now()
+        ext.save()
+        return Response({'status': 'rejected', 'reason': ext.reject_reason}, status=200)
+    # Yarış durumu: onay anında müsaitliği tekrar kontrol et
+    vehicle = _vehicle_for_reservation(reservation)
+    window_start = reservation.end_date + timedelta(days=1)
+    if _extension_has_conflict(vehicle, window_start, ext.requested_end_date, reservation):
+        ext.status = 'rejected'
+        ext.reject_reason = 'Araç bu tarihlerde artık müsait değil.'
+        ext.decided_at = timezone.now()
+        ext.save()
+        # TODO(106): müşteriye otomatik red bildirimi
+        return Response({'status': 'rejected', 'reason': ext.reject_reason}, status=200)
+    # Fiyatı talep anındakine güvenmeden yeniden hesapla
+    extra_price, missing = _extension_price(reservation, ext.requested_end_date)
+    if missing:
+        return Response({'error': 'Uzatılan tarih aralığında fiyatlandırılmamış gün var.'}, status=400)
+    reservation.end_date = ext.requested_end_date
+    if extra_price:
+        reservation.total_price = (reservation.total_price or 0) + extra_price
+    reservation.save()
+    ext.status = 'approved'
+    ext.extra_price = extra_price
+    ext.decided_at = timezone.now()
+    ext.save()
+    _run_optimization()  # etraftaki pending rezervasyonları yeni locked pencereye göre yeniden dağıt
+    # TODO(106): müşteriye onay bildirimi
+    return Response({'status': 'approved'})
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def reject_extension(request, ext_id):
+    try:
+        ext = ReservationExtension.objects.select_related('reservation').get(pk=ext_id)
+    except ReservationExtension.DoesNotExist:
+        return Response({'error': 'Talep bulunamadı'}, status=404)
+    auth_error = _require_staff_role(request, ext.reservation)
+    if auth_error:
+        return auth_error
+    if ext.status != 'pending':
+        return Response({'error': 'Bu talep zaten sonuçlandırılmış.'}, status=400)
+    ext.status = 'rejected'
+    ext.reject_reason = request.data.get('reason') or 'Temsilci tarafından reddedildi.'
+    ext.decided_at = timezone.now()
+    ext.save()
+    # TODO(106): müşteriye red bildirimi
+    return Response({'status': 'rejected'})
+
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])

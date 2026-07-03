@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from vehicles.views import BranchViewSet, VehicleViewSet, ReservationViewSet, TransferCostViewSet, optimize, latest_optimization, login_view, logout_view, register_view, availability, cancel_reservation, user_list, toggle_user_active, profile_view, create_user, update_user, transfer_cost_view, guest_reservation, guest_reservation_detail, guest_cancel, delivery_logs, MaintenanceLogViewSet, DailyPriceViewSet, deliver_reservation, deliver_document, deliver_photo, return_reservation, return_document, return_photo, vehicle_history, reservation_pdf, admin_stats
+from vehicles.views import BranchViewSet, VehicleViewSet, ReservationViewSet, TransferCostViewSet, optimize, latest_optimization, login_view, logout_view, register_view, availability, cancel_reservation, user_list, toggle_user_active, profile_view, create_user, update_user, transfer_cost_view, guest_reservation, guest_reservation_detail, guest_cancel, delivery_logs, MaintenanceLogViewSet, DailyPriceViewSet, deliver_reservation, deliver_document, deliver_photo, return_reservation, return_document, return_photo, vehicle_history, reservation_pdf, admin_stats, extend_reservation, extension_list, approve_extension, reject_extension
 
 from django.conf import settings
 from django.conf.urls.static import static
@@ -43,6 +43,10 @@ urlpatterns = [
     path('api/reservations/<int:pk>/return/photo/', return_photo),
     path('api/vehicles/<str:vehicle_id>/history/', vehicle_history),
     path('api/reservations/<int:pk>/pdf/<str:pdf_type>/', reservation_pdf),
+    path('api/reservations/<int:pk>/extend/', extend_reservation),
+    path('api/extensions/', extension_list),
+    path('api/extensions/<int:ext_id>/approve/', approve_extension),
+    path('api/extensions/<int:ext_id>/reject/', reject_extension),
     path('api/admin-stats/', admin_stats),
 ]
 if settings.DEBUG:

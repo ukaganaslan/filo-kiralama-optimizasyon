@@ -66,6 +66,25 @@
       </div>
     </div>
 
+    <div v-if="bekleyenUzatmalar.length > 0" class="ext-band">
+      <div class="warning-header">
+        <span class="warning-title">Bekleyen Uzatma Talepleri</span>
+        <span class="count-badge count-badge--amber">{{ bekleyenUzatmalar.length }}</span>
+      </div>
+      <div v-for="e in bekleyenUzatmalar" :key="e.id" class="ext-row">
+        <div class="ext-info">
+          <span class="col-name">{{ e.reservation_code }}</span>
+          <span class="ext-sub">{{ e.customer_name }}<template v-if="e.plate"> · {{ e.plate }}</template></span>
+          <span class="ext-dates">{{ e.current_end_date }} → <strong>{{ e.requested_end_date }}</strong></span>
+          <span v-if="e.extra_price" class="ext-price">+{{ Number(e.extra_price).toLocaleString('tr-TR') }} ₺</span>
+        </div>
+        <div class="ext-actions">
+          <button class="btn-approve" :disabled="busyId === e.id" @click="approveExt(e.id)">Onayla</button>
+          <button class="btn-reject" :disabled="busyId === e.id" @click="rejectExt(e.id)">Reddet</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -78,6 +97,8 @@ const router = useRouter()
 const reservations = ref([])
 const vehicles = ref([])
 const branchName = ref('')
+const extensions = ref([])
+const busyId = ref(null)
 
 const bugun = new Date().toISOString().split('T')[0]
 
@@ -101,6 +122,45 @@ const atanamamis = computed(() =>
   reservations.value.filter(r => r.start_date === bugun && r.status === 'pending')
 )
 
+const bekleyenUzatmalar = computed(() =>
+  extensions.value.filter(e => e.status === 'pending')
+)
+
+async function loadExtensions() {
+  const res = await axios.get('/api/extensions/?status=pending')
+  extensions.value = res.data
+}
+
+async function approveExt(id) {
+  busyId.value = id
+  try {
+    const res = await axios.post(`/api/extensions/${id}/approve/`)
+    if (res.data.status === 'rejected') {
+      alert('Talep onaylanamadı: ' + (res.data.reason || 'araç müsait değil.'))
+    }
+    // onay optimizeri tetikler; rezervasyonları da tazele
+    const rez = await axios.get('/api/reservations/')
+    reservations.value = rez.data
+    await loadExtensions()
+  } catch (e) {
+    alert(e.response?.data?.error || 'İşlem başarısız.')
+  } finally {
+    busyId.value = null
+  }
+}
+
+async function rejectExt(id) {
+  busyId.value = id
+  try {
+    await axios.post(`/api/extensions/${id}/reject/`)
+    await loadExtensions()
+  } catch (e) {
+    alert(e.response?.data?.error || 'İşlem başarısız.')
+  } finally {
+    busyId.value = null
+  }
+}
+
 onMounted(async () => {
   const [rezRes, vehicleRes, profileRes, branchRes] = await Promise.all([
     axios.get('/api/reservations/'),
@@ -113,6 +173,7 @@ onMounted(async () => {
   const branchId = profileRes.data.branch_id
   const branch = branchRes.data.find(b => b.id === branchId)
   branchName.value = branch ? (branch.title || branch.name) : ''
+  await loadExtensions()
 })
 
 function musteriAdi(r) {
@@ -242,4 +303,30 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
 }
 
 .col-warn { color: #b45309; font-size: 12px; font-weight: 500; margin-left: auto; }
+
+.ext-band {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+.ext-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid #f1f5f9;
+}
+.ext-info { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; flex-wrap: wrap; }
+.ext-sub { color: #64748b; font-size: 12px; }
+.ext-dates { font-size: 13px; color: #1e293b; }
+.ext-dates strong { color: #6366f1; }
+.ext-price { font-size: 12px; font-weight: 700; color: #065f46; background: #d1fae5; padding: 2px 8px; border-radius: 50px; }
+.ext-actions { display: flex; gap: 8px; margin-left: auto; }
+.btn-approve { padding: 6px 14px; background: #16a34a; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-approve:hover { background: #15803d; }
+.btn-reject { padding: 6px 14px; background: white; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-reject:hover { background: #fef2f2; }
+.btn-approve:disabled, .btn-reject:disabled { opacity: 0.5; cursor: default; }
 </style>

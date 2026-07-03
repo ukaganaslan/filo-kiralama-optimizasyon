@@ -1,6 +1,34 @@
 <template>
   <div class="page">
+    <div class="dashboard-summary">
+      <h2 class="summary-greeting">Merhaba {{ auth.username }}</h2>
+
+      <div v-if="upcomingReservation" class="upcoming-card">
+        <div class="upcoming-header">
+          <span class="upcoming-label">Yaklaşan Rezervasyonun</span>
+          <span :class="'badge badge-' + upcomingReservation.current_status">{{ statusText(upcomingReservation.current_status) }}</span>
+        </div>
+        <div class="upcoming-vehicle">
+          <template v-if="upcomingReservation.assigned_vehicle_info">
+            {{ upcomingReservation.assigned_vehicle_info.brand }} {{ upcomingReservation.assigned_vehicle_info.model }} · {{ upcomingReservation.assigned_vehicle_info.plate }}
+          </template>
+          <template v-else>
+            {{ groupLabel(upcomingReservation.vehicle_group) }}
+          </template>
+        </div>
+        <div class="upcoming-details">
+          <span>{{ upcomingReservation.branch_title }}</span>
+          <span class="upcoming-dot">·</span>
+          <span>{{ upcomingReservation.start_date }} → {{ upcomingReservation.end_date }}</span>
+        </div>
+      </div>
+      <div v-else class="upcoming-empty">
+        Aktif rezervasyonunuz bulunmuyor.
+      </div>
+    </div>
+
     <div class="wizard">
+      <h2 class="wizard-title">Yeni Rezervasyon</h2>
 
       <!-- Step Bar -->
       <div class="step-bar">
@@ -209,6 +237,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
 
 const currentStep = ref(1)
 const direction = ref('forward')
@@ -224,6 +255,7 @@ const dateRange = ref({ start: null, end: null })
 const differentReturn = ref(false)
 const transferCost = ref(null)
 const dailyPrices = ref([])
+const reservations = ref([])
 
 const totalPrice = computed(() => {
   if (!dateRange.value.start || !dateRange.value.end || !dailyPrices.value.length) return null
@@ -268,9 +300,18 @@ const disabledDates = computed(() => {
   return disabled
 })
 
+const upcomingReservation = computed(() => {
+  const upcoming = reservations.value
+    .filter(r => r.current_status === 'pending' || r.current_status === 'assigned')
+    .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+  return upcoming[0] || null
+})
+
 onMounted(async () => {
   const res = await axios.get('/api/branches/')
+  const res2 = await axios.get('/api/reservations/')
   branches.value = res.data
+  reservations.value = res2.data
 })
 
 function branchName(id) {
@@ -279,6 +320,17 @@ function branchName(id) {
 }
 function groupLabel(v) {
   return groups.find(g => g.value === v)?.label || v
+}
+
+function statusText(status) {
+  const labels = {
+    pending: 'Bekliyor',
+    assigned: 'Onaylandı',
+    active: 'Kirada',
+    completed: 'Tamamlandı',
+    cancelled: 'İptal',
+  }
+  return labels[status] || status
 }
 
 function nextStep() {
@@ -367,10 +419,74 @@ function resetForm() {
 <style scoped>
 .page { background: #F8FAFC; min-height: 100vh; }
 
+/* ── Dashboard Özeti ── */
+.dashboard-summary {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 40px 24px 0;
+}
+
+.summary-greeting {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 16px;
+}
+
+.upcoming-card, .upcoming-empty {
+  background: white;
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid rgba(226,232,240,0.8);
+  margin-bottom: 16px;
+}
+
+.upcoming-empty { color: #64748B; font-size: 14px; }
+
+.upcoming-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.upcoming-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748B;
+}
+
+.upcoming-vehicle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1B1063;
+  margin-bottom: 6px;
+}
+
+.upcoming-details {
+  font-size: 13px;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.upcoming-dot { color: #cbd5e1; }
+
 .wizard {
   max-width: 620px;
   margin: 0 auto;
   padding: 40px 24px 80px;
+}
+
+.wizard-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 24px;
 }
 
 /* ── Step Bar ── */

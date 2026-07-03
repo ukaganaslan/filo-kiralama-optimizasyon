@@ -45,7 +45,7 @@
               </div>
             </td>
             <td class="actions-cell">
-              <button class="btn-detail" @click="selectedRes = r">Detay</button>
+              <button class="btn-detail" @click="openDetail(r)">Detay</button>
               <button
                 v-if="r.status !== 'cancelled' && new Date(r.start_date + 'T00:00:00' ) > new Date()"
                 class="btn-cancel"
@@ -110,13 +110,37 @@
         <div v-if="!selectedRes.delivery_info?.delivered" class="modal-empty">
           Henüz araç teslimi yapılmamış.
         </div>
+
+        <template v-if="selectedRes.delivery_info?.delivered && !selectedRes.delivery_info?.returned">
+          <div class="modal-section-title">Süre Uzatma</div>
+
+          <div v-if="currentExtension" class="ext-status">
+            <span :class="'ext-badge ext-' + currentExtension.status">{{ extStatusLabel[currentExtension.status] }}</span>
+            <span class="ext-detail">
+              Talep edilen bitiş: {{ currentExtension.requested_end_date }}
+              <template v-if="currentExtension.status === 'rejected' && currentExtension.reject_reason"> — {{ currentExtension.reject_reason }}</template>
+            </span>
+          </div>
+
+          <div v-if="canRequestExtension" class="ext-form">
+            <label class="ext-label">Yeni Bitiş Tarihi</label>
+            <div class="ext-row">
+              <input type="date" v-model="extendDate" :min="selectedRes.end_date" class="ext-input" />
+              <button class="btn-ext" :disabled="extendLoading" @click="submitExtension">
+                {{ extendLoading ? 'Gönderiliyor...' : 'Uzatma Talep Et' }}
+              </button>
+            </div>
+            <p v-if="extendError" class="ext-error">{{ extendError }}</p>
+            <p v-if="extendMsg" class="ext-msg">{{ extendMsg }}</p>
+          </div>
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import CarDamageMap from '@/components/CarDamageMap.vue'
 import { useTableSort } from '@/composables/useTableSort'
@@ -124,6 +148,11 @@ import { useTableSort } from '@/composables/useTableSort'
 const reservations = ref([])
 const error = ref('')
 const selectedRes = ref(null)
+const extensions = ref([])
+const extendDate = ref('')
+const extendMsg = ref('')
+const extendError = ref('')
+const extendLoading = ref(false)
 
 const groupLabels = { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }
 function groupLabel(v) { return groupLabels[v] || v }
@@ -157,9 +186,15 @@ const { sortBy, sortArrow, sorted } = useTableSort(reservations, {
   status: r => displayStatus(r),
 })
 
+async function loadExtensions() {
+  const res = await axios.get('/api/extensions/')
+  extensions.value = res.data
+}
+
 onMounted(async () => {
   const res = await axios.get('/api/reservations/')
   reservations.value = res.data
+  await loadExtensions()
 })
 
 async function handleCancel(reservationId) {
@@ -169,6 +204,56 @@ async function handleCancel(reservationId) {
     reservations.value = res.data
   } catch {
     error.value = 'İptal işlemi başarısız.'
+  }
+}
+
+// Seçili rezervasyonun en güncel uzatma talebi
+const currentExtension = computed(() => {
+  if (!selectedRes.value) return null
+  return extensions.value
+    .filter(e => e.reservation === selectedRes.value.id)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0] || null
+})
+const bugun = new Date().toISOString().split('T')[0]
+const canRequestExtension = computed(() => {
+  const r = selectedRes.value
+  if (!r) return false
+  const active = r.delivery_info?.delivered && !r.delivery_info?.returned
+  const beforeReturnDay = r.end_date > bugun  // iade günü gelmeden
+  const hasPending = currentExtension.value && currentExtension.value.status === 'pending'
+  return active && beforeReturnDay && !hasPending
+})
+const extStatusLabel = { pending: 'Bekliyor', approved: 'Onaylandı', rejected: 'Reddedildi' }
+
+function openDetail(r) {
+  selectedRes.value = r
+  extendDate.value = ''
+  extendMsg.value = ''
+  extendError.value = ''
+}
+
+async function submitExtension() {
+  extendError.value = ''
+  extendMsg.value = ''
+  if (!extendDate.value) { extendError.value = 'Yeni bitiş tarihi seçin.'; return }
+  if (extendDate.value <= selectedRes.value.end_date) {
+    extendError.value = 'Yeni tarih mevcut bitişten sonra olmalı.'; return
+  }
+  extendLoading.value = true
+  try {
+    const res = await axios.post(`/api/reservations/${selectedRes.value.id}/extend/`, {
+      requested_end_date: extendDate.value,
+    })
+    if (res.data.status === 'rejected') {
+      extendMsg.value = 'Talep otomatik reddedildi: ' + (res.data.reason || 'araç müsait değil.')
+    } else {
+      extendMsg.value = 'Uzatma talebiniz alındı, temsilci onayı bekleniyor.'
+    }
+    await loadExtensions()
+  } catch (e) {
+    extendError.value = e.response?.data?.error || 'Talep gönderilemedi.'
+  } finally {
+    extendLoading.value = false
   }
 }
 </script>
@@ -182,6 +267,22 @@ async function handleCancel(reservationId) {
 .empty-icon { font-size: 36px; margin-bottom: 12px; color: #cbd5e1; }
 .empty-state p { color: #475569; font-size: 15px; font-weight: 600; margin: 0 0 6px; }
 .empty-sub { color: #94a3b8; font-size: 13px; font-weight: 400 !important; }
+.ext-status { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.ext-badge { padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 700; }
+.ext-pending { background: #fef3c7; color: #92400e; }
+.ext-approved { background: #d1fae5; color: #065f46; }
+.ext-rejected { background: #fee2e2; color: #b91c1c; }
+.ext-detail { font-size: 13px; color: #475569; }
+.ext-form { display: flex; flex-direction: column; gap: 8px; }
+.ext-label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.06em; text-transform: uppercase; }
+.ext-row { display: flex; gap: 8px; align-items: center; }
+.ext-input { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; color: #1e293b; outline: none; }
+.ext-input:focus { border-color: #6366f1; }
+.btn-ext { padding: 8px 16px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.btn-ext:hover { background: #4f46e5; }
+.btn-ext:disabled { opacity: 0.6; cursor: default; }
+.ext-error { color: #dc2626; font-size: 13px; margin: 0; }
+.ext-msg { color: #065f46; font-size: 13px; margin: 0; }
 .table-wrap { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }

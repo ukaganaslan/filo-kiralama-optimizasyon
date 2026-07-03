@@ -121,6 +121,24 @@ class MaintenanceLog(models.Model):
         return f"{self.vehicle} - {self.date}"
 
 
+class ReservationExtension(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Bekliyor'),
+        ('approved', 'Onaylandı'),
+        ('rejected', 'Reddedildi'),
+    ]
+    reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, related_name='extensions')
+    requested_end_date = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    extra_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    reject_reason = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.reservation.reservation_id} → {self.requested_end_date} ({self.status})"
+
+
 class CustomerProfile(models.Model):
     ROLE_CHOICES = [
         ('customer', 'Müşteri'),
