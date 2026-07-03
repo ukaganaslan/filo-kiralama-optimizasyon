@@ -20,6 +20,21 @@
         <input v-model="form.phone" type="text" placeholder="Telefon" />
       </div>
 
+      <div class="field">
+        <label>Tam Adres</label>
+        <input v-model="form.billing_address" type="text" placeholder="Tam Adres" />
+      </div>
+
+      <div class="field">
+        <label>Ülke</label>
+        <input v-model="form.billing_country" type="text" placeholder="Ülke" />
+      </div>
+
+      <div class="field">
+        <label>Şehir</label>
+        <input v-model="form.billing_city" type="text" placeholder="Şehir" />
+      </div>
+
       <div class="divider"></div>
       <h3>Şifre Değiştir</h3>
       <div class="field">
@@ -41,7 +56,7 @@ import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
-const form = ref({ username: '', full_name: '', email: '', phone: '', new_password: '' })
+const form = ref({ username: '', full_name: '', email: '', phone: '', new_password: '', billing_address: '', billing_country: '', billing_city: '' })
 const success = ref('')
 const error = ref('')
 
@@ -59,6 +74,9 @@ async function handleSave() {
       email: form.value.email,
       full_name: form.value.full_name,
       phone: form.value.phone,
+      billing_address: form.value.billing_address,
+      billing_country: form.value.billing_country,
+      billing_city: form.value.billing_city,
       new_password: form.value.new_password || undefined,
     })
     success.value = 'Profil güncellendi.'

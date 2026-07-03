@@ -84,6 +84,11 @@ class Reservation(models.Model):
     guest_name = models.CharField(max_length=20, blank=True)
     guest_phone = models.CharField(max_length=20, blank=True)
     guest_email = models.EmailField(blank=True)
+    billing_name = models.CharField(max_length=30, blank=True)
+    billing_address = models.TextField(blank=True)
+    billing_city = models.CharField(max_length=30, blank=True)
+    billing_country = models.CharField(max_length=30, blank=True)
+    billing_phone = models.CharField(max_length=20, blank=True)
 
     class Meta:
         indexes = [
@@ -151,6 +156,11 @@ class CustomerProfile(models.Model):
     full_name = models.CharField(max_length=100, blank=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')
     branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name='representatives')
+    billing_name = models.CharField(max_length=30, blank=True)
+    billing_address = models.TextField(blank=True)
+    billing_city = models.CharField(max_length=30, blank=True)
+    billing_country = models.CharField(max_length=30, blank=True)
+    billing_phone = models.CharField(max_length=20, blank=True)
 
     def __str__(self):
         return self.full_name

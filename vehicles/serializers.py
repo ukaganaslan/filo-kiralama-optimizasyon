@@ -116,7 +116,8 @@ class ReservationSerializer(serializers.ModelSerializer):
             'return_branch', 'return_branch_name', 'return_branch_title',
             'vehicle_group', 'start_date', 'end_date', 'status',
             'customer_username', 'assigned_vehicle_id', 'assigned_vehicle_info', 'current_status',
-            'guest_name', 'guest_phone', 'guest_email', 'total_price', 'delivery_info',
+            'guest_name', 'guest_phone', 'guest_email', 'total_price', 'delivery_info', 
+            'billing_name', 'billing_address', 'billing_city', 'billing_country', 'billing_phone'
         ]
 
 

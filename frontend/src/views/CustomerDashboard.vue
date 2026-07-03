@@ -156,10 +156,42 @@
           </div>
         </div>
 
-        <!-- Step 4: Onay -->
+        <!-- Step 4: Fatura -->
         <div v-else-if="currentStep === 4" key="step4" class="step-card">
           <div class="card-title">
-            <div class="card-title-icon">✅</div>
+            <div>
+              <div class="card-title-text">Fatura Bilgileri</div>
+              <div class="card-title-sub">İsteğe bağlı, kayıt için kullanılır</div>
+            </div>
+          </div>
+
+          <div class="billing-grid">
+            <div class="loc-field">
+              <div class="loc-label"><span>Ad Soyad</span></div>
+              <input v-model="form.billing_name" type="text" placeholder="Ad Soyad" />
+            </div>
+            <div class="loc-field">
+              <div class="loc-label"><span>Telefon</span></div>
+              <input v-model="form.billing_phone" type="text" placeholder="Telefon" />
+            </div>
+            <div class="loc-field loc-field--full">
+              <div class="loc-label"><span>Fatura Adresi</span></div>
+              <textarea v-model="form.billing_address" rows="2" placeholder="Fatura adresi"></textarea>
+            </div>
+            <div class="loc-field">
+              <div class="loc-label"><span>Şehir</span></div>
+              <input v-model="form.billing_city" type="text" placeholder="Şehir" />
+            </div>
+            <div class="loc-field">
+              <div class="loc-label"><span>Ülke</span></div>
+              <input v-model="form.billing_country" type="text" placeholder="Ülke" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5: Onay -->
+        <div v-else-if="currentStep === 5" key="step5" class="step-card">
+          <div class="card-title">
             <div>
               <div class="card-title-text">Rezervasyon Özeti</div>
               <div class="card-title-sub">Bilgileri kontrol edip onaylayın</div>
@@ -211,7 +243,7 @@
           ← Geri
         </button>
         <button
-          v-if="currentStep < 4"
+          v-if="currentStep < 5"
           class="btn-next"
           :disabled="!canAdvance"
           @click="nextStep"
@@ -219,7 +251,7 @@
           İleri →
         </button>
         <button
-          v-if="currentStep === 4 && !formSuccess"
+          v-if="currentStep === 5 && !formSuccess"
           class="btn-confirm"
           @click="handleCreate"
         >
@@ -243,14 +275,14 @@ const auth = useAuthStore()
 
 const currentStep = ref(1)
 const direction = ref('forward')
-const stepLabels = ['Lokasyon', 'Araç Grubu', 'Tarih', 'Onay']
+const stepLabels = ['Lokasyon', 'Araç Grubu', 'Tarih', 'Fatura', 'Onay']
 
 const branches = ref([])
 const availableDates = ref([])
 const availabilityLoading = ref(false)
 const formError = ref('')
 const formSuccess = ref('')
-const form = ref({ branch: '', vehicle_group: '', return_branch: '' })
+const form = ref({ branch: '', vehicle_group: '', return_branch: '', billing_name: '', billing_address: '', billing_city: '', billing_country: '', billing_phone: '' })
 const dateRange = ref({ start: null, end: null })
 const differentReturn = ref(false)
 const transferCost = ref(null)
@@ -283,6 +315,7 @@ const canAdvance = computed(() => {
   if (currentStep.value === 1) return !!form.value.branch
   if (currentStep.value === 2) return !!form.value.vehicle_group
   if (currentStep.value === 3) return !!(dateRange.value.start && dateRange.value.end)
+  if (currentStep.value === 4) return true
   return false
 })
 
@@ -310,8 +343,14 @@ const upcomingReservation = computed(() => {
 onMounted(async () => {
   const res = await axios.get('/api/branches/')
   const res2 = await axios.get('/api/reservations/')
+  const res3 = await axios.get('/api/profile/')
   branches.value = res.data
   reservations.value = res2.data
+  form.value.billing_name = res3.data.billing_name || res3.data.full_name || ''
+  form.value.billing_address = res3.data.billing_address || ''
+  form.value.billing_city = res3.data.billing_city || ''
+  form.value.billing_country = res3.data.billing_country || ''
+  form.value.billing_phone = res3.data.billing_phone || res3.data.phone || ''
 })
 
 function branchName(id) {
@@ -395,6 +434,11 @@ async function handleCreate() {
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
+      billing_name: form.value.billing_name,
+      billing_address: form.value.billing_address,
+      billing_city: form.value.billing_city,
+      billing_country: form.value.billing_country,
+      billing_phone: form.value.billing_phone,
     })
     formSuccess.value = 'Rezervasyon oluşturuldu! Onay bekleniyor.'
   } catch (e) {
@@ -406,7 +450,14 @@ async function handleCreate() {
 function resetForm() {
   currentStep.value = 1
   direction.value = 'forward'
-  form.value = { branch: '', vehicle_group: '', return_branch: '' }
+  form.value = {
+    branch: '', vehicle_group: '', return_branch: '',
+    billing_name: form.value.billing_name,
+    billing_address: form.value.billing_address,
+    billing_city: form.value.billing_city,
+    billing_country: form.value.billing_country,
+    billing_phone: form.value.billing_phone,
+  }
   dateRange.value = { start: null, end: null }
   availableDates.value = []
   differentReturn.value = false
@@ -608,7 +659,9 @@ function resetForm() {
 .loc-dot.pickup { background: #1B1063; }
 .loc-dot.active { background: #F59E0B; }
 
-.loc-field select {
+.loc-field select,
+.loc-field input,
+.loc-field textarea {
   padding: 12px 16px;
   border: 1.5px solid #e2e8f0;
   border-radius: 11px;
@@ -618,9 +671,26 @@ function resetForm() {
   background: #fafafa;
   transition: border 0.2s, color 0.2s, box-shadow 0.2s;
   cursor: pointer;
+  font-family: inherit;
+}
+.loc-field input,
+.loc-field textarea {
+  color: #111827;
+  cursor: text;
+  resize: none;
 }
 .loc-field select.filled { color: #111827; background: white; border-color: #c4beff; }
-.loc-field select:focus { border-color: #1B1063; background: white; box-shadow: 0 0 0 3px rgba(27,16,99,0.08); }
+.loc-field select:focus,
+.loc-field input:focus,
+.loc-field textarea:focus { border-color: #1B1063; background: white; box-shadow: 0 0 0 3px rgba(27,16,99,0.08); }
+
+/* ── Step 4: Fatura ── */
+.billing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.loc-field--full { grid-column: 1 / -1; }
 
 .same-loc-btn {
   padding: 12px 16px;

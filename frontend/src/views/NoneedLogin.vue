@@ -195,12 +195,29 @@
                   <input v-model="guest.name" type="text" placeholder="Ahmet Yılmaz" />
                 </div>
                 <div class="info-field">
-                  <label>Telefon</label>
+                  <label>Telefon <span class="req">*</span></label>
                   <input v-model="guest.phone" type="tel" placeholder="05XX XXX XX XX" />
                 </div>
                 <div class="info-field">
                   <label>E-posta <span class="req">*</span></label>
                   <input v-model="guest.email" type="email" placeholder="ahmet@email.com" />
+                </div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="info-fields">
+                <div class="info-field">
+                  <label>Fatura Adresi <span class="req">*</span></label>
+                  <input v-model="guest.billing_address" type="text" placeholder="Fatura adresi" />
+                </div>
+                <div class="info-field">
+                  <label>Şehir <span class="req">*</span></label>
+                  <input v-model="guest.billing_city" type="text" placeholder="Şehir" />
+                </div>
+                <div class="info-field">
+                  <label>Ülke <span class="req">*</span></label>
+                  <input v-model="guest.billing_country" type="text" placeholder="Ülke" />
                 </div>
               </div>
 
@@ -354,7 +371,7 @@ const transferCost = ref(null)
 
 const form = ref({ branch: '', vehicle_group: '', return_branch: '' })
 const dateRange = ref({ start: null, end: null })
-const guest = ref({ name: '', phone: '', email: '' })
+const guest = ref({ name: '', phone: '', email: '', billing_address: '', billing_city: '', billing_country: '' })
 
 const query = ref({ code: '', email: '' })
 const queryResult = ref(null)
@@ -468,6 +485,11 @@ async function handleCreate() {
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
+      billing_name: guest.value.name,
+      billing_phone: guest.value.phone,
+      billing_address: guest.value.billing_address,
+      billing_city: guest.value.billing_city,
+      billing_country: guest.value.billing_country,
     })
     reservationCode.value = res.data.code
     reservationPrice.value = res.data.total_price
@@ -481,7 +503,7 @@ function resetForm() {
   direction.value = 'forward'
   form.value = { branch: '', vehicle_group: '', return_branch: '' }
   dateRange.value = { start: null, end: null }
-  guest.value = { name: '', phone: '', email: '' }
+  guest.value = { name: '', phone: '', email: '', billing_address: '', billing_city: '', billing_country: '' }
   differentReturn.value = false
   transferCost.value = null
   reservationCode.value = ''
@@ -676,6 +698,7 @@ function copyCode(){
 .info-field input:focus { border-color: #1B1063; background: white; box-shadow: 0 0 0 3px rgba(27,16,99,0.08); }
 
 .form-error { color: #DC2626; font-size: 13px; background: #fff1f2; padding: 11px 14px; border-radius: 9px; border: 1px solid #fecdd3; margin-top: 12px; }
+.divider { height: 1px; background: #f1f5f9; margin: 22px 0; }
 
 /* ── Navigation ── */
 .step-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 10px; }

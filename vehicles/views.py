@@ -144,7 +144,16 @@ class ReservationViewSet(viewsets.ModelViewSet):
         save_kwargs = {'customer': customer, 'status': 'pending', 'reservation_id': reservation_id, 'total_price': total or None}
         if profile and profile.role == 'representative' and profile.branch:
             save_kwargs['branch'] = profile.branch
+        billing_fields = ['billing_name', 'billing_address', 'billing_city', 'billing_country', 'billing_phone']
+        billing_data = {f: serializer.validated_data.get(f) for f in billing_fields}
         serializer.save(**save_kwargs)
+        if any(billing_data.values()):
+            customer_profile = getattr(customer, 'profile', None)
+            if not customer_profile:
+                customer_profile = CustomerProfile.objects.create(user=customer)
+            for field, value in billing_data.items():
+                setattr(customer_profile, field, value)
+            customer_profile.save()
         _run_optimization()
     
     def perform_update(self, serializer):
@@ -580,6 +589,11 @@ def profile_view(request):
             'phone': profile.phone if profile else '',
             'role': profile.role if profile else ('admin' if user.is_staff else 'customer'),
             'branch_id': profile.branch_id if profile else None,
+            'billing_name': profile.billing_name if profile else '',
+            'billing_address': profile.billing_address if profile else '',
+            'billing_city': profile.billing_city if profile else '',
+            'billing_country': profile.billing_country if profile else '',
+            'billing_phone': profile.billing_phone if profile else '',
         })
     data = request.data
     if 'username' in data and data['username']:
@@ -588,13 +602,17 @@ def profile_view(request):
         user.username = data['username']
     if 'email' in data:
         user.email = data['email']
-    if 'full_name' in data or 'phone' in data:
+    billing_keys = ['billing_address', 'billing_country', 'billing_city']
+    if 'full_name' in data or 'phone' in data or any(k in data for k in billing_keys):
         if not profile:
             profile = CustomerProfile.objects.create(user=user)
         if 'full_name' in data:
             profile.full_name = data['full_name']
         if 'phone' in data:
             profile.phone = data['phone']
+        for key in billing_keys:
+            if key in data:
+                setattr(profile, key, data[key])
         profile.save()
     new_token = None
     if 'new_password' in data and data['new_password']:
@@ -697,6 +715,11 @@ def guest_reservation(request):
         end_date=end_date,
         status='pending',
         total_price=total or None,
+        billing_name=request.data.get('billing_name', ''),
+        billing_phone=request.data.get('billing_phone', ''),
+        billing_address=request.data.get('billing_address', ''),
+        billing_city=request.data.get('billing_city', ''),
+        billing_country=request.data.get('billing_country', ''),
     )
 
     _run_optimization()
