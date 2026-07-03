@@ -1037,7 +1037,6 @@ def return_photo(request, pk):
     return Response({'ok': True, 'stage': log.stage})
 
 
-# ---- Rezervasyon Uzatma Talebi (madde 107) ----
 
 def _vehicle_for_reservation(reservation):
     ar = AssignmentResult.objects.filter(reservation=reservation).order_by('-run__created_at').first()
