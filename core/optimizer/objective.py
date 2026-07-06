@@ -132,12 +132,18 @@ def _low_value_upgrade_rate(assignments, total):
 
 
 def _branch_inefficiency_rate(assignments, all_vehicles):
-    """Upgrade/transfer yapılan branch'lerde atıl müsait araç oranı."""
+    """Upgrade yapılan branch'lerde atıl müsait araç oranı.
+
+    Transfer maliyeti buraya dahil edilmez: iade şubesi müşteri/temsilci
+    tarafından seçilir, solver yalnızca rezervasyonun alış şubesindeki
+    araçlar arasından seçim yapar (bkz. greedy_solver_güncel.solve) — yani
+    transfer algoritmanın kontrolünde olmayan bir girdi, cezalandırılmamalı.
+    """
     used_ids = {a['vehicle'].vehicle_id for a in assignments}
 
     active_branches = set()
     for a in assignments:
-        if a['is_upgrade'] or a['transfer_cost'] > 0:
+        if a['is_upgrade']:
             active_branches.add(a['vehicle'].branch_id)
 
     vehicles_by_branch = defaultdict(list)
