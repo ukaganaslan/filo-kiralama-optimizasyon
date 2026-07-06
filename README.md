@@ -110,14 +110,20 @@ Akıllı Greedy algoritması + post-swap iyileştirmesi:
 5. Atama yapılamayan rezervasyonlar için post-swap: mevcut atamaları takasa sokarak yeni slot aç
 6. Başlangıç tarihi bugün veya öncesinde olan rezervasyonlar (aktif veya tamamlanmış) kilitlenir — sadece **gelecekteki** rezervasyonlar optimizer tarafından yeniden atanabilir
 
-**Puan sistemi:**
+**Puan sistemi (0-100):**
 
-| Durum | Puan |
-|-------|------|
-| Karşılanan rezervasyon | +500 |
-| Karşılanamayan rezervasyon | -300 |
-| Transfer maliyeti (iade şubesi farkı) | gerçek maliyet × 20 |
-| Upgrade (üst gruba atama) | -50 |
+Skor 100 puandan başlar; algoritmanın kaçırdığı daha iyi seçeneklere göre puan düşer. Segment/statüs/çakışma gibi sert kısıtlar zaten solver tarafından yapısal olarak engellenir (bkz. `validator.py`) — yine de oluşurlarsa ihlal başına sabit **-40** ceza uygulanır. Geri kalan 100 puan, aşağıdaki 6 yumuşak kritere ağırlıklı olarak bölünmüştür:
+
+| Kriter | Açıklama | Ağırlık |
+|--------|----------|---------|
+| Önlenebilir kayıp | Uygun (müsait, çakışmasız) araç varken karşılanmayan rezervasyon | 35 |
+| Önlenebilir upgrade | Aynı şubede tam segment eşleşen araç müsaitken üst gruba atama yapılması | 20 |
+| Segment mesafesi | Upgrade'in segment farkı (economy→suv, economy→mid'den daha ağır cezalanır) | 15 |
+| Düşük değerli upgrade | Medyan altı fiyatlı veya kısa süreli (3 günden az) rezervasyona pahalı araç verilmesi | 15 |
+| Şube verimsizliği | Upgrade/transfer yapılan şubelerde atıl müsait araç oranı | 10 |
+| Kaçırılan takas | Aynı şubedeki iki atamanın aracı takas edilseydi toplam ceza azalacaksa | 5 |
+
+Hesaplama: `core/optimizer/objective.py` içindeki `calculate_score()`.
 
 ## Kurulum
 
