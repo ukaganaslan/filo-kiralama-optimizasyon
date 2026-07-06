@@ -123,15 +123,6 @@
                 <CarDamageMap :model-value="res.delivery_info.delivered_damage || {}" />
               </div>
             </template>
-            <template v-if="res.delivery_info.delivered_photo">
-              <div class="sub-title">Araç Fotoğrafı</div>
-              <img
-                :src="mediaUrl(res.delivery_info.delivered_photo)"
-                class="vehicle-photo"
-                alt="Teslim anı araç fotoğrafı"
-                @click="lightboxUrl = mediaUrl(res.delivery_info.delivered_photo)"
-              />
-            </template>
           </div>
 
           <!-- İade -->
@@ -172,15 +163,6 @@
               <div class="damage-readonly">
                 <CarDamageMap :model-value="res.delivery_info.returned_damage || {}" />
               </div>
-            </template>
-            <template v-if="res.delivery_info.returned_photo">
-              <div class="sub-title">Araç Fotoğrafı</div>
-              <img
-                :src="mediaUrl(res.delivery_info.returned_photo)"
-                class="vehicle-photo"
-                alt="İade anı araç fotoğrafı"
-                @click="lightboxUrl = mediaUrl(res.delivery_info.returned_photo)"
-              />
             </template>
           </div>
 
@@ -305,6 +287,24 @@
                 <span class="doc-name">İade Ek Belgesi</span>
                 <span class="doc-action">Görüntüle</span>
               </a>
+              <button
+                v-if="res.delivery_info?.delivered_photo"
+                class="doc-item"
+                @click="lightboxUrl = mediaUrl(res.delivery_info.delivered_photo)"
+              >
+                <i class="pi pi-image doc-icon"></i>
+                <span class="doc-name">Teslim Anı Araç Fotoğrafı</span>
+                <span class="doc-action">Görüntüle</span>
+              </button>
+              <button
+                v-if="res.delivery_info?.returned_photo"
+                class="doc-item"
+                @click="lightboxUrl = mediaUrl(res.delivery_info.returned_photo)"
+              >
+                <i class="pi pi-image doc-icon"></i>
+                <span class="doc-name">İade Anı Araç Fotoğrafı</span>
+                <span class="doc-action">Görüntüle</span>
+              </button>
             </div>
             <p v-if="pdfError" class="inline-error">{{ pdfError }}</p>
             <p v-if="!res.delivery_info?.delivered" class="doc-hint">Belgeler, teslim işlemi tamamlandıktan sonra indirilebilir.</p>
@@ -314,9 +314,25 @@
           <div class="card" v-if="hasBilling">
             <div class="card-title">Fatura Bilgileri</div>
             <div class="info-grid one-col">
+              <div class="info-item" v-if="res.billing_type">
+                <span class="ilabel">Fatura Tipi</span>
+                <span class="ival">{{ res.billing_type === 'kurumsal' ? 'Kurumsal' : 'Bireysel' }}</span>
+              </div>
               <div class="info-item" v-if="res.billing_name">
-                <span class="ilabel">Ad Soyad / Ünvan</span>
+                <span class="ilabel">{{ res.billing_type === 'kurumsal' ? 'Firma Unvanı' : 'Ad Soyad' }}</span>
                 <span class="ival">{{ res.billing_name }}</span>
+              </div>
+              <div class="info-item" v-if="res.billing_tckn">
+                <span class="ilabel">TC Kimlik No</span>
+                <span class="ival">{{ res.billing_tckn }}</span>
+              </div>
+              <div class="info-item" v-if="res.billing_tax_office">
+                <span class="ilabel">Vergi Dairesi</span>
+                <span class="ival">{{ res.billing_tax_office }}</span>
+              </div>
+              <div class="info-item" v-if="res.billing_tax_no">
+                <span class="ilabel">Vergi Kimlik No</span>
+                <span class="ival">{{ res.billing_tax_no }}</span>
               </div>
               <div class="info-item" v-if="res.billing_phone">
                 <span class="ilabel">Telefon</span>
@@ -326,9 +342,9 @@
                 <span class="ilabel">Adres</span>
                 <span class="ival">{{ res.billing_address }}</span>
               </div>
-              <div class="info-item" v-if="res.billing_city || res.billing_country">
-                <span class="ilabel">Şehir / Ülke</span>
-                <span class="ival">{{ [res.billing_city, res.billing_country].filter(Boolean).join(' / ') }}</span>
+              <div class="info-item" v-if="res.billing_city || res.billing_district || res.billing_neighborhood">
+                <span class="ilabel">Mahalle / İlçe / İl</span>
+                <span class="ival">{{ [res.billing_neighborhood, res.billing_district, res.billing_city].filter(Boolean).join(' / ') }}</span>
               </div>
             </div>
           </div>
@@ -472,7 +488,7 @@ const steps = computed(() => {
 
 const hasBilling = computed(() => {
   const r = res.value
-  return r && (r.billing_name || r.billing_address || r.billing_city || r.billing_country || r.billing_phone)
+  return r && (r.billing_name || r.billing_address || r.billing_city || r.billing_district || r.billing_neighborhood || r.billing_phone || r.billing_tckn || r.billing_tax_no)
 })
 
 const reservationExtensions = computed(() => {
@@ -658,11 +674,6 @@ async function rejectExtension(id) {
   padding: 3px 10px; font-size: 13px; font-weight: 700; color: #334155; letter-spacing: 0.05em;
 }
 
-/* ── Fotoğraf ── */
-.vehicle-photo {
-  width: 100%; max-height: 320px; object-fit: cover;
-  border-radius: 10px; border: 1px solid #f1f5f9; cursor: zoom-in; display: block;
-}
 .damage-readonly { pointer-events: none; }
 
 /* ── Belgeler ── */

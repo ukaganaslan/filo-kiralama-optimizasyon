@@ -10,6 +10,7 @@ const routes = [
     { path: '/', component: LoginView },
     { path: '/register', component: RegisterView },
     {path: '/misafir', component: () => import('../views/NoneedLogin.vue')},
+    {path: '/misafir/rezervasyon/:code', component: () => import('../views/GuestReservationDetail.vue')},
     {
         path: '/dashboard',
         component: CustomerLayout,
