@@ -21,7 +21,7 @@
     <div class="section-header">
       <h2>Tüm Rezervasyonlar</h2>
       <div class="header-actions">
-        <input v-if="activeView === 'list'" v-model="plateSearch" class="search-input" placeholder="Plaka ara..." />
+        <input v-if="activeView === 'list'" v-model="tableSearch" class="search-input" placeholder="Ara..." />
         <select v-if="activeView === 'list'" v-model="statusFilter" class="view-select">
           <option value="">Tüm Durumlar</option>
           <option v-for="o in statusOptions" :key="o.key" :value="o.key">{{ o.label }}</option>
@@ -35,6 +35,7 @@
           <option value="calendar">Takvim Görünümü</option>
         </select>
       </div>
+      <button class="btn-add" @click="openCreate">+ Rezervasyon Oluştur</button>
     </div>
 
     <FullCalendar v-if="activeView === 'calendar'" :options="calendarOptions" />
@@ -79,6 +80,121 @@
       </tbody>
     </table>
   </div>
+
+  <div v-if="createModal" class="modal-overlay" @click.self="createModal = false">
+    <div class="modal">
+      <h3>Müşteri Adına Rezervasyon</h3>
+
+      <!-- Takvimden açıldığında: özet bilgi kartları -->
+      <div v-if="calendarMode" class="info-summary">
+        <div class="info-item">
+          <span class="info-label">ŞUBE</span>
+          <span class="info-value">{{ branchName(form.branch) }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">GRUP</span>
+          <span class="info-value">{{ groupLabel(form.vehicle_group) }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">TARİH</span>
+          <span class="info-value">{{ toLocalDateStr(dateRange.start) }} → {{ toLocalDateStr(dateRange.end) }}</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Müşteri</label>
+        <div class="customer-search" ref="customerSearchRef">
+          <input
+            v-model="customerQuery"
+            type="text"
+            :placeholder="selectedCustomer ? selectedCustomer : 'İsim veya kullanıcı adı ara...'"
+            :class="['customer-input', { 'has-value': selectedCustomer }]"
+            @input="customerDropdownOpen = true"
+            @focus="customerDropdownOpen = true"
+          />
+          <button v-if="selectedCustomer" class="customer-clear" @click="clearCustomer">x</button>
+          <div v-if="customerDropdownOpen && filteredCustomers.length > 0" class="customer-dropdown">
+            <div
+              v-for="u in filteredCustomers"
+              :key="u.id"
+              class="customer-option"
+              @mousedown.prevent="selectCustomer(u)"
+            >
+              <span class="customer-name">{{ u.full_name || u.username }}</span>
+              <span class="customer-username">@{{ u.username }}</span>
+            </div>
+          </div>
+          <div v-if="customerDropdownOpen && customerQuery && filteredCustomers.length === 0" class="customer-dropdown">
+            <div class="customer-empty">Kullanıcı bulunamadı.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sadece normal modda (takvim seçimi yoksa) göster -->
+      <template v-if="!calendarMode">
+        <div class="field">
+          <label>Şube</label>
+          <select v-model="form.branch" @change="onBranchChange">
+            <option value="">Seçin</option>
+            <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="differentReturn" @change="onDifferentReturnChange" />
+            Farklı bir noktaya teslim
+          </label>
+        </div>
+
+        <div v-if="differentReturn" class="field">
+          <label>İade Yeri</label>
+          <select v-model="form.return_branch" @change="fetchTransferCost">
+            <option value="">Seçin</option>
+            <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.title || b.name }}</option>
+          </select>
+          <span v-if="transferCost !== null" class="transfer-hint">
+            Transfer ücreti: {{ transferCost > 0 ? transferCost + ' ₺' : 'Ücretsiz' }}
+          </span>
+        </div>
+
+        <div class="field">
+          <label>Araç Grubu</label>
+          <select v-model="form.vehicle_group" @change="fetchAvailability">
+            <option value="">Seçin</option>
+            <option value="economy">Ekonomi</option>
+            <option value="mid">Orta Sınıf</option>
+            <option value="suv">SUV</option>
+          </select>
+        </div>
+
+        <div v-if="availabilityLoading" class="loading-hint">Müsait günler yükleniyor...</div>
+
+        <div v-if="availableDates.length > 0" class="calendar-section">
+          <label>TARİH ARALIĞI</label>
+          <VDatePicker
+            v-model.range="dateRange"
+            :disabled-dates="disabledDates"
+            :min-date="new Date()"
+            color="indigo"
+            is-expanded
+          />
+        </div>
+
+        <div v-if="form.vehicle_group && availableDates.length === 0 && !availabilityLoading" class="no-avail">
+          Bu grupta müsait gün bulunmuyor.
+        </div>
+      </template>
+
+      <p v-if="formError" class="error">{{ formError }}</p>
+      <p v-if="formSuccess" class="success">{{ formSuccess }}</p>
+
+      <div class="modal-actions">
+        <button class="btn-cancel-modal" @click="createModal = false">Vazgeç</button>
+        <button class="btn-save" @click="handleCreate" :disabled="!canCreate">Oluştur</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -86,6 +202,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
 import FullCalendar from '@fullcalendar/vue3'
 import ResourceTimelinePlugin from '@fullcalendar/resource-timeline'
+import interactionPlugin from '@fullcalendar/interaction'
 import trLocale from '@fullcalendar/core/locales/tr'
 import { useRouter } from 'vue-router'
 
@@ -93,6 +210,8 @@ import { useRouter } from 'vue-router'
 const reservations = ref([])
 const activeView = ref('list')
 const vehicles = ref([])
+const branches = ref([])
+const customers = ref([])
 const openMenuId = ref(null)
 const router = useRouter()
 const bugun = new Date().toISOString().split('T')[0]
@@ -109,7 +228,7 @@ const availableMonths = computed(() => {
   return months.sort()
 })
 
-const plateSearch = ref('')
+const tableSearch = ref('')
 const statusFilter = ref('')
 const sortKey = ref('')
 const sortDir = ref('asc')
@@ -178,11 +297,18 @@ function sortValue(r, key) {
 const filteredReservations = computed(() => {
   let list = reservations.value
   if (selectedMonth.value) list = list.filter(r => r.start_date.startsWith(selectedMonth.value))
-  if (plateSearch.value.trim()) {
-    const q = plateSearch.value.trim().toLowerCase()
+  if (tableSearch.value.trim()) {
+    const q = tableSearch.value.trim().toLowerCase()
     list = list.filter(r => {
       const plate = vehiclePlateMap.value[r.assigned_vehicle_id] || ''
-      return plate.toLowerCase().includes(q) || (r.assigned_vehicle_id || '').toLowerCase().includes(q)
+      const customer = r.customer_username || `Misafir - ${r.guest_name}`
+      const returnBranch = r.return_branch ? (r.return_branch_title || r.return_branch_name) : (r.branch_title || r.branch_name || '')
+      const price = r.total_price ? Number(r.total_price).toLocaleString('tr-TR') : ''
+      const haystack = [
+        r.reservation_id, plate, r.assigned_vehicle_id, customer, r.branch_title, returnBranch,
+        r.vehicle_group, r.start_date, r.end_date, price, reservationStatus(r).label,
+      ].join(' ').toLowerCase()
+      return haystack.includes(q)
     })
   }
   if (statusFilter.value) list = list.filter(r => statusKey(r) === statusFilter.value)
@@ -223,12 +349,16 @@ onMounted(() => document.addEventListener('click', closeMenu))
 onUnmounted(() => document.removeEventListener('click', closeMenu))
 
 onMounted(async () => {
-  const [rezRes, vehicleRes] = await Promise.all([
+  const [rezRes, vehicleRes, branchRes, usersRes] = await Promise.all([
     axios.get('/api/reservations/'),
     axios.get('/api/vehicles/'),
+    axios.get('/api/branches/'),
+    axios.get('/api/users/'),
   ])
   reservations.value = rezRes.data
   vehicles.value = vehicleRes.data
+  branches.value = branchRes.data
+  customers.value = usersRes.data
 })
 
 
@@ -239,8 +369,17 @@ async function deleteReservation(r) {
 }
 
 const calendarOptions = computed(() => ({
-  plugins: [ResourceTimelinePlugin],
+  plugins: [ResourceTimelinePlugin, interactionPlugin],
   initialView: 'resourceTimelineMonth',
+  selectable: true,
+  select(info) {
+    const startStr = info.startStr
+    const endD = new Date(info.end)
+    endD.setDate(endD.getDate() - 1)
+    const endStr = toLocalDateStr(endD)
+    const vehicle = vehicles.value.find(v => v.vehicle_id === info.resource?.id)
+    openCreate({ startDate: startStr, endDate: endStr, vehicleGroup: vehicle?.group || '', branchId: vehicle?.branch || '' })
+  },
   schedulerLicenseKey: 'non-commercial-and-evaluation',
   locale: trLocale,
   height: 'auto',
@@ -266,6 +405,166 @@ function formatMonth(m) {
   const [y, mo] = m.split('-')
   const names = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']
   return `${names[parseInt(mo)-1]} ${y}`
+}
+
+function branchName(id) {
+  const b = branches.value.find(b => b.id === id)
+  return b ? (b.title || b.name) : '—'
+}
+
+function groupLabel(g) {
+  return { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }[g] || g
+}
+
+const createModal = ref(false)
+const calendarMode = ref(false)
+const form = ref({ customer_id: '', vehicle_group: '', branch: '', return_branch: '' })
+const differentReturn = ref(false)
+const transferCost = ref(null)
+const dateRange = ref({ start: null, end: null })
+const availableDates = ref([])
+const availabilityLoading = ref(false)
+const formError = ref('')
+const formSuccess = ref('')
+
+const customerQuery = ref('')
+const selectedCustomer = ref('')
+const customerDropdownOpen = ref(false)
+const customerSearchRef = ref(null)
+
+const filteredCustomers = computed(() => {
+  const q = customerQuery.value.toLowerCase().trim()
+  if (!q) return customers.value.slice(0, 10)
+  return customers.value.filter(u =>
+    u.username.toLowerCase().includes(q) ||
+    (u.full_name || '').toLowerCase().includes(q)
+  ).slice(0, 10)
+})
+
+function selectCustomer(u) {
+  form.value.customer_id = u.id
+  selectedCustomer.value = `${u.full_name || u.username} (@${u.username})`
+  customerQuery.value = ''
+  customerDropdownOpen.value = false
+}
+
+function clearCustomer() {
+  form.value.customer_id = ''
+  selectedCustomer.value = ''
+  customerQuery.value = ''
+}
+
+function handleOutsideClick(e) {
+  if (customerSearchRef.value && !customerSearchRef.value.contains(e.target)) {
+    customerDropdownOpen.value = false
+  }
+}
+onMounted(() => document.addEventListener('click', handleOutsideClick))
+onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
+
+const canCreate = computed(() =>
+  form.value.customer_id && form.value.branch && form.value.vehicle_group && dateRange.value.start && dateRange.value.end
+)
+
+const disabledDates = computed(() => {
+  if (availableDates.value.length === 0) return []
+  const available = new Set(availableDates.value)
+  const disabled = []
+  const today = new Date()
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(today)
+    d.setDate(today.getDate() + i)
+    const str = toLocalDateStr(d)
+    if (!available.has(str)) disabled.push(new Date(d))
+  }
+  return disabled
+})
+
+function onBranchChange() {
+  form.value.return_branch = ''
+  transferCost.value = null
+  form.value.vehicle_group = ''
+  dateRange.value = { start: null, end: null }
+  availableDates.value = []
+}
+
+function onDifferentReturnChange() {
+  form.value.return_branch = ''
+  transferCost.value = null
+}
+
+async function fetchTransferCost() {
+  if (!form.value.branch || !form.value.return_branch) { transferCost.value = null; return }
+  const res = await axios.get('/api/transfer-cost/', {
+    params: { from: form.value.branch, to: form.value.return_branch }
+  })
+  transferCost.value = res.data.cost
+}
+
+async function fetchAvailability() {
+  if (!form.value.branch || !form.value.vehicle_group) return
+  availabilityLoading.value = true
+  availableDates.value = []
+  dateRange.value = { start: null, end: null }
+  try {
+    const res = await axios.get('/api/availability/', {
+      params: { branch: form.value.branch, group: form.value.vehicle_group }
+    })
+    availableDates.value = res.data.available_dates
+  } finally {
+    availabilityLoading.value = false
+  }
+}
+
+function toLocalDateStr(date) {
+  const d = new Date(date)
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
+async function openCreate({ startDate = null, endDate = null, vehicleGroup = '', branchId = '' } = {}) {
+  form.value = { customer_id: '', vehicle_group: vehicleGroup, branch: branchId || '', return_branch: '' }
+  dateRange.value = { start: null, end: null }
+  availableDates.value = []
+  formError.value = ''
+  formSuccess.value = ''
+  customerQuery.value = ''
+  selectedCustomer.value = ''
+  customerDropdownOpen.value = false
+  differentReturn.value = false
+  transferCost.value = null
+  calendarMode.value = !!(startDate && endDate && vehicleGroup)
+  createModal.value = true
+
+  if (vehicleGroup && startDate && endDate) {
+    dateRange.value = {
+      start: new Date(startDate + 'T00:00:00'),
+      end: new Date(endDate + 'T00:00:00'),
+    }
+  }
+}
+
+async function handleCreate() {
+  formError.value = ''
+  formSuccess.value = ''
+  try {
+    await axios.post('/api/reservations/', {
+      branch: form.value.branch,
+      vehicle_group: form.value.vehicle_group,
+      start_date: toLocalDateStr(dateRange.value.start),
+      end_date: toLocalDateStr(dateRange.value.end),
+      customer_id: form.value.customer_id,
+      return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
+    })
+    formSuccess.value = 'Rezervasyon oluşturuldu.'
+    const res = await axios.get('/api/reservations/')
+    reservations.value = res.data
+    form.value = { customer_id: '', vehicle_group: '', branch: '', return_branch: '' }
+    dateRange.value = { start: null, end: null }
+    availableDates.value = []
+  } catch (e) {
+    const msg = e.response?.data?.non_field_errors?.[0]
+    formError.value = msg || 'Rezervasyon oluşturulamadı.'
+  }
 }
 </script>
 
@@ -397,6 +696,47 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .badge-delivered { background: #d1fae5; color: #065f46; }
 .badge-returned { background: #e9d5ff; color: #6b21a8; }
 .badge-processing { background: #fed7aa; color: #9a3412; }
+
+.btn-add { padding: 8px 18px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-add:hover { background: #4f46e5; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; }
+.modal { background: white; border-radius: 12px; padding: 32px; width: 460px; max-height: 85vh; overflow: visible; box-shadow: 0 8px 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 16px; }
+.modal h3 { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; }
+.field select { padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; background: white; color: #1e293b; }
+.field select:focus { border-color: #6366f1; }
+.customer-search { position: relative; }
+.customer-input { width: 100%; padding: 10px 36px 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; color: #1e293b; }
+.customer-input:focus { border-color: #6366f1; }
+.customer-input.has-value { color: #6366f1; font-weight: 500; }
+.customer-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 13px; padding: 0; line-height: 1; }
+.customer-clear:hover { color: #dc2626; }
+.customer-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); z-index: 300; overflow: hidden; }
+.customer-option { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; cursor: pointer; }
+.customer-option:hover { background: #f1f5f9; }
+.customer-name { font-size: 14px; color: #1e293b; font-weight: 500; }
+.customer-username { font-size: 12px; color: #94a3b8; }
+.customer-empty { padding: 12px 14px; font-size: 14px; color: #94a3b8; }
+.calendar-section { display: flex; flex-direction: column; gap: 8px; }
+.calendar-section label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; }
+.loading-hint { font-size: 13px; color: #94a3b8; }
+.no-avail { font-size: 13px; color: #dc2626; }
+.checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #475569; cursor: pointer; font-weight: normal; letter-spacing: normal; text-transform: none; }
+.checkbox-label input { accent-color: #6366f1; width: 15px; height: 15px; }
+.transfer-hint { font-size: 12px; color: #6366f1; font-weight: 600; margin-top: 4px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+.btn-cancel-modal { padding: 8px 16px; background: white; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 14px; }
+.btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.btn-save:hover:not(:disabled) { background: #4f46e5; }
+.btn-save:disabled { background: #a5b4fc; cursor: not-allowed; }
+.error { color: #dc2626; font-size: 13px; margin: 0; }
+.success { color: #16a34a; font-size: 13px; margin: 0; }
+.info-summary { display: flex; gap: 0; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+.info-item { flex: 1; padding: 12px 16px; background: #f8fafc; border-right: 1px solid #e2e8f0; }
+.info-item:last-child { border-right: none; }
+.info-label { display: block; font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+.info-value { display: block; font-size: 14px; font-weight: 700; color: #1e293b; }
 </style>
 
 <style>
