@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog, DailyPrice, ReservationExtension, Payment
+from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog, DailyPrice, ReservationExtension, Payment, Notification
 from datetime import date
 
 
@@ -209,3 +209,8 @@ class ReservationExtensionSerializer(serializers.ModelSerializer):
     def get_plate(self, obj):
         ar = obj.reservation.assignmentresult_set.order_by('-run__created_at').first()
         return ar.vehicle.plate if ar and ar.vehicle else None
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'title', 'message', 'link', 'notif_type', 'is_read', 'created_at']

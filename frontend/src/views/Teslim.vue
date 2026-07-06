@@ -91,6 +91,7 @@
           @uploader="submitDocument"
           :showUploadButton="false"
           :showCancelButton="false"
+          chooseLabel="Belge Seç"
         >
           <template #empty>
             <span>İmzalı belgeyi buraya sürükle bırak.</span>
@@ -120,6 +121,7 @@
           @uploader="submitPhoto"
           :showUploadButton="false"
           :showCancelButton="false"
+          chooseLabel="Fotoğraf Seç"
         >
           <template #empty>
             <span>Araç fotoğrafını buraya sürükle bırak.</span>
