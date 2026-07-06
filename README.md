@@ -120,7 +120,7 @@ Skor 100 puandan başlar; algoritmanın kaçırdığı daha iyi seçeneklere gö
 | Önlenebilir upgrade | Aynı şubede tam segment eşleşen araç müsaitken üst gruba atama yapılması | 20 |
 | Segment mesafesi | Upgrade'in segment farkı (economy→suv, economy→mid'den daha ağır cezalanır) | 15 |
 | Düşük değerli upgrade | Medyan altı fiyatlı veya kısa süreli (3 günden az) rezervasyona pahalı araç verilmesi | 15 |
-| Şube verimsizliği | Upgrade/transfer yapılan şubelerde atıl müsait araç oranı | 10 |
+| Şube verimsizliği | Upgrade yapılan şubelerde atıl müsait araç oranı (transfer dahil değil — iade şubesini müşteri seçer, algoritmanın kontrolünde değildir) | 10 |
 | Kaçırılan takas | Aynı şubedeki iki atamanın aracı takas edilseydi toplam ceza azalacaksa | 5 |
 
 Hesaplama: `core/optimizer/objective.py` içindeki `calculate_score()`.
