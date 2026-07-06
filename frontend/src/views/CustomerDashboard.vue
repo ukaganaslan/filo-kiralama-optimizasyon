@@ -269,6 +269,18 @@
               <div class="summary-val summary-price">{{ totalPrice.toLocaleString('tr-TR') }} ₺</div>
             </div>
           </div>
+        </div>
+
+        <!-- Step 6: Ödeme -->
+        <div v-else-if="currentStep === 6" key="step6" class="step-card">
+          <div class="card-title">
+            <div>
+              <div class="card-title-text">Ödeme</div>
+              <div class="card-title-sub">Demo ödeme ekranı</div>
+            </div>
+          </div>
+
+          <MockPaymentForm :amount="totalPrice" @confirmed="handlePaymentConfirmed" />
 
           <p v-if="formError" class="form-error">{{ formError }}</p>
           <p v-if="formSuccess" class="form-success">{{ formSuccess }}</p>
@@ -282,7 +294,7 @@
           ← Geri
         </button>
         <button
-          v-if="currentStep < 5"
+          v-if="currentStep < 6"
           class="btn-next"
           :disabled="!canAdvance"
           @click="nextStep"
@@ -290,13 +302,7 @@
           İleri →
         </button>
         <button
-          v-if="currentStep === 5 && !formSuccess"
-          class="btn-confirm"
-          @click="handleCreate"
-        >
-          Rezervasyon Oluştur →
-        </button>
-        <button v-if="formSuccess" class="btn-new" @click="resetForm">
+          v-if="formSuccess" class="btn-new" @click="resetForm">
           Yeni Rezervasyon
         </button>
       </div>
@@ -310,13 +316,14 @@ import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import { ILLER, getIlceler } from '../utils/address'
+import MockPaymentForm from '../components/MockPaymentForm.vue'
 
 const auth = useAuthStore()
 const iller = ILLER
 
 const currentStep = ref(1)
 const direction = ref('forward')
-const stepLabels = ['Lokasyon', 'Araç Grubu', 'Tarih', 'Fatura', 'Onay']
+const stepLabels = ['Lokasyon', 'Araç Grubu', 'Tarih', 'Fatura', 'Özet Onay', 'Ödeme']
 
 const branches = ref([])
 const availableDates = ref([])
@@ -328,6 +335,7 @@ const form = ref({
   billing_type: 'bireysel', billing_name: '', billing_tckn: '', billing_tax_office: '', billing_tax_no: '',
   billing_address: '', billing_neighborhood: '', billing_district: '', billing_city: '', billing_phone: '',
 })
+const paid = ref(false)
 const dateRange = ref({ start: null, end: null })
 const differentReturn = ref(false)
 const transferCost = ref(null)
@@ -362,6 +370,7 @@ const canAdvance = computed(() => {
   if (currentStep.value === 2) return !!form.value.vehicle_group
   if (currentStep.value === 3) return !!(dateRange.value.start && dateRange.value.end)
   if (currentStep.value === 4) return true
+  if (currentStep.value === 5) return  true 
   return false
 })
 
@@ -475,6 +484,11 @@ function toLocalDateStr(date) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
+async function handlePaymentConfirmed() {
+  paid.value = true
+  await handleCreate()
+}
+
 async function handleCreate() {
   formError.value = ''
   formSuccess.value = ''
@@ -495,6 +509,7 @@ async function handleCreate() {
       billing_district: form.value.billing_district,
       billing_city: form.value.billing_city,
       billing_phone: form.value.billing_phone,
+      paid: paid.value,
     })
     formSuccess.value = 'Rezervasyon oluşturuldu! Onay bekleniyor.'
   } catch (e) {
@@ -518,7 +533,9 @@ function resetForm() {
     billing_district: form.value.billing_district,
     billing_city: form.value.billing_city,
     billing_phone: form.value.billing_phone,
+    
   }
+  paid.value = false
   dateRange.value = { start: null, end: null }
   availableDates.value = []
   differentReturn.value = false

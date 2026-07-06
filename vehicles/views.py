@@ -3,6 +3,7 @@ import re
 import uuid
 from datetime import date, timedelta
 from rest_framework import viewsets, status, permissions
+from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
@@ -15,7 +16,7 @@ from django.utils import timezone
 from io import BytesIO
 from xhtml2pdf import pisa
 
-from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment, ReservationExtension
+from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment, ReservationExtension, Payment
 from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer, ReservationExtensionSerializer, validate_billing_payload
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
@@ -149,14 +150,21 @@ class ReservationViewSet(viewsets.ModelViewSet):
             'billing_address', 'billing_neighborhood', 'billing_district', 'billing_city', 'billing_phone',
         ]
         billing_data = {f: serializer.validated_data.get(f) for f in billing_fields}
-        serializer.save(**save_kwargs)
-        if any(billing_data.values()):
-            customer_profile = getattr(customer, 'profile', None)
-            if not customer_profile:
-                customer_profile = CustomerProfile.objects.create(user=customer)
-            for field, value in billing_data.items():
-                setattr(customer_profile, field, value)
-            customer_profile.save()
+        paid = bool(self.request.data.get('paid'))
+        with transaction.atomic():
+            serializer.save(**save_kwargs)
+            Payment.objects.create(
+                reservation=serializer.instance,
+                amount=total or 0,
+                status = 'succeeded' if paid else 'failed',
+            )
+            if any(billing_data.values()):
+                customer_profile = getattr(customer, 'profile', None)
+                if not customer_profile:
+                    customer_profile = CustomerProfile.objects.create(user=customer)
+                for field, value in billing_data.items():
+                    setattr(customer_profile, field, value)
+                customer_profile.save()
         _run_optimization()
     
     def perform_update(self, serializer):
@@ -720,30 +728,37 @@ def guest_reservation(request):
         except Branch.DoesNotExist:
             pass
 
-    reservation = Reservation.objects.create(
-        reservation_id=reservation_id,
-        customer=None,
-        guest_name=guest_name,
-        guest_phone=guest_phone,
-        guest_email=guest_email,
-        branch=branch,
-        return_branch=return_branch,
-        vehicle_group=vehicle_group,
-        start_date=start_date,
-        end_date=end_date,
-        status='pending',
-        total_price=total or None,
-        billing_type=request.data.get('billing_type', 'bireysel'),
-        billing_name=request.data.get('billing_name', ''),
-        billing_tckn=request.data.get('billing_tckn', ''),
-        billing_tax_office=request.data.get('billing_tax_office', ''),
-        billing_tax_no=request.data.get('billing_tax_no', ''),
-        billing_phone=request.data.get('billing_phone', ''),
-        billing_address=request.data.get('billing_address', ''),
-        billing_neighborhood=request.data.get('billing_neighborhood', ''),
-        billing_district=request.data.get('billing_district', ''),
-        billing_city=request.data.get('billing_city', ''),
-    )
+    paid = bool(request.data.get('paid'))
+    with transaction.atomic():
+        reservation = Reservation.objects.create(
+            reservation_id=reservation_id,
+            customer=None,
+            guest_name=guest_name,
+            guest_phone=guest_phone,
+            guest_email=guest_email,
+            branch=branch,
+            return_branch=return_branch,
+            vehicle_group=vehicle_group,
+            start_date=start_date,
+            end_date=end_date,
+            status='pending',
+            total_price=total or None,
+            billing_type=request.data.get('billing_type', 'bireysel'),
+            billing_name=request.data.get('billing_name', ''),
+            billing_tckn=request.data.get('billing_tckn', ''),
+            billing_tax_office=request.data.get('billing_tax_office', ''),
+            billing_tax_no=request.data.get('billing_tax_no', ''),
+            billing_phone=request.data.get('billing_phone', ''),
+            billing_address=request.data.get('billing_address', ''),
+            billing_neighborhood=request.data.get('billing_neighborhood', ''),
+            billing_district=request.data.get('billing_district', ''),
+            billing_city=request.data.get('billing_city', ''),
+        )
+        Payment.objects.create(
+            reservation=reservation,
+            amount=total or 0,
+            status='succeeded' if paid else 'failed',
+        )
 
     _run_optimization()
 
@@ -899,7 +914,12 @@ def delivery_logs(request):
 
 class DailyPriceViewSet(viewsets.ModelViewSet):
     serializer_class = DailyPriceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
 
     def get_queryset(self):
         qs = DailyPrice.objects.all()
