@@ -26,7 +26,7 @@ def generate(n_vehicles=15, n_reservations=30, date_start=date.today(),
         vehicle_id = f"{VEHICLE_PREFIX[group]}{counters[group]:02d}GEN"
         counters[group] += 1
         v = Vehicle.objects.create(
-            vehicle_id=vehicle_id, group=group, branch=branch,
+            vehicle_id=vehicle_id, plate=vehicle_id, sasi=vehicle_id, group=group, branch=branch,
             status='available', total_reservations=0, total_km=0, maintenance_due=False,
         )
         vehicles.append(v)
@@ -75,7 +75,7 @@ def generate_scenario(scenario, seed=42):
             vehicle_id = f"{VEHICLE_PREFIX[group]}{counters[group]:02d}GEN"
             counters[group] += 1
             vehicles.append(Vehicle.objects.create(
-                vehicle_id=vehicle_id, group=group, branch=branch,
+                vehicle_id=vehicle_id, plate=vehicle_id, sasi=vehicle_id, group=group, branch=branch,
                 status='available', total_reservations=0, total_km=0, maintenance_due=False,
             ))
 
@@ -102,7 +102,7 @@ def generate_scenario(scenario, seed=42):
             vehicle_id = f"{VEHICLE_PREFIX[group]}{counters[group]:02d}GEN"
             counters[group] += 1
             vehicles.append(Vehicle.objects.create(
-                vehicle_id=vehicle_id, group=group, branch=vehicle_branch,
+                vehicle_id=vehicle_id, plate=vehicle_id, sasi=vehicle_id, group=group, branch=vehicle_branch,
                 status='available', total_reservations=0, total_km=0, maintenance_due=False,
             ))
 
@@ -129,7 +129,7 @@ def generate_scenario(scenario, seed=42):
             vehicle_id = f"{VEHICLE_PREFIX[group]}{counters[group]:02d}GEN"
             counters[group] += 1
             vehicles.append(Vehicle.objects.create(
-                vehicle_id=vehicle_id, group=group, branch=branch,
+                vehicle_id=vehicle_id, plate=vehicle_id, sasi=vehicle_id, group=group, branch=branch,
                 status='available', total_reservations=0, total_km=0, maintenance_due=False,
             ))
 
@@ -156,7 +156,7 @@ def generate_scenario(scenario, seed=42):
             vehicle_id = f"{VEHICLE_PREFIX[group]}{counters[group]:02d}GEN"
             counters[group] += 1
             vehicles.append(Vehicle.objects.create(
-                vehicle_id=vehicle_id, group=group, branch=branch,
+                vehicle_id=vehicle_id, plate=vehicle_id, sasi=vehicle_id, group=group, branch=branch,
                 status='available', total_reservations=0, total_km=0, maintenance_due=False,
             ))
 
@@ -185,7 +185,7 @@ def generate_scenario(scenario, seed=42):
             counters[group] += 1
             status = 'maintenance' if i < maintenance_count else 'available'
             vehicles.append(Vehicle.objects.create(
-                vehicle_id=vehicle_id, group=group, branch=branch,
+                vehicle_id=vehicle_id, plate=vehicle_id, sasi=vehicle_id, group=group, branch=branch,
                 status=status, total_reservations=0, total_km=0, maintenance_due=False,
             ))
 

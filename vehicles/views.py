@@ -286,7 +286,7 @@ def _run_optimization():
             initial_occupied.setdefault(ar.vehicle.vehicle_id, []).append((r.start_date, r.end_date))
 
     assignments, unassigned = greedy_solver_güncel.solve(free, vehicles, initial_occupied)
-    score = calculate_score(assignments, unassigned)
+    score = calculate_score(assignments, unassigned, vehicles)
 
     Reservation.objects.filter(id__in=[r.id for r in free]).update(status='pending')
     for a in assignments:

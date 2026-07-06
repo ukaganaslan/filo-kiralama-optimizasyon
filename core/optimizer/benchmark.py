@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from .data import small_problem, generated_problems
 from .solvers import greedy_solver
 from .solvers import greedy_solver_güncel
@@ -27,7 +29,7 @@ def _run_on_data(solver_fn, reservations, vehicles):
     assigned_ids = {a['vehicle'].vehicle_id for a in assignments}
     idle_count = sum(1 for v in vehicles if v.vehicle_id not in assigned_ids)
     return {
-        'score': calculate_score(assignments, unassigned),
+        'score': calculate_score(assignments, unassigned, vehicles),
         'fulfilled': fulfilled,
         'unfulfilled': len(unassigned),
         'fulfillment_pct': round(fulfilled / total * 100) if total else 0,
@@ -38,6 +40,19 @@ def _run_on_data(solver_fn, reservations, vehicles):
 
 
 def run():
+    """
+    generated_problems.generate()/generate_scenario() gerçek veritabanına yazıp
+    siler; bu yüzden tüm çalışma tek bir transaction içinde yapılır ve sonunda
+    (başarılı ya da hatalı bitse fark etmez) geri alınır. Böylece benchmark
+    gerçek verilere kalıcı olarak dokunamaz.
+    """
+    with transaction.atomic():
+        results = _run_in_transaction()
+        transaction.set_rollback(True)
+    return results
+
+
+def _run_in_transaction():
     solvers = {'greedy': greedy_solver.solve, 'güncel': greedy_solver_güncel.solve}
     problems = []
 

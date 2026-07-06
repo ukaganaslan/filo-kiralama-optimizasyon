@@ -10,8 +10,8 @@
 
       <div class="stats-row">
         <div class="stat-card">
-          <div class="stat-value">{{ result.score }}</div>
-          <div class="stat-label">Toplam Skor</div>
+          <div class="stat-value">{{ result.score }} / 100</div>
+          <div class="stat-label">Algoritma Skoru</div>
         </div>
         <div class="stat-card green">
           <div class="stat-value">{{ result.fulfilled }}</div>
