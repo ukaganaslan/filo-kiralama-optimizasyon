@@ -16,7 +16,7 @@ from io import BytesIO
 from xhtml2pdf import pisa
 
 from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment, ReservationExtension
-from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer, ReservationExtensionSerializer
+from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer, ReservationExtensionSerializer, validate_billing_payload
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
 
@@ -144,7 +144,19 @@ class ReservationViewSet(viewsets.ModelViewSet):
         save_kwargs = {'customer': customer, 'status': 'pending', 'reservation_id': reservation_id, 'total_price': total or None}
         if profile and profile.role == 'representative' and profile.branch:
             save_kwargs['branch'] = profile.branch
+        billing_fields = [
+            'billing_type', 'billing_name', 'billing_tckn', 'billing_tax_office', 'billing_tax_no',
+            'billing_address', 'billing_neighborhood', 'billing_district', 'billing_city', 'billing_phone',
+        ]
+        billing_data = {f: serializer.validated_data.get(f) for f in billing_fields}
         serializer.save(**save_kwargs)
+        if any(billing_data.values()):
+            customer_profile = getattr(customer, 'profile', None)
+            if not customer_profile:
+                customer_profile = CustomerProfile.objects.create(user=customer)
+            for field, value in billing_data.items():
+                setattr(customer_profile, field, value)
+            customer_profile.save()
         _run_optimization()
     
     def perform_update(self, serializer):
@@ -580,6 +592,16 @@ def profile_view(request):
             'phone': profile.phone if profile else '',
             'role': profile.role if profile else ('admin' if user.is_staff else 'customer'),
             'branch_id': profile.branch_id if profile else None,
+            'billing_type': profile.billing_type if profile else 'bireysel',
+            'billing_name': profile.billing_name if profile else '',
+            'billing_tckn': profile.billing_tckn if profile else '',
+            'billing_tax_office': profile.billing_tax_office if profile else '',
+            'billing_tax_no': profile.billing_tax_no if profile else '',
+            'billing_address': profile.billing_address if profile else '',
+            'billing_neighborhood': profile.billing_neighborhood if profile else '',
+            'billing_district': profile.billing_district if profile else '',
+            'billing_city': profile.billing_city if profile else '',
+            'billing_phone': profile.billing_phone if profile else '',
         })
     data = request.data
     if 'username' in data and data['username']:
@@ -588,13 +610,23 @@ def profile_view(request):
         user.username = data['username']
     if 'email' in data:
         user.email = data['email']
-    if 'full_name' in data or 'phone' in data:
+    billing_keys = [
+        'billing_type', 'billing_name', 'billing_tckn', 'billing_tax_office', 'billing_tax_no',
+        'billing_address', 'billing_neighborhood', 'billing_district', 'billing_city', 'billing_phone',
+    ]
+    if 'full_name' in data or 'phone' in data or any(k in data for k in billing_keys):
+        billing_errors = validate_billing_payload(data)
+        if billing_errors:
+            return Response({'error': list(billing_errors.values())[0]}, status=400)
         if not profile:
             profile = CustomerProfile.objects.create(user=user)
         if 'full_name' in data:
             profile.full_name = data['full_name']
         if 'phone' in data:
             profile.phone = data['phone']
+        for key in billing_keys:
+            if key in data:
+                setattr(profile, key, data[key])
         profile.save()
     new_token = None
     if 'new_password' in data and data['new_password']:
@@ -652,6 +684,10 @@ def guest_reservation(request):
     if not all([guest_name, guest_email, branch_id, vehicle_group, start_date, end_date]):
         return Response({'error': 'Tüm alanları doldurun'}, status=status.HTTP_400_BAD_REQUEST)
 
+    billing_errors = validate_billing_payload(request.data)
+    if billing_errors:
+        return Response({'error': list(billing_errors.values())[0]}, status=status.HTTP_400_BAD_REQUEST)
+
     try:
         branch = Branch.objects.get(id=branch_id)
     except Branch.DoesNotExist:
@@ -697,6 +733,16 @@ def guest_reservation(request):
         end_date=end_date,
         status='pending',
         total_price=total or None,
+        billing_type=request.data.get('billing_type', 'bireysel'),
+        billing_name=request.data.get('billing_name', ''),
+        billing_tckn=request.data.get('billing_tckn', ''),
+        billing_tax_office=request.data.get('billing_tax_office', ''),
+        billing_tax_no=request.data.get('billing_tax_no', ''),
+        billing_phone=request.data.get('billing_phone', ''),
+        billing_address=request.data.get('billing_address', ''),
+        billing_neighborhood=request.data.get('billing_neighborhood', ''),
+        billing_district=request.data.get('billing_district', ''),
+        billing_city=request.data.get('billing_city', ''),
     )
 
     _run_optimization()
@@ -734,11 +780,11 @@ def register_view(request):
 @permission_classes([permissions.AllowAny])
 def guest_reservation_detail(request):
     code = request.query_params.get('code', '').strip().upper()
-    if not code:
+    if not code or len(code) != 8:
         return Response({'error': 'Kod gerekli'}, status=status.HTTP_400_BAD_REQUEST)
 
     reservation = Reservation.objects.filter(
-        reservation_id__istartswith=code,
+        reservation_id__iexact=code,
         customer=None,
     ).first()
 
@@ -759,6 +805,7 @@ def guest_reservation_detail(request):
         'delivered': bool(delivered),
         'delivered_at': delivered.logged_at.isoformat() if delivered else None,
         'delivered_doc': delivered.document.url if delivered and delivered.document else None,
+        'delivered_photo': delivered.photo.url if delivered and delivered.photo else None,
         'delivered_km': delivered.delivery_km if delivered else None,
         'delivered_fuel': delivered.fuel_level if delivered else None,
         'delivered_damage': delivered.damage_items if delivered else [],
@@ -766,6 +813,7 @@ def guest_reservation_detail(request):
         'returned': bool(returned),
         'returned_at': returned.logged_at.isoformat() if returned else None,
         'returned_doc': returned.document.url if returned and returned.document else None,
+        'returned_photo': returned.photo.url if returned and returned.photo else None,
         'returned_km': returned.delivery_km if returned else None,
         'returned_fuel': returned.fuel_level if returned else None,
         'returned_damage': returned.damage_items if returned else [],
@@ -793,11 +841,11 @@ def guest_cancel(request):
     code = request.data.get('code', '').strip().upper()
     email = request.data.get('email', '').strip().lower()
 
-    if not code or not email:
+    if not code or len(code) != 8 or not email:
         return Response({'error': 'Kod ve e-posta gerekli'}, status=status.HTTP_400_BAD_REQUEST)
 
     reservation = Reservation.objects.filter(
-        reservation_id__istartswith=code,
+        reservation_id__iexact=code,
         customer=None,
         guest_email__iexact=email,
     ).first()
@@ -1060,6 +1108,17 @@ def _extension_has_conflict(vehicle, window_start, window_end, exclude_reservati
     return False
 
 
+def _extension_customer_conflict(reservation, window_start, window_end):
+    """window_start..window_end aralığında bu müşterinin başka bir aktif
+    rezervasyonu (pending/assigned) var mı?"""
+    return Reservation.objects.filter(
+        customer=reservation.customer,
+        status__in=['pending', 'assigned'],
+        start_date__lte=window_end,
+        end_date__gte=window_start,
+    ).exclude(pk=reservation.pk).exists()
+
+
 def _extension_price(reservation, new_end_date):
     """Uzatılan günlerin (mevcut end_date+1 .. new_end_date) DailyPrice toplamı.
     (toplam, eksik_fiyat_var_mı) döner."""
@@ -1125,13 +1184,16 @@ def extend_reservation(request, pk):
         return Response({'error': 'Geçersiz tarih formatı.'}, status=400)
     if new_end_date <= reservation.end_date:
         return Response({'error': 'Yeni bitiş tarihi mevcut bitiş tarihinden sonra olmalı.'}, status=400)
+    window_start = reservation.end_date + timedelta(days=1)
+    # Müşterinin uzatma penceresinde başka bir aktif rezervasyonu var mı?
+    if _extension_customer_conflict(reservation, window_start, new_end_date):
+        return Response({'error': 'Seçilen tarih aralığında başka bir rezervasyonunuz var.'}, status=400)
     # Fiyat (uzatılan günlerde fiyat tanımlı olmalı)
     extra_price, missing = _extension_price(reservation, new_end_date)
     if missing:
         return Response({'error': 'Uzatılan tarih aralığında fiyatlandırılmamış gün var.'}, status=400)
     # Müsaitlik: araç uzatma penceresinde başka rezervasyona atanmış mı?
     vehicle = _vehicle_for_reservation(reservation)
-    window_start = reservation.end_date + timedelta(days=1)
     if _extension_has_conflict(vehicle, window_start, new_end_date, reservation):
         ext = ReservationExtension.objects.create(
             reservation=reservation, requested_end_date=new_end_date,
@@ -1193,6 +1255,13 @@ def approve_extension(request, ext_id):
     # Yarış durumu: onay anında müsaitliği tekrar kontrol et
     vehicle = _vehicle_for_reservation(reservation)
     window_start = reservation.end_date + timedelta(days=1)
+    if _extension_customer_conflict(reservation, window_start, ext.requested_end_date):
+        ext.status = 'rejected'
+        ext.reject_reason = 'Müşterinin bu tarihlerde başka bir rezervasyonu var.'
+        ext.decided_at = timezone.now()
+        ext.save()
+        # TODO(106): müşteriye otomatik red bildirimi
+        return Response({'status': 'rejected', 'reason': ext.reject_reason}, status=200)
     if _extension_has_conflict(vehicle, window_start, ext.requested_end_date, reservation):
         ext.status = 'rejected'
         ext.reject_reason = 'Araç bu tarihlerde artık müsait değil.'
@@ -1382,16 +1451,7 @@ def _pdf_link_callback(uri, rel):
     return mapping.get(uri, uri)
 
 
-@api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
-def reservation_pdf(request, pk, pdf_type):
-    try:
-        reservation = Reservation.objects.select_related(
-            'branch', 'customer', 'customer__profile'
-        ).prefetch_related('delivery_logs').get(pk=pk)
-    except Reservation.DoesNotExist:
-        return HttpResponse(status=404)
-
+def _build_reservation_pdf(reservation, pdf_type):
     logs = {log.event_type: log for log in reservation.delivery_logs.all()}
     delivered = logs.get('delivered')
     returned = logs.get('returned')
@@ -1476,6 +1536,36 @@ def reservation_pdf(request, pk, pdf_type):
     response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def reservation_pdf(request, pk, pdf_type):
+    try:
+        reservation = Reservation.objects.select_related(
+            'branch', 'customer', 'customer__profile'
+        ).prefetch_related('delivery_logs').get(pk=pk)
+    except Reservation.DoesNotExist:
+        return HttpResponse(status=404)
+    return _build_reservation_pdf(reservation, pdf_type)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def guest_reservation_pdf(request, code, pdf_type):
+    code = code.strip().upper()
+    if len(code) != 8:
+        return HttpResponse(status=404)
+    reservation = Reservation.objects.select_related(
+        'branch', 'customer', 'customer__profile'
+    ).prefetch_related('delivery_logs').filter(
+        reservation_id__iexact=code,
+        customer=None,
+    ).first()
+    if not reservation:
+        return HttpResponse(status=404)
+    return _build_reservation_pdf(reservation, pdf_type)
+
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])

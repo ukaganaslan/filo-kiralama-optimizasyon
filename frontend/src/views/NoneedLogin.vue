@@ -195,12 +195,68 @@
                   <input v-model="guest.name" type="text" placeholder="Ahmet Yılmaz" />
                 </div>
                 <div class="info-field">
-                  <label>Telefon</label>
+                  <label>Telefon <span class="req">*</span></label>
                   <input v-model="guest.phone" type="tel" placeholder="05XX XXX XX XX" />
                 </div>
                 <div class="info-field">
                   <label>E-posta <span class="req">*</span></label>
                   <input v-model="guest.email" type="email" placeholder="ahmet@email.com" />
+                </div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="info-fields">
+                <div class="info-field">
+                  <label>Fatura Tipi <span class="req">*</span></label>
+                  <select v-model="guest.billing_type">
+                    <option value="bireysel">Bireysel</option>
+                    <option value="kurumsal">Kurumsal</option>
+                  </select>
+                </div>
+
+                <template v-if="guest.billing_type === 'kurumsal'">
+                  <div class="info-field">
+                    <label>Firma Unvanı <span class="req">*</span></label>
+                    <input v-model="guest.billing_name" type="text" placeholder="Firma Unvanı" />
+                  </div>
+                  <div class="info-field">
+                    <label>Vergi Dairesi <span class="req">*</span></label>
+                    <input v-model="guest.billing_tax_office" type="text" placeholder="Vergi Dairesi" />
+                  </div>
+                  <div class="info-field">
+                    <label>Vergi Kimlik No <span class="req">*</span></label>
+                    <input v-model="guest.billing_tax_no" type="text" maxlength="10" placeholder="10 haneli VKN" />
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="info-field">
+                    <label>TC Kimlik No <span class="req">*</span></label>
+                    <input v-model="guest.billing_tckn" type="text" maxlength="11" placeholder="11 haneli TCKN" />
+                  </div>
+                </template>
+
+                <div class="info-field">
+                  <label>Fatura Adresi <span class="req">*</span></label>
+                  <input v-model="guest.billing_address" type="text" placeholder="Fatura adresi" />
+                </div>
+                <div class="info-field">
+                  <label>İl <span class="req">*</span></label>
+                  <select v-model="guest.billing_city" @change="guest.billing_district = ''">
+                    <option value="" disabled>İl seçin</option>
+                    <option v-for="il in iller" :key="il" :value="il">{{ il }}</option>
+                  </select>
+                </div>
+                <div class="info-field">
+                  <label>İlçe <span class="req">*</span></label>
+                  <select v-model="guest.billing_district" :disabled="!guest.billing_city">
+                    <option value="" disabled>İlçe seçin</option>
+                    <option v-for="ilce in ilceler" :key="ilce" :value="ilce">{{ ilce }}</option>
+                  </select>
+                </div>
+                <div class="info-field">
+                  <label>Mahalle</label>
+                  <input v-model="guest.billing_neighborhood" type="text" placeholder="Mahalle" />
                 </div>
               </div>
 
@@ -251,7 +307,7 @@
             <span class="status-badge" :class="queryResult.status">{{ statusLabel(queryResult.status) }}</span>
           </div>
 
-          <button class="btn-detail" @click="showDetail = true">Detayları Gör</button>
+          <button class="btn-detail" @click="openDetail">Detayları Gör</button>
 
           <div v-if="queryResult.status !== 'cancelled'" class="cancel-area">
             <div class="q-field">
@@ -266,67 +322,6 @@
       </div>
 
     </div>
-
-    <!-- Rezervasyon Detay Modalı -->
-    <div v-if="showDetail && queryResult" class="modal-overlay" @click.self="showDetail = false">
-      <div class="modal">
-        <div class="modal-header">
-          <span class="modal-res-id">#{{ queryResult.reservation_id }}</span>
-          <button class="modal-close" @click="showDetail = false">✕</button>
-        </div>
-
-        <div class="modal-grid">
-          <div class="mrow"><span class="mlabel">Araç Grubu</span><span class="mval">{{ groupLabel(queryResult.vehicle_group) }}</span></div>
-          <div class="mrow"><span class="mlabel">Tarih</span><span class="mval">{{ queryResult.start_date }} → {{ queryResult.end_date }}</span></div>
-          <div class="mrow" v-if="queryResult.assigned_vehicle_info">
-            <span class="mlabel">Araç</span>
-            <span class="mval">{{ queryResult.assigned_vehicle_info.brand }} {{ queryResult.assigned_vehicle_info.model }} · {{ queryResult.assigned_vehicle_info.plate }}</span>
-          </div>
-          <div class="mrow" v-if="queryResult.total_price">
-            <span class="mlabel">Tutar</span>
-            <span class="mval">{{ Number(queryResult.total_price).toLocaleString('tr-TR') }} ₺</span>
-          </div>
-        </div>
-
-        <template v-if="queryResult.delivery_info?.delivered">
-          <div class="modal-section-title">Teslim</div>
-          <div class="modal-grid">
-            <div class="mrow"><span class="mlabel">Teslim KM</span><span class="mval">{{ queryResult.delivery_info.delivered_km ?? '—' }}</span></div>
-            <div class="mrow"><span class="mlabel">Yakıt</span><span class="mval">{{ fuelLabel(queryResult.delivery_info.delivered_fuel) }}</span></div>
-            <div class="mrow" v-if="queryResult.delivery_info.delivered_notes">
-              <span class="mlabel">Not</span><span class="mval">{{ queryResult.delivery_info.delivered_notes }}</span>
-            </div>
-            <div class="mrow" v-if="queryResult.delivery_info.delivered_doc">
-              <span class="mlabel">Belge</span><a class="mval mlink" :href="queryResult.delivery_info.delivered_doc" target="_blank">Görüntüle</a>
-            </div>
-          </div>
-          <div class="damage-readonly">
-            <CarDamageMap :model-value="queryResult.delivery_info.delivered_damage || {}" />
-          </div>
-        </template>
-
-        <template v-if="queryResult.delivery_info?.returned">
-          <div class="modal-section-title">İade</div>
-          <div class="modal-grid">
-            <div class="mrow"><span class="mlabel">İade KM</span><span class="mval">{{ queryResult.delivery_info.returned_km ?? '—' }}</span></div>
-            <div class="mrow"><span class="mlabel">Yakıt</span><span class="mval">{{ fuelLabel(queryResult.delivery_info.returned_fuel) }}</span></div>
-            <div class="mrow" v-if="queryResult.delivery_info.returned_notes">
-              <span class="mlabel">Not</span><span class="mval">{{ queryResult.delivery_info.returned_notes }}</span>
-            </div>
-            <div class="mrow" v-if="queryResult.delivery_info.returned_doc">
-              <span class="mlabel">Belge</span><a class="mval mlink" :href="queryResult.delivery_info.returned_doc" target="_blank">Görüntüle</a>
-            </div>
-          </div>
-          <div class="damage-readonly">
-            <CarDamageMap :model-value="queryResult.delivery_info.returned_damage || {}" />
-          </div>
-        </template>
-
-        <div v-if="!queryResult.delivery_info?.delivered" class="modal-empty">
-          Henüz araç teslimi yapılmamış.
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -337,8 +332,9 @@ import StepItem from 'primevue/stepitem'
 import Step from 'primevue/step'
 import StepPanel from 'primevue/steppanel'
 import axios from 'axios'
-import CarDamageMap from '@/components/CarDamageMap.vue'
+import { ILLER, getIlceler } from '../utils/address'
 
+const iller = ILLER
 const currentStep = ref(1)
 const direction = ref('forward')
 const stepLabels = ['Lokasyon', 'Araç Grubu', 'Tarih', 'Bilgileriniz']
@@ -354,14 +350,18 @@ const transferCost = ref(null)
 
 const form = ref({ branch: '', vehicle_group: '', return_branch: '' })
 const dateRange = ref({ start: null, end: null })
-const guest = ref({ name: '', phone: '', email: '' })
+const guest = ref({
+  name: '', phone: '', email: '',
+  billing_type: 'bireysel', billing_name: '', billing_tckn: '', billing_tax_office: '', billing_tax_no: '',
+  billing_address: '', billing_neighborhood: '', billing_district: '', billing_city: '',
+})
+const ilceler = computed(() => getIlceler(guest.value.billing_city))
 
 const query = ref({ code: '', email: '' })
 const queryResult = ref(null)
 const queryError = ref('')
 const cancelError = ref('')
 const cancelSuccess = ref('')
-const showDetail = ref(false)
 
 const groups = [
   { value: 'economy', label: 'Ekonomi',desc: 'Şehir içi, yakıt dostu' },
@@ -403,8 +403,9 @@ function branchName(id) {
 }
 function groupLabel(v) { return groups.find(g => g.value === v)?.label || v }
 function statusLabel(s) { return { pending: 'Bekliyor', assigned: 'Onaylandı', cancelled: 'İptal' }[s] || s }
-function fuelLabel(v) {
-  return { 0: 'E', 1: '1/8', 2: '1/4', 3: '3/8', 4: '1/2', 5: '5/8', 6: '3/4', 7: '7/8', 8: 'F' }[v] ?? '—'
+
+function openDetail() {
+  if (queryResult.value) window.open(`/misafir/rezervasyon/${queryResult.value.code}`, '_blank')
 }
 
 function nextStep() {
@@ -468,6 +469,16 @@ async function handleCreate() {
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
+      billing_type: guest.value.billing_type,
+      billing_name: guest.value.billing_type === 'kurumsal' ? guest.value.billing_name : guest.value.name,
+      billing_tckn: guest.value.billing_tckn,
+      billing_tax_office: guest.value.billing_tax_office,
+      billing_tax_no: guest.value.billing_tax_no,
+      billing_phone: guest.value.phone,
+      billing_address: guest.value.billing_address,
+      billing_neighborhood: guest.value.billing_neighborhood,
+      billing_district: guest.value.billing_district,
+      billing_city: guest.value.billing_city,
     })
     reservationCode.value = res.data.code
     reservationPrice.value = res.data.total_price
@@ -481,7 +492,11 @@ function resetForm() {
   direction.value = 'forward'
   form.value = { branch: '', vehicle_group: '', return_branch: '' }
   dateRange.value = { start: null, end: null }
-  guest.value = { name: '', phone: '', email: '' }
+  guest.value = {
+    name: '', phone: '', email: '',
+    billing_type: 'bireysel', billing_name: '', billing_tckn: '', billing_tax_office: '', billing_tax_no: '',
+    billing_address: '', billing_neighborhood: '', billing_district: '', billing_city: '',
+  }
   differentReturn.value = false
   transferCost.value = null
   reservationCode.value = ''
@@ -494,7 +509,6 @@ async function handleQuery() {
   queryResult.value = null
   cancelError.value = ''
   cancelSuccess.value = ''
-  showDetail.value = false
   if (!query.value.code || query.value.code.length < 8) { queryError.value = '8 haneli kodu girin.'; return }
   try {
     const res = await axios.get('/api/guest-reservation/query/', { params: { code: query.value.code } })
@@ -672,10 +686,11 @@ function copyCode(){
 .info-field { display: flex; flex-direction: column; gap: 6px; }
 .info-field label { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.07em; }
 .req { color: #DC2626; }
-.info-field input { padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; background: #fafafa; transition: border-color 0.2s, box-shadow 0.2s; }
-.info-field input:focus { border-color: #1B1063; background: white; box-shadow: 0 0 0 3px rgba(27,16,99,0.08); }
+.info-field input, .info-field select { padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; background: #fafafa; transition: border-color 0.2s, box-shadow 0.2s; }
+.info-field input:focus, .info-field select:focus { border-color: #1B1063; background: white; box-shadow: 0 0 0 3px rgba(27,16,99,0.08); }
 
 .form-error { color: #DC2626; font-size: 13px; background: #fff1f2; padding: 11px 14px; border-radius: 9px; border: 1px solid #fecdd3; margin-top: 12px; }
+.divider { height: 1px; background: #f1f5f9; margin: 22px 0; }
 
 /* ── Navigation ── */
 .step-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 10px; }
@@ -748,22 +763,6 @@ function copyCode(){
 
 .btn-detail { width: 100%; padding: 10px; background: white; color: #1B1063; border: 1.5px solid #c4beff; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 10px; }
 .btn-detail:hover { background: #edeaff; }
-
-/* ── Detay Modalı ── */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-.modal { background: white; border-radius: 14px; padding: 28px; width: 480px; max-width: 90vw; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.modal-res-id { font-size: 16px; font-weight: 800; color: #1e293b; }
-.modal-close { background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer; padding: 0 4px; }
-.modal-close:hover { color: #1e293b; }
-.modal-section-title { font-size: 11px; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 0.08em; margin: 16px 0 8px; border-top: 1px solid #f1f5f9; padding-top: 16px; }
-.modal-grid { display: flex; flex-direction: column; gap: 8px; }
-.mrow { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f8fafc; }
-.mlabel { font-size: 12px; font-weight: 600; color: #94a3b8; }
-.mval { font-size: 13px; font-weight: 600; color: #1e293b; text-align: right; }
-.mlink { color: #1B1063; text-decoration: underline; cursor: pointer; }
-.modal-empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 20px 0; }
-.damage-readonly { pointer-events: none; margin-top: 12px; }
 
 /* ── Transitions ── */
 .step-fwd-enter-active { transition: all 0.28s ease; }

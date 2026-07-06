@@ -85,6 +85,22 @@ class Reservation(models.Model):
     guest_phone = models.CharField(max_length=20, blank=True)
     guest_email = models.EmailField(blank=True)
 
+    BILLING_TYPE_CHOICES = [
+        ('bireysel', 'Bireysel'),
+        ('kurumsal', 'Kurumsal'),
+    ]
+
+    billing_type = models.CharField(max_length=20, choices=BILLING_TYPE_CHOICES, default='bireysel', blank=True)
+    billing_name = models.CharField(max_length=30, blank=True)
+    billing_tckn = models.CharField(max_length=11, blank=True)
+    billing_tax_office = models.CharField(max_length=50, blank=True)
+    billing_tax_no = models.CharField(max_length=10, blank=True)
+    billing_address = models.TextField(blank=True)
+    billing_neighborhood = models.CharField(max_length=100, blank=True)
+    billing_district = models.CharField(max_length=30, blank=True)
+    billing_city = models.CharField(max_length=30, blank=True)
+    billing_phone = models.CharField(max_length=20, blank=True)
+
     class Meta:
         indexes = [
             models.Index(fields=['status', 'start_date', 'end_date']),
@@ -151,6 +167,16 @@ class CustomerProfile(models.Model):
     full_name = models.CharField(max_length=100, blank=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')
     branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name='representatives')
+    billing_type = models.CharField(max_length=20, choices=Reservation.BILLING_TYPE_CHOICES, default='bireysel', blank=True)
+    billing_name = models.CharField(max_length=30, blank=True)
+    billing_tckn = models.CharField(max_length=11, blank=True)
+    billing_tax_office = models.CharField(max_length=50, blank=True)
+    billing_tax_no = models.CharField(max_length=10, blank=True)
+    billing_address = models.TextField(blank=True)
+    billing_neighborhood = models.CharField(max_length=100, blank=True)
+    billing_district = models.CharField(max_length=30, blank=True)
+    billing_city = models.CharField(max_length=30, blank=True)
+    billing_phone = models.CharField(max_length=20, blank=True)
 
     def __str__(self):
         return self.full_name

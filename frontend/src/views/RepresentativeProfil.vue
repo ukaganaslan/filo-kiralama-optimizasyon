@@ -20,6 +20,26 @@
         <input v-model="form.phone" type="text" placeholder="Telefon" />
       </div>
 
+      <div class="field">
+        <label>Tam Adres</label>
+        <input v-model="form.address" type="text" placeholder="Tam Adres" />
+      </div>
+
+      <div class="field">
+        <label>Ülke</label>
+        <input v-model="form.country" type="text" placeholder="Ülke" />
+      </div>
+    
+      <div class="field">
+        <label>Şehir</label>
+        <input v-model="form.city" type="text" placeholder="Şehir" />
+      </div>
+
+      <div class="field">
+        <label>Posta Kodu</label>
+        <input v-model="form.postal_code" type="text" placeholder="Posta Kodu" />
+      </div>
+
       <div class="divider"></div>
       <h3>Şifre Değiştir</h3>
       <div class="field">

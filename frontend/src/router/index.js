@@ -10,6 +10,7 @@ const routes = [
     { path: '/', component: LoginView },
     { path: '/register', component: RegisterView },
     {path: '/misafir', component: () => import('../views/NoneedLogin.vue')},
+    {path: '/misafir/rezervasyon/:code', component: () => import('../views/GuestReservationDetail.vue')},
     {
         path: '/dashboard',
         component: CustomerLayout,
@@ -17,6 +18,7 @@ const routes = [
         children: [
             { path: '', component: () => import('../views/CustomerDashboard.vue') },
             { path: 'rezervasyonlar', component: () => import('../views/MyReservations.vue') },
+            { path: 'rezervasyonlar/:id', component: () => import('../views/CustomerReservationDetail.vue') },
             { path: 'profil', component: () => import('../views/CustomerProfil.vue') },
         ]
     },
@@ -27,6 +29,7 @@ const routes = [
         children: [
             { path: '', component: () => import('../views/GununOzeti.vue') },
             { path: 'rezervasyonlar', component: () => import('../views/RepresentativeDashboard.vue') },
+            { path: 'rezervasyonlar/:id', component: () => import('../views/StaffReservationDetail.vue') },
             { path: 'araclar', component: () => import('../views/RepresentativeAraclar.vue') },
             { path: 'profil', component: () => import('../views/RepresentativeProfil.vue') },
             {path: 'logs', component: () => import('../views/DeliveryLogs.vue')},
@@ -42,6 +45,7 @@ const routes = [
         meta: { requiresAuth: true, requiresAdmin: true },
         children: [
             { path: '', component: () => import('../views/OperatorDashboard.vue') },
+            { path: 'rezervasyonlar/:id', component: () => import('../views/StaffReservationDetail.vue') },
             { path: 'araclar', component: () => import('../views/Araclar.vue') },
             { path: 'subeler', component: () => import('../views/Subeler.vue') },
             { path: 'kullanıcılar', component: () => import('../views/Kullanıcılar.vue') },

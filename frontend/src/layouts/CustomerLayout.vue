@@ -103,7 +103,11 @@ const pageTitles = {
   '/dashboard/rezervasyonlar': 'Rezervasyonlarım',
   '/dashboard/profil': 'Profil Ayarları',
 }
-const pageTitle = computed(() => pageTitles[route.path] || '')
+const pageTitle = computed(() => {
+  if (pageTitles[route.path]) return pageTitles[route.path]
+  if (route.path.startsWith('/dashboard/rezervasyonlar/')) return 'Rezervasyon Detayı'
+  return ''
+})
 
 function handleHamburger() {
   if (window.matchMedia('(max-width: 768px)').matches) {

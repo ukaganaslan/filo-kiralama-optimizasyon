@@ -156,10 +156,81 @@
           </div>
         </div>
 
-        <!-- Step 4: Onay -->
+        <!-- Step 4: Fatura -->
         <div v-else-if="currentStep === 4" key="step4" class="step-card">
           <div class="card-title">
-            <div class="card-title-icon">✅</div>
+            <div>
+              <div class="card-title-text">Fatura Bilgileri</div>
+              <div class="card-title-sub">İsteğe bağlı, kayıt için kullanılır</div>
+            </div>
+          </div>
+
+          <div class="billing-grid">
+            <div class="loc-field">
+              <div class="loc-label"><span>Fatura Tipi</span></div>
+              <select v-model="form.billing_type" :class="{ filled: form.billing_type }">
+                <option value="bireysel">Bireysel</option>
+                <option value="kurumsal">Kurumsal</option>
+              </select>
+            </div>
+            <div class="loc-field">
+              <div class="loc-label"><span>Telefon</span></div>
+              <input v-model="form.billing_phone" type="text" placeholder="Telefon" />
+            </div>
+
+            <template v-if="form.billing_type === 'kurumsal'">
+              <div class="loc-field">
+                <div class="loc-label"><span>Firma Unvanı</span></div>
+                <input v-model="form.billing_name" type="text" placeholder="Firma Unvanı" />
+              </div>
+              <div class="loc-field">
+                <div class="loc-label"><span>Vergi Dairesi</span></div>
+                <input v-model="form.billing_tax_office" type="text" placeholder="Vergi Dairesi" />
+              </div>
+              <div class="loc-field">
+                <div class="loc-label"><span>Vergi Kimlik No</span></div>
+                <input v-model="form.billing_tax_no" type="text" maxlength="10" placeholder="10 haneli VKN" />
+              </div>
+            </template>
+            <template v-else>
+              <div class="loc-field">
+                <div class="loc-label"><span>Ad Soyad</span></div>
+                <input v-model="form.billing_name" type="text" placeholder="Ad Soyad" />
+              </div>
+              <div class="loc-field">
+                <div class="loc-label"><span>TC Kimlik No</span></div>
+                <input v-model="form.billing_tckn" type="text" maxlength="11" placeholder="11 haneli TCKN" />
+              </div>
+            </template>
+
+            <div class="loc-field loc-field--full">
+              <div class="loc-label"><span>Fatura Adresi</span></div>
+              <textarea v-model="form.billing_address" rows="2" placeholder="Fatura adresi"></textarea>
+            </div>
+            <div class="loc-field">
+              <div class="loc-label"><span>İl</span></div>
+              <select v-model="form.billing_city" :class="{ filled: form.billing_city }" @change="form.billing_district = ''">
+                <option value="" disabled>İl seçin</option>
+                <option v-for="il in iller" :key="il" :value="il">{{ il }}</option>
+              </select>
+            </div>
+            <div class="loc-field">
+              <div class="loc-label"><span>İlçe</span></div>
+              <select v-model="form.billing_district" :class="{ filled: form.billing_district }" :disabled="!form.billing_city">
+                <option value="" disabled>İlçe seçin</option>
+                <option v-for="ilce in ilceler" :key="ilce" :value="ilce">{{ ilce }}</option>
+              </select>
+            </div>
+            <div class="loc-field">
+              <div class="loc-label"><span>Mahalle</span></div>
+              <input v-model="form.billing_neighborhood" type="text" placeholder="Mahalle" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5: Onay -->
+        <div v-else-if="currentStep === 5" key="step5" class="step-card">
+          <div class="card-title">
             <div>
               <div class="card-title-text">Rezervasyon Özeti</div>
               <div class="card-title-sub">Bilgileri kontrol edip onaylayın</div>
@@ -211,7 +282,7 @@
           ← Geri
         </button>
         <button
-          v-if="currentStep < 4"
+          v-if="currentStep < 5"
           class="btn-next"
           :disabled="!canAdvance"
           @click="nextStep"
@@ -219,7 +290,7 @@
           İleri →
         </button>
         <button
-          v-if="currentStep === 4 && !formSuccess"
+          v-if="currentStep === 5 && !formSuccess"
           class="btn-confirm"
           @click="handleCreate"
         >
@@ -238,24 +309,31 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
+import { ILLER, getIlceler } from '../utils/address'
 
 const auth = useAuthStore()
+const iller = ILLER
 
 const currentStep = ref(1)
 const direction = ref('forward')
-const stepLabels = ['Lokasyon', 'Araç Grubu', 'Tarih', 'Onay']
+const stepLabels = ['Lokasyon', 'Araç Grubu', 'Tarih', 'Fatura', 'Onay']
 
 const branches = ref([])
 const availableDates = ref([])
 const availabilityLoading = ref(false)
 const formError = ref('')
 const formSuccess = ref('')
-const form = ref({ branch: '', vehicle_group: '', return_branch: '' })
+const form = ref({
+  branch: '', vehicle_group: '', return_branch: '',
+  billing_type: 'bireysel', billing_name: '', billing_tckn: '', billing_tax_office: '', billing_tax_no: '',
+  billing_address: '', billing_neighborhood: '', billing_district: '', billing_city: '', billing_phone: '',
+})
 const dateRange = ref({ start: null, end: null })
 const differentReturn = ref(false)
 const transferCost = ref(null)
 const dailyPrices = ref([])
 const reservations = ref([])
+const ilceler = computed(() => getIlceler(form.value.billing_city))
 
 const totalPrice = computed(() => {
   if (!dateRange.value.start || !dateRange.value.end || !dailyPrices.value.length) return null
@@ -283,6 +361,7 @@ const canAdvance = computed(() => {
   if (currentStep.value === 1) return !!form.value.branch
   if (currentStep.value === 2) return !!form.value.vehicle_group
   if (currentStep.value === 3) return !!(dateRange.value.start && dateRange.value.end)
+  if (currentStep.value === 4) return true
   return false
 })
 
@@ -310,8 +389,19 @@ const upcomingReservation = computed(() => {
 onMounted(async () => {
   const res = await axios.get('/api/branches/')
   const res2 = await axios.get('/api/reservations/')
+  const res3 = await axios.get('/api/profile/')
   branches.value = res.data
   reservations.value = res2.data
+  form.value.billing_type = res3.data.billing_type || 'bireysel'
+  form.value.billing_name = res3.data.billing_name || res3.data.full_name || ''
+  form.value.billing_tckn = res3.data.billing_tckn || ''
+  form.value.billing_tax_office = res3.data.billing_tax_office || ''
+  form.value.billing_tax_no = res3.data.billing_tax_no || ''
+  form.value.billing_address = res3.data.billing_address || ''
+  form.value.billing_neighborhood = res3.data.billing_neighborhood || ''
+  form.value.billing_district = res3.data.billing_district || ''
+  form.value.billing_city = res3.data.billing_city || ''
+  form.value.billing_phone = res3.data.billing_phone || res3.data.phone || ''
 })
 
 function branchName(id) {
@@ -395,6 +485,16 @@ async function handleCreate() {
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
+      billing_type: form.value.billing_type,
+      billing_name: form.value.billing_name,
+      billing_tckn: form.value.billing_tckn,
+      billing_tax_office: form.value.billing_tax_office,
+      billing_tax_no: form.value.billing_tax_no,
+      billing_address: form.value.billing_address,
+      billing_neighborhood: form.value.billing_neighborhood,
+      billing_district: form.value.billing_district,
+      billing_city: form.value.billing_city,
+      billing_phone: form.value.billing_phone,
     })
     formSuccess.value = 'Rezervasyon oluşturuldu! Onay bekleniyor.'
   } catch (e) {
@@ -406,7 +506,19 @@ async function handleCreate() {
 function resetForm() {
   currentStep.value = 1
   direction.value = 'forward'
-  form.value = { branch: '', vehicle_group: '', return_branch: '' }
+  form.value = {
+    branch: '', vehicle_group: '', return_branch: '',
+    billing_type: form.value.billing_type,
+    billing_name: form.value.billing_name,
+    billing_tckn: form.value.billing_tckn,
+    billing_tax_office: form.value.billing_tax_office,
+    billing_tax_no: form.value.billing_tax_no,
+    billing_address: form.value.billing_address,
+    billing_neighborhood: form.value.billing_neighborhood,
+    billing_district: form.value.billing_district,
+    billing_city: form.value.billing_city,
+    billing_phone: form.value.billing_phone,
+  }
   dateRange.value = { start: null, end: null }
   availableDates.value = []
   differentReturn.value = false
@@ -608,7 +720,9 @@ function resetForm() {
 .loc-dot.pickup { background: #1B1063; }
 .loc-dot.active { background: #F59E0B; }
 
-.loc-field select {
+.loc-field select,
+.loc-field input,
+.loc-field textarea {
   padding: 12px 16px;
   border: 1.5px solid #e2e8f0;
   border-radius: 11px;
@@ -618,9 +732,26 @@ function resetForm() {
   background: #fafafa;
   transition: border 0.2s, color 0.2s, box-shadow 0.2s;
   cursor: pointer;
+  font-family: inherit;
+}
+.loc-field input,
+.loc-field textarea {
+  color: #111827;
+  cursor: text;
+  resize: none;
 }
 .loc-field select.filled { color: #111827; background: white; border-color: #c4beff; }
-.loc-field select:focus { border-color: #1B1063; background: white; box-shadow: 0 0 0 3px rgba(27,16,99,0.08); }
+.loc-field select:focus,
+.loc-field input:focus,
+.loc-field textarea:focus { border-color: #1B1063; background: white; box-shadow: 0 0 0 3px rgba(27,16,99,0.08); }
+
+/* ── Step 4: Fatura ── */
+.billing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.loc-field--full { grid-column: 1 / -1; }
 
 .same-loc-btn {
   padding: 12px 16px;

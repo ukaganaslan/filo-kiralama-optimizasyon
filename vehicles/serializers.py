@@ -5,6 +5,23 @@ from datetime import date
 
 
 
+def validate_billing_payload(data):
+    """TCKN/VKN format kontrolü. data: dict benzeri (get destekleyen) nesne."""
+    errors = {}
+    tckn = data.get('billing_tckn')
+    if tckn:
+        if not tckn.isdigit() or len(tckn) != 11 or tckn[0] == '0':
+            errors['billing_tckn'] = 'TC Kimlik No 11 haneli rakamdan oluşmalı ve 0 ile başlayamaz.'
+    tax_no = data.get('billing_tax_no')
+    if tax_no:
+        if not tax_no.isdigit() or len(tax_no) != 10:
+            errors['billing_tax_no'] = 'Vergi Kimlik No 10 haneli rakamdan oluşmalıdır.'
+    billing_type = data.get('billing_type')
+    if billing_type == 'kurumsal' and (data.get('billing_tax_office') or tax_no) and not (data.get('billing_tax_office') and tax_no):
+        errors['billing_type'] = 'Kurumsal fatura için Vergi Dairesi ve Vergi Kimlik No birlikte girilmelidir.'
+    return errors
+
+
 class TransferCostSerializer(serializers.ModelSerializer):
     from_branch_name = serializers.CharField(source='from_branch.name', read_only=True)
     to_branch_name = serializers.CharField(source='to_branch.name', read_only=True)
@@ -109,6 +126,12 @@ class ReservationSerializer(serializers.ModelSerializer):
                 return 'completed'
         return obj.status
 
+    def validate(self, data):
+        errors = validate_billing_payload(data)
+        if errors:
+            raise serializers.ValidationError(errors)
+        return data
+
     class Meta:
         model = Reservation
         fields = [
@@ -117,6 +140,8 @@ class ReservationSerializer(serializers.ModelSerializer):
             'vehicle_group', 'start_date', 'end_date', 'status',
             'customer_username', 'assigned_vehicle_id', 'assigned_vehicle_info', 'current_status',
             'guest_name', 'guest_phone', 'guest_email', 'total_price', 'delivery_info',
+            'billing_type', 'billing_name', 'billing_tckn', 'billing_tax_office', 'billing_tax_no',
+            'billing_address', 'billing_neighborhood', 'billing_district', 'billing_city', 'billing_phone'
         ]
 
 

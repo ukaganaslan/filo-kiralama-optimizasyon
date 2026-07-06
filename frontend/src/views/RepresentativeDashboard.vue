@@ -180,101 +180,6 @@
     </div>
   </div>
 
-  <!-- Detail Modal -->
-  <div v-if="detailModal && selectedReservation" class="modal-overlay" @click.self="detailModal = false">
-    <div class="detail-modal">
-
-      <div class="detail-header">
-        <div class="detail-header-left">
-          <span class="detail-res-id">{{ selectedReservation.reservation_id }}</span>
-          <span :class="'badge badge-' + selectedReservation.status">{{ statusLabel(selectedReservation.status) }}</span>
-        </div>
-        <button class="detail-close" @click="detailModal = false">✕</button>
-      </div>
-
-      <div class="detail-info-grid">
-        <div class="detail-info-item">
-          <span class="detail-info-label">MÜŞTERİ</span>
-          <span class="detail-info-value">{{ selectedReservation.customer_username || selectedReservation.guest_name || '—' }}</span>
-        </div>
-        <div class="detail-info-item">
-          <span class="detail-info-label">ARAÇ</span>
-          <span class="detail-info-value">{{ selectedReservation.assigned_vehicle_id || '—' }}</span>
-        </div>
-        <div class="detail-info-item">
-          <span class="detail-info-label">PLAKA</span>
-          <span class="detail-info-value">{{ selectedReservation.assigned_vehicle_info?.plate || '—' }}</span>
-        </div>
-        <div class="detail-info-item">
-          <span class="detail-info-label">GRUP</span>
-          <span class="detail-info-value">{{ groupLabel(selectedReservation.vehicle_group) }}</span>
-        </div>
-        <div class="detail-info-item">
-          <span class="detail-info-label">BAŞLANGIÇ</span>
-          <span class="detail-info-value">{{ selectedReservation.start_date }}</span>
-        </div>
-        <div class="detail-info-item">
-          <span class="detail-info-label">BİTİŞ</span>
-          <span class="detail-info-value">{{ selectedReservation.end_date }}</span>
-        </div>
-        <div class="detail-info-item">
-          <span class="detail-info-label">TUTAR</span>
-          <span class="detail-info-value">{{ selectedReservation.total_price ? Number(selectedReservation.total_price).toLocaleString('tr-TR') + ' ₺' : '—' }}</span>
-        </div>
-        <div class="detail-info-item">
-          <span class="detail-info-label">İADE ŞUBE</span>
-          <span class="detail-info-value">{{ selectedReservation.return_branch ? (selectedReservation.return_branch_title || selectedReservation.return_branch_name) : (selectedReservation.branch_title || selectedReservation.branch_name) }}</span>
-        </div>
-      </div>
-
-      <!-- Teslim -->
-      <div v-if="canDeliver || selectedReservation.delivery_info?.delivered" class="process-section">
-        <div class="process-section-header">
-          <span class="process-title">Araç Teslimi</span>
-          <span v-if="selectedReservation.delivery_info?.delivered" class="done-badge">Teslim Edildi</span>
-        </div>
-        <template v-if="canDeliver">
-          <div class="form-actions">
-            <button class="btn-save" @click="goToTeslim">Teslim Et</button>
-          </div>
-        </template>
-        <template v-else>
-          <div class="done-info">
-            <span>KM: <b>{{ selectedReservation.delivery_info.delivered_km ?? '—' }}</b></span>
-            <span>Yakıt: <b>{{ fuelLabel(selectedReservation.delivery_info.delivered_fuel) }}</b></span>
-            <a v-if="selectedReservation.delivery_info.delivered_doc" :href="selectedReservation.delivery_info.delivered_doc" target="_blank">Belgeyi Görüntüle</a>
-          </div>
-          <div class="form-actions" style="margin-top: 10px;">
-            <button class="btn-export" @click="router.push(`/representative/teslim/${selectedReservation.id}`)">PDF İndir</button>
-          </div>
-        </template>
-      </div>
-
-      <!-- İade -->
-      <div v-if="canReturn || selectedReservation.delivery_info?.returned" class="process-section">
-        <div class="process-section-header">
-          <span class="process-title">Araç İadesi</span>
-          <span v-if="selectedReservation.delivery_info?.returned" class="done-badge done-return">İade Alındı</span>
-        </div>
-        <template v-if="canReturn">
-          <div class="form-actions">
-            <button class="btn-save" @click="goToIade">İade Al</button>
-          </div>
-        </template>
-        <template v-else>
-          <div class="done-info">
-            <span>KM: <b>{{ selectedReservation.delivery_info.returned_km ?? '—' }}</b></span>
-            <span>Yakıt: <b>{{ fuelLabel(selectedReservation.delivery_info.returned_fuel) }}</b></span>
-            <a v-if="selectedReservation.delivery_info.returned_doc" :href="selectedReservation.delivery_info.returned_doc" target="_blank">Belgeyi Görüntüle</a>
-          </div>
-          <div class="form-actions" style="margin-top: 10px;">
-            <button class="btn-export" @click="router.push(`/representative/iade/${selectedReservation.id}`)">PDF İndir</button>
-          </div>
-        </template>
-      </div>
-
-    </div>
-  </div>
 </template>
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
@@ -299,14 +204,6 @@ const availableMonths = computed(() => {
   const months = [...new Set(reservations.value.map(r => r.start_date.slice(0, 7)))]
   return months.sort()
 })
-
-function goToTeslim() {
-  router.push(`/representative/teslim/${selectedReservation.value.id}`)
-}
-
-function goToIade() {
-  router.push(`/representative/iade/${selectedReservation.value.id}`)
-}
 
 const plateSearch = ref('')
 const statusFilter = ref('')
@@ -526,10 +423,6 @@ onMounted(async () => {
 
 onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
-function statusLabel(s) {
-  return { pending: 'Bekliyor', assigned: 'Onaylandı', cancelled: 'İptal' }[s] || s
-}
-
 function reservationStatus(r) {
   if (r.status === 'cancelled') return { label: 'İptal', cls: 'badge-cancelled' }
   if (r.status === 'pending') return { label: 'Bekliyor', cls: 'badge-pending' }
@@ -641,30 +534,9 @@ function formatMonth(m) {
   return `${names[parseInt(mo)-1]} ${y}`
 }
 
-const detailModal = ref(false)
-const selectedReservation = ref(null)
-
-const canDeliver = computed(() => {
-  if (!selectedReservation.value) return false
-  const r = selectedReservation.value
-  return r.status === 'assigned' && r.start_date <= bugun && !r.delivery_info?.delivered
-})
-
-const canReturn = computed(() => {
-  if (!selectedReservation.value) return false
-  const r = selectedReservation.value
-  return r.status === 'assigned' && r.delivery_info?.delivered && !r.delivery_info?.returned
-})
-
 function openDetail(r) {
-  selectedReservation.value = r
-  detailModal.value = true
+  router.push(`/representative/rezervasyonlar/${r.id}`)
 }
-
-function fuelLabel(v) {
-  return { 0: 'E', 1: '1/8', 2: '1/4', 3: '3/8', 4: '1/2', 5: '5/8', 6: '3/4', 7: '7/8', 8: 'F' }[v] ?? '—'
-}
-
 </script>
 
 <style scoped>
@@ -742,22 +614,6 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .action-dropdown button.danger:hover { background: #fef2f2; }
 .no-action { color: #94a3b8; cursor: default; }
 
-/* Detail Modal */
-.detail-modal { background: white; border-radius: 14px; padding: 28px; width: 700px; max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.14); display: flex; flex-direction: column; gap: 20px; }
-.detail-header { display: flex; justify-content: space-between; align-items: center; }
-.detail-header-left { display: flex; align-items: center; gap: 10px; }
-.detail-res-id { font-size: 18px; font-weight: 700; color: #1e293b; font-family: monospace; }
-.detail-close { background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
-.detail-close:hover { background: #f1f5f9; color: #1e293b; }
-.detail-info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
-.detail-info-item { background: white; padding: 12px 14px; }
-.detail-info-label { display: block; font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 3px; }
-.detail-info-value { display: block; font-size: 13px; font-weight: 600; color: #1e293b; }
-.process-section { border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-.process-section-header { display: flex; justify-content: space-between; align-items: center; }
-.process-title { font-size: 14px; font-weight: 700; color: #1e293b; }
-.done-badge { padding: 3px 10px; background: #d1fae5; color: #065f46; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.done-badge.done-return { background: #e9d5ff; color: #6b21a8; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-field { display: flex; flex-direction: column; gap: 5px; }
 .form-field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.06em; text-transform: uppercase; }
