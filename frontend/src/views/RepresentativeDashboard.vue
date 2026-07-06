@@ -5,7 +5,7 @@
         <h2>Şube Rezervasyonları</h2>
         <span class="count-badge">{{ reservations.length }} rezervasyon</span>
       </div>
-        <input v-if="activeView === 'list'" v-model="plateSearch" class="search-input" placeholder="Plaka ara..." />
+        <input v-if="activeView === 'list'" v-model="tableSearch" class="search-input" placeholder="Ara..." />
         <select v-if="activeView === 'list'" v-model="statusFilter" class="view-select">
           <option value="">Tüm Durumlar</option>
           <option v-for="o in statusOptions" :key="o.key" :value="o.key">{{ o.label }}</option>
@@ -205,7 +205,7 @@ const availableMonths = computed(() => {
   return months.sort()
 })
 
-const plateSearch = ref('')
+const tableSearch = ref('')
 const statusFilter = ref('')
 const sortKey = ref('')
 const sortDir = ref('asc')
@@ -273,11 +273,18 @@ function sortValue(r, key) {
 const filteredReservations = computed(() => {
   let list = reservations.value
   if (selectedMonth.value) list = list.filter(r => r.start_date.startsWith(selectedMonth.value))
-  if (plateSearch.value.trim()) {
-    const q = plateSearch.value.trim().toLowerCase()
+  if (tableSearch.value.trim()) {
+    const q = tableSearch.value.trim().toLowerCase()
     list = list.filter(r => {
       const plate = vehiclePlateMap.value[r.assigned_vehicle_id] || ''
-      return plate.toLowerCase().includes(q) || (r.assigned_vehicle_id || '').toLowerCase().includes(q)
+      const customer = r.customer_username || `Misafir - ${r.guest_name}`
+      const returnBranch = r.return_branch ? (r.return_branch_title || r.return_branch_name) : (r.branch_title || r.branch_name || '')
+      const price = r.total_price ? Number(r.total_price).toLocaleString('tr-TR') : ''
+      const haystack = [
+        r.reservation_id, plate, r.assigned_vehicle_id, customer, returnBranch,
+        r.vehicle_group, r.start_date, r.end_date, price, reservationStatus(r).label,
+      ].join(' ').toLowerCase()
+      return haystack.includes(q)
     })
   }
   if (statusFilter.value) list = list.filter(r => statusKey(r) === statusFilter.value)
