@@ -96,6 +96,7 @@
           </svg>
         </button>
         <span class="topbar-title">{{ pageTitle }}</span>
+        <NotificationBell />
       </header>
       <router-view />
     </div>
@@ -107,6 +108,7 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
+import NotificationBell from '../components/NotificationBell.vue'
 
 const auth = useAuthStore()
 const router = useRouter()

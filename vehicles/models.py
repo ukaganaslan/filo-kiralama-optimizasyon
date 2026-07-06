@@ -265,4 +265,24 @@ class Payment(models.Model):
     paid_at = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return f"{self.reservation} - {self.amount} - {self.status}"
+    
+class Notification(models.Model):
+    TYPE_CHOICES = [
+        ('reservation', 'Rezervasyon'),
+        ('extension', 'Uzatma'),
+        ('system', 'Sistem'),
+    ]
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    link = models.CharField(max_length=200, blank=True, default='')
+    notif_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='system')
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['recipient', 'is_read', 'created_at']),
+        ]
+    def __str__(self):
+        return f"{self.recipient} - {self.title}"

@@ -15,9 +15,8 @@ from django.conf import settings
 from django.utils import timezone
 from io import BytesIO
 from xhtml2pdf import pisa
-
-from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment, ReservationExtension, Payment
-from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer, ReservationExtensionSerializer, validate_billing_payload
+from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment, ReservationExtension, Payment, Notification
+from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer, ReservationExtensionSerializer, validate_billing_payload, NotificationSerializer
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
 
@@ -180,6 +179,13 @@ class ReservationViewSet(viewsets.ModelViewSet):
             if instance.start_date.isoformat() <= date.today().isoformat():
                 raise ValidationError('Başlamış rezervasyon iptal edilemez.')
         serializer.save()
+        notify(
+            instance.customer,
+            'Rezervasyonunuz iptal edildi',
+            f'{instance.reservation_id} numaralı rezervasyonunuz iptal edilmiştir.',
+            link='/dashboard/rezervasyonlar',
+            notif_type='reservation',
+        )
 
     def perform_destroy(self, instance):
         instance.delete()
@@ -290,8 +296,18 @@ def _run_optimization():
 
     Reservation.objects.filter(id__in=[r.id for r in free]).update(status='pending')
     for a in assignments:
-        a['reservation'].status = 'assigned'
-        a['reservation'].save()
+        reservation = a['reservation']
+        was_already_assigned = reservation.status == 'assigned'
+        reservation.status = 'assigned'
+        reservation.save()
+        if not was_already_assigned:
+            notify(
+                reservation.customer,
+                'Rezervasyonunuz atandı',
+                f'{reservation.reservation_id} numaralı rezervasyonunuz için araç ataması yapıldı.',
+                link='/dashboard/rezervasyonlar',
+                notif_type='reservation',
+            )
 
     penalty_config = PenaltyConfig.objects.first()
     run = OptimizationRun.objects.create(
@@ -1221,13 +1237,21 @@ def extend_reservation(request, pk):
             reject_reason='Araç bu tarihlerde başka bir rezervasyona atanmış.',
             decided_at=timezone.now(),
         )
-        # TODO(106): müşteriye otomatik red bildirimi
+        notify(
+            reservation.customer, 'Uzatma Talebiniz Reddedildi',
+            f'{reservation.reservation_id} için uzatma talebiniz reddedildi: {ext.reject_reason}',
+            link='/dashboard/rezervasyonlar', notif_type='extension',
+        )
         return Response({'status': 'rejected', 'reason': ext.reject_reason}, status=200)
     ext = ReservationExtension.objects.create(
         reservation=reservation, requested_end_date=new_end_date,
         status='pending', extra_price=extra_price,
     )
-    # TODO(106): şube temsilcisine yeni talep bildirimi
+    _notify_branch_representatives(
+        reservation.branch, 'Yeni Uzatma Talebi',
+        f'{reservation.reservation_id} için yeni bir uzatma talebi var.',
+        link='/representative/rezervasyonlar',
+    )
     return Response(ReservationExtensionSerializer(ext).data, status=201)
 
 
@@ -1280,14 +1304,22 @@ def approve_extension(request, ext_id):
         ext.reject_reason = 'Müşterinin bu tarihlerde başka bir rezervasyonu var.'
         ext.decided_at = timezone.now()
         ext.save()
-        # TODO(106): müşteriye otomatik red bildirimi
+        notify(
+            reservation.customer, 'Uzatma Talebiniz Reddedildi',
+            f'{reservation.reservation_id} için uzatma talebiniz reddedildi: {ext.reject_reason}',
+            link='/dashboard/rezervasyonlar', notif_type='extension',
+        )
         return Response({'status': 'rejected', 'reason': ext.reject_reason}, status=200)
     if _extension_has_conflict(vehicle, window_start, ext.requested_end_date, reservation):
         ext.status = 'rejected'
         ext.reject_reason = 'Araç bu tarihlerde artık müsait değil.'
         ext.decided_at = timezone.now()
         ext.save()
-        # TODO(106): müşteriye otomatik red bildirimi
+        notify(
+            reservation.customer, 'Uzatma Talebiniz Reddedildi',
+            f'{reservation.reservation_id} için uzatma talebiniz reddedildi: {ext.reject_reason}',
+            link='/dashboard/rezervasyonlar', notif_type='extension',
+        )
         return Response({'status': 'rejected', 'reason': ext.reject_reason}, status=200)
     # Fiyatı talep anındakine güvenmeden yeniden hesapla
     extra_price, missing = _extension_price(reservation, ext.requested_end_date)
@@ -1302,7 +1334,11 @@ def approve_extension(request, ext_id):
     ext.decided_at = timezone.now()
     ext.save()
     _run_optimization()  # etraftaki pending rezervasyonları yeni locked pencereye göre yeniden dağıt
-    # TODO(106): müşteriye onay bildirimi
+    notify(
+        reservation.customer, 'Uzatma Talebiniz Onaylandı',
+        f'{reservation.reservation_id} için uzatma talebiniz onaylandı, yeni bitiş tarihi: {reservation.end_date}.',
+        link='/dashboard/rezervasyonlar', notif_type='extension',
+    )
     return Response({'status': 'approved'})
 
 
@@ -1322,7 +1358,11 @@ def reject_extension(request, ext_id):
     ext.reject_reason = request.data.get('reason') or 'Temsilci tarafından reddedildi.'
     ext.decided_at = timezone.now()
     ext.save()
-    # TODO(106): müşteriye red bildirimi
+    notify(
+        ext.reservation.customer, 'Uzatma Talebiniz Reddedildi',
+        f'{ext.reservation.reservation_id} için uzatma talebiniz reddedildi: {ext.reject_reason}',
+        link='/dashboard/rezervasyonlar', notif_type='extension',
+    )
     return Response({'status': 'rejected'})
 
 
@@ -1557,6 +1597,22 @@ def _build_reservation_pdf(reservation, pdf_type):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
+def notify(recipient, title, message, link='', notif_type='system'):
+    if recipient is None:
+        return
+    Notification.objects.create(
+        recipient=recipient,
+        title=title,
+        message=message,
+        link=link,
+        notif_type=notif_type,
+    )
+
+def _notify_branch_representatives(branch, title, message, link='', notif_type='extension'):
+    reps = User.objects.filter(profile__role='representative', profile__branch=branch)
+    for rep in reps:
+        notify(rep, title, message, link=link, notif_type=notif_type)
+
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
@@ -1697,4 +1753,28 @@ def admin_stats(request):
         'branches': branch_stats,
         'groups': group_dist,
     })
-    
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def notifications_list(request):
+    notes = Notification.objects.filter(recipient=request.user).order_by('-created_at')[:50]
+    return Response(NotificationSerializer(notes, many=True).data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def notifications_unread_count(request):
+    count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+    return Response({'count': count})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def notifications_mark_read(request, notif_id):
+    Notification.objects.filter(id=notif_id, recipient=request.user).update(is_read=True)
+    return Response({'ok': True})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def notifications_mark_all_read(request):
+    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    return Response({'ok': True})
