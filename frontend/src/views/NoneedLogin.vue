@@ -169,7 +169,7 @@
                 <div class="card-title-icon"><i class="pi pi-user"></i></div>
                 <div>
                   <div class="card-title-text">Bilgileriniz</div>
-                  <div class="card-title-sub">İletişim bilgilerinizi girin ve rezervasyonu onaylayın</div>
+                  <div class="card-title-sub">İletişim bilgilerinizi girin ve ödeme ekranına devam edin.</div>
                 </div>
               </div>
 
@@ -263,13 +263,26 @@
               <p v-if="formError" class="form-error">{{ formError }}</p>
             </div>
 
+            <!-- Step 5: Ödeme -->
+            <div v-else-if="currentStep === 5" key="s5" class="step-card">
+             <div class="card-title">
+            <div>
+              <div class="card-title-text">Ödeme</div>
+              <div class="card-title-sub">Demo ödeme ekranı</div>
+            </div>
+          </div>
+          
+          <MockPaymentForm :amount="totalPrice" @confirmed="handlePaymentConfirmed" />
+
+          <p v-if="formError" class="form-error">{{ formError }}</p>
+        </div>
+
           </transition>
 
           <!-- Navigation -->
           <div class="step-nav" :class="{ 'nav-start': currentStep === 1 }">
             <button v-if="currentStep > 1" class="btn-back" @click="prevStep">← Geri</button>
-            <button v-if="currentStep < 4" class="btn-next" :disabled="!canAdvance" @click="nextStep">İleri →</button>
-            <button v-if="currentStep === 4" class="btn-confirm" @click="handleCreate">Rezervasyon Oluştur →</button>
+            <button v-if="currentStep < 5" class="btn-next" :disabled="!canAdvance" @click="nextStep">İleri →</button>
           </div>
 
         </template>
@@ -333,14 +346,16 @@ import Step from 'primevue/step'
 import StepPanel from 'primevue/steppanel'
 import axios from 'axios'
 import { ILLER, getIlceler } from '../utils/address'
+import MockPaymentForm from '../components/MockPaymentForm.vue'
 
 const iller = ILLER
 const currentStep = ref(1)
 const direction = ref('forward')
-const stepLabels = ['Lokasyon', 'Araç Grubu', 'Tarih', 'Bilgileriniz']
+const stepLabels = ['Lokasyon', 'Araç Grubu', 'Tarih', 'Bilgileriniz', 'Ödeme']
 
 const branches = ref([])
 const availableDates = ref([])
+const dailyPrices = ref([])
 const availabilityLoading = ref(false)
 const formError = ref('')
 const reservationCode = ref('')
@@ -349,6 +364,7 @@ const differentReturn = ref(false)
 const transferCost = ref(null)
 
 const form = ref({ branch: '', vehicle_group: '', return_branch: '' })
+const paid = ref(false)
 const dateRange = ref({ start: null, end: null })
 const guest = ref({
   name: '', phone: '', email: '',
@@ -369,12 +385,27 @@ const groups = [
   { value: 'suv',     label: 'SUV', desc: 'Geniş, güçlü, her arazi' },
 ]
 
+const totalPrice = computed(() => {
+  if (!dateRange.value.start || !dateRange.value.end || !dailyPrices.value.length) return null
+  const priceMap = {}
+  dailyPrices.value.forEach(p => { priceMap[p.date] = Number(p.price_per_day) })
+  const start = new Date(dateRange.value.start)
+  const end = new Date(dateRange.value.end)
+  let total = 0
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    total += priceMap[key] || 0
+  }
+  return total
+})
+
 const transitionName = computed(() => direction.value === 'forward' ? 'step-fwd' : 'step-back')
 
 const canAdvance = computed(() => {
   if (currentStep.value === 1) return !!form.value.branch
   if (currentStep.value === 2) return !!form.value.vehicle_group
   if (currentStep.value === 3) return !!(dateRange.value.start && dateRange.value.end)
+  if (currentStep.value === 4) return true
   return false
 })
 
@@ -438,10 +469,12 @@ async function fetchAvailability() {
   availableDates.value = []
   dateRange.value = { start: null, end: null }
   try {
-    const res = await axios.get('/api/availability/', {
-      params: { branch: form.value.branch, group: form.value.vehicle_group }
-    })
-    availableDates.value = res.data.available_dates
+    const [availRes, priceRes] = await Promise.all([
+      axios.get('/api/availability/', { params: { branch: form.value.branch, group: form.value.vehicle_group } }),
+      axios.get('/api/daily-prices/', { params: { group: form.value.vehicle_group } }),
+    ])
+    availableDates.value = availRes.data.available_dates
+    dailyPrices.value = priceRes.data
   } finally {
     availabilityLoading.value = false
   }
@@ -451,6 +484,11 @@ function toLocalDateStr(date) {
   if (!date) return '—'
   const d = new Date(date)
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
+async function handlePaymentConfirmed() {
+  paid.value = true
+  await handleCreate()
 }
 
 async function handleCreate() {
@@ -479,6 +517,7 @@ async function handleCreate() {
       billing_neighborhood: guest.value.billing_neighborhood,
       billing_district: guest.value.billing_district,
       billing_city: guest.value.billing_city,
+      paid: paid.value,
     })
     reservationCode.value = res.data.code
     reservationPrice.value = res.data.total_price
@@ -497,6 +536,7 @@ function resetForm() {
     billing_type: 'bireysel', billing_name: '', billing_tckn: '', billing_tax_office: '', billing_tax_no: '',
     billing_address: '', billing_neighborhood: '', billing_district: '', billing_city: '',
   }
+  paid.value = false
   differentReturn.value = false
   transferCost.value = null
   reservationCode.value = ''

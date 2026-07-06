@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog, DailyPrice, ReservationExtension
+from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog, DailyPrice, ReservationExtension, Payment
 from datetime import date
 
 
@@ -74,6 +74,7 @@ class ReservationSerializer(serializers.ModelSerializer):
     assigned_vehicle_info = serializers.SerializerMethodField()
     current_status = serializers.SerializerMethodField()
     delivery_info = serializers.SerializerMethodField()
+    payment_info = serializers.SerializerMethodField()
 
     def get_assigned_vehicle_id(self, obj):
         result = obj.assignmentresult_set.order_by('-run__created_at').first()
@@ -112,7 +113,17 @@ class ReservationSerializer(serializers.ModelSerializer):
             'returned_fuel': returned.fuel_level if returned else None,
             'returned_damage': returned.damage_items if returned else [],
             'returned_notes': returned.notes if returned else '',
-    }
+        }
+
+    def get_payment_info(self, obj):
+        payment = getattr(obj, 'payment', None)
+        if not payment:
+            return None
+        return {
+            'status': payment.status,
+            'amount': str(payment.amount),
+            'paid_at': payment.paid_at.isoformat() 
+        }
 
     def get_current_status(self, obj):
         from datetime import date
@@ -139,7 +150,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             'return_branch', 'return_branch_name', 'return_branch_title',
             'vehicle_group', 'start_date', 'end_date', 'status',
             'customer_username', 'assigned_vehicle_id', 'assigned_vehicle_info', 'current_status',
-            'guest_name', 'guest_phone', 'guest_email', 'total_price', 'delivery_info',
+            'guest_name', 'guest_phone', 'guest_email', 'total_price', 'delivery_info', 'payment_info',
             'billing_type', 'billing_name', 'billing_tckn', 'billing_tax_office', 'billing_tax_no',
             'billing_address', 'billing_neighborhood', 'billing_district', 'billing_city', 'billing_phone'
         ]
