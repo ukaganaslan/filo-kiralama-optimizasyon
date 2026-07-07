@@ -3,6 +3,7 @@ import re
 import uuid
 from datetime import date, timedelta
 from rest_framework import viewsets, status, permissions
+from django.db.models import Q, Max
 from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
@@ -193,6 +194,52 @@ class ReservationViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.delete()
         _run_optimization()
+    
+    @action(detail=True, methods=['post'], url_path='reassign-vehicle')
+    def reassign_vehicle(self, request, pk=None):
+        from rest_framework.exceptions import ValidationError, PermissionDenied
+        reservation = self.get_object()
+
+        profile = getattr(request.user, 'profile', None)
+        is_rep_of_branch = profile and profile.role == 'representative' and reservation.branch == profile.branch
+        if not request.user.is_staff and not is_rep_of_branch:
+            raise PermissionDenied('Bu rezervasyona erişim yetkiniz yok.')
+
+        if reservation.status != 'assigned' or reservation.start_date <= date.today():
+            raise ValidationError('Sadece henüz başlamamış, onaylı rezervasyonlar taşınabilir.')
+
+        target_vehicle_id = request.data.get('vehicle_id')
+        try:
+            vehicle = Vehicle.objects.get(vehicle_id=target_vehicle_id, branch=reservation.branch)
+        except Vehicle.DoesNotExist:
+            raise ValidationError('Araç bulunamadı.')
+        if vehicle.group != reservation.vehicle_group:
+            raise ValidationError('Hedef araç, rezervasyonla aynı grupta olmalı.')
+
+        bakimda = MaintenanceLog.objects.filter(
+            vehicle=vehicle,
+            start_date__lte=reservation.end_date,
+            end_date__gte=reservation.start_date,
+        ).exists()
+        if bakimda:
+            raise ValidationError('Bu araç seçilen tarihlerde bakımda.')
+
+        cakisan = AssignmentResult.objects.filter(
+            vehicle=vehicle,
+            reservation__status='assigned',
+            reservation__start_date__lte=reservation.end_date,
+            reservation__end_date__gte=reservation.start_date,
+        ).exclude(reservation=reservation).exists()
+        if cakisan:
+            raise ValidationError('Bu araç seçilen tarihlerde başka bir rezervasyona atanmış.')
+
+        run = OptimizationRun.objects.create(
+            solver='manual', total_score=0, served_count=1, missed_count=0,
+        )
+        AssignmentResult.objects.create(run=run, reservation=reservation, vehicle=vehicle)
+        reservation.manually_locked = True
+        reservation.save(update_fields=['manually_locked'])
+        return Response({'assigned_vehicle_id': vehicle.vehicle_id})
 
 class MaintenanceLogViewSet(viewsets.ModelViewSet):
     serializer_class = MaintenanceLogSerializer
@@ -301,8 +348,7 @@ def _run_optimization():
     from datetime import date
     today = date.today()
     locked = list(Reservation.objects.filter(
-        status='assigned',
-        start_date__lte=today
+        Q(status='assigned', start_date__lte=today) | Q(manually_locked=True)
     ))
     locked_ids = [r.id for r in locked]
     free = list(Reservation.objects.exclude(status='cancelled').exclude(id__in=locked_ids))
@@ -469,16 +515,26 @@ def availability(request):
     ).count()
 
     bugun = date.today()
+    # Pencere sabit 90 gün değil, admin'in fiilen fiyatlandırdığı en son güne
+    # kadar açık (aksi halde ileri tarihli fiyatlar yanlışlıkla "pasif" görünüyordu).
+    son_fiyatli_gun = DailyPrice.objects.filter(
+        vehicle_group=group, date__gte=bugun
+    ).aggregate(Max('date'))['date__max']
+
+    if not son_fiyatli_gun:
+        return Response({'available_dates': []})
+
+    gun_sayisi = min((son_fiyatli_gun - bugun).days + 1, 400)
     musait_gunler = []
     fiyatli_gunler = set(
         DailyPrice.objects.filter(
             vehicle_group=group,
             date__gte=bugun,
-            date__lt=bugun + timedelta(days=90)
+            date__lte=son_fiyatli_gun
         ).values_list('date', flat=True)
     )
 
-    for i in range(90):
+    for i in range(gun_sayisi):
         gun = bugun + timedelta(days=i)
         if gun not in fiyatli_gunler:
             continue

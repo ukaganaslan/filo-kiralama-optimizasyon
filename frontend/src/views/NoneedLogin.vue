@@ -113,7 +113,8 @@
               </div>
 
               <div v-if="transferCost !== null && differentReturn" class="transfer-notice" :class="{ free: transferCost === 0 }">
-                <span class="notice-icon">{{ transferCost === 0 ? '✅' : '💸' }}</span>
+                <svg v-if="transferCost === 0" class="notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                <svg v-else class="notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5M12 16.5h.01"/></svg>
                 {{ transferCost > 0 ? `Transfer ücreti: ${transferCost} ₺` : 'Bu iade noktası için transfer ücreti yok' }}
               </div>
             </div>
@@ -133,7 +134,13 @@
                   :class="{ selected: form.vehicle_group === g.value }"
                   @click="form.vehicle_group = g.value"
                 >
-                  <span class="group-emoji">{{ g.emoji }}</span>
+                  <span class="group-icon" :class="'group-icon--' + g.value">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 17H3a2 2 0 01-2-2V9a2 2 0 012-2h2M17 17h2a2 2 0 002-2V9a2 2 0 00-2-2h-2"/>
+                      <rect x="5" y="7" width="14" height="10" rx="2"/>
+                      <circle cx="7.5" cy="17" r="1.5"/><circle cx="16.5" cy="17" r="1.5"/>
+                    </svg>
+                  </span>
                   <div class="group-info">
                     <div class="group-name">{{ g.label }}</div>
                     <div class="group-desc">{{ g.desc }}</div>
@@ -162,7 +169,7 @@
               </div>
               <template v-else-if="availableDates.length > 0">
                 <p class="date-hint">Açık günler müsait, gri günler dolu.</p>
-                <VDatePicker v-model.range="dateRange" :disabled-dates="disabledDates" :min-date="new Date()" color="indigo" is-expanded :columns="2" />
+                <VDatePicker v-model.range="dateRange" :disabled-dates="disabledDates" :min-date="new Date()" :max-date="maxAvailabilityDate" color="indigo" is-expanded :columns="2" />
               </template>
               <div v-else class="no-avail"><i class="pi pi-exclamation-triangle"></i> Bu şube ve grupta müsait gün bulunmuyor.</div>
             </div>
@@ -295,7 +302,9 @@
       <!-- SAĞ: Rezervasyon Sorgula -->
       <div class="query-panel">
         <div class="query-header">
-          <div class="query-icon">🔍</div>
+          <div class="query-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
           <div>
             <div class="query-title">Rezervasyon Sorgula</div>
             <div class="query-sub">Kodunuzla rezervasyonunuzu görüntüleyin veya iptal edin</div>
@@ -413,16 +422,29 @@ const canAdvance = computed(() => {
   return false
 })
 
+function localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
+// Takvim penceresi, backend'in fiilen fiyatlandırdığı en son güne kadar açık;
+// sabit gün sayısı varsayımı ileri tarihli fiyatları yanlışlıkla pasif gösteriyordu.
+const maxAvailabilityDate = computed(() => {
+  if (!availableDates.value.length) return null
+  const maxStr = availableDates.value.reduce((a, b) => (a > b ? a : b))
+  return new Date(maxStr + 'T00:00:00')
+})
+
 const disabledDates = computed(() => {
-  if (!availableDates.value.length) return []
+  if (!availableDates.value.length || !maxAvailabilityDate.value) return []
   const available = new Set(availableDates.value)
   const disabled = []
   const today = new Date()
-  for (let i = 0; i < 90; i++) {
+  today.setHours(0, 0, 0, 0)
+  const totalDays = Math.round((maxAvailabilityDate.value - today) / 86400000) + 1
+  for (let i = 0; i < totalDays; i++) {
     const d = new Date(today)
     d.setDate(today.getDate() + i)
-    const str = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-    if (!available.has(str)) disabled.push(new Date(d))
+    if (!available.has(localDateStr(d))) disabled.push(new Date(d))
   }
   return disabled
 })
@@ -707,7 +729,18 @@ function copyCode(){
 .group-card { display: flex; align-items: center; gap: 14px; padding: 16px 18px; background: white; border: 1.5px solid #e5e7eb; border-radius: 13px; cursor: pointer; text-align: left; transition: all 0.2s; width: 100%; }
 .group-card:hover { border-color: #9b8ff5; background: #faf9ff; transform: translateX(2px); }
 .group-card.selected { border-color: #1B1063; background: #edeaff; box-shadow: 0 0 0 3px rgba(27,16,99,0.08); }
-.group-emoji { font-size: 28px; flex-shrink: 0; }
+.group-icon {
+  width: 42px; height: 42px; flex-shrink: 0;
+  border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f1f5f9; color: #64748b;
+  transition: background 0.2s, color 0.2s;
+}
+.group-icon svg { width: 20px; height: 20px; }
+.group-icon--economy { background: #ede9fe; color: #5b21b6; }
+.group-icon--mid { background: #dbeafe; color: #1e40af; }
+.group-icon--suv { background: #d1fae5; color: #065f46; }
+.group-card.selected .group-icon { background: #1B1063; color: white; }
 .group-info { flex: 1; }
 .group-name { font-size: 14px; font-weight: 700; color: #111827; }
 .group-desc { font-size: 12px; color: #64748B; margin-top: 2px; }
@@ -767,7 +800,8 @@ function copyCode(){
 .success-icon-wrap svg { width: 28px; height: 28px; color: white; }
 .success-card h3 { font-size: 22px; font-weight: 800; color: #111827; margin: 0 0 10px; }
 .success-sub { font-size: 14px; color: #64748B; margin: 0 0 24px; line-height: 1.6; }
-.code-box { font-size: 30px; font-weight: 900; letter-spacing: 6px; color: #1B1063; background: #edeaff; border: 2px dashed #9b8ff5; border-radius: 12px; padding: 18px 28px; display: inline-block; margin-bottom: 10px; }
+.code-box { font-size: 30px; font-weight: 900; letter-spacing: 6px; color: #1B1063; background: #edeaff; border: 2px dashed #9b8ff5; border-radius: 12px; padding: 18px 28px; display: inline-block; margin-bottom: 10px; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.code-box:hover { background: #e2dcff; border-color: #7c6ef0; }
 .price-box { font-size: 15px; color: #1B1063; background: #edeaff; border-radius: 10px; padding: 10px 20px; margin: 10px 0 4px; font-weight: 600; }
 .price-box strong { font-weight: 800; }
 .code-hint { font-size: 12px; color: #94a3b8; margin-bottom: 28px; }
@@ -784,7 +818,12 @@ function copyCode(){
 }
 
 .query-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid #f1f5f9; }
-.query-icon { font-size: 22px; flex-shrink: 0; }
+.query-icon {
+  width: 38px; height: 38px; flex-shrink: 0;
+  border-radius: 10px; background: #ede9fe; color: #5b21b6;
+  display: flex; align-items: center; justify-content: center;
+}
+.query-icon svg { width: 18px; height: 18px; }
 .query-title { font-size: 15px; font-weight: 800; color: #111827; }
 .query-sub { font-size: 12px; color: #64748B; margin-top: 2px; line-height: 1.4; }
 
@@ -793,8 +832,9 @@ function copyCode(){
 .q-field input { padding: 10px 13px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 14px; outline: none; background: #fafafa; transition: border-color 0.2s; }
 .q-field input:focus { border-color: #1B1063; background: white; }
 
-.btn-query { width: 100%; padding: 11px; background: #1B1063; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; margin-bottom: 14px; }
-.btn-query:hover { background: #130d4a; }
+.btn-query { width: 100%; padding: 11px; background: #1B1063; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s, transform 0.2s, box-shadow 0.2s; margin-bottom: 14px; }
+.btn-query:hover { background: #130d4a; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(27,16,99,0.3); }
+.btn-query:active { transform: translateY(0); }
 
 .q-error { color: #DC2626; font-size: 12.5px; background: #fff1f2; padding: 8px 12px; border-radius: 8px; border: 1px solid #fecdd3; margin-bottom: 12px; }
 .q-success { color: #16A34A; font-size: 12.5px; background: #f0fdf4; padding: 8px 12px; border-radius: 8px; border: 1px solid #bbf7d0; margin-bottom: 12px; font-weight: 600; }

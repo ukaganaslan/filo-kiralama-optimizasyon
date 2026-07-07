@@ -45,7 +45,7 @@
 
         <p v-if="error" class="error-msg">{{ error }}</p>
 
-        <button class="btn-login" @click="handleLogin">Giriş Yap</button>
+        <button class="btn-login" :disabled="loading" @click="handleLogin">{{ loading ? 'Giriş yapılıyor...' : 'Giriş Yap' }}</button>
 
         <div class="divider"><span>veya</span></div>
 
@@ -72,10 +72,12 @@ import { useAuthStore } from '../stores/auth'
 const username = ref('')
 const password = ref('')
 const error = ref('')
+const loading = ref(false)
 const router = useRouter()
 const auth = useAuthStore()
 
 async function handleLogin() {
+  loading.value = true
   try {
     const response = await axios.post('/api/login/', {
       username: username.value,
@@ -88,6 +90,8 @@ async function handleLogin() {
     else router.push('/dashboard')
   } catch {
     error.value = 'Kullanıcı adı veya şifre hatalı.'
+  } finally {
+    loading.value = false
   }
 }
 </script>
@@ -115,6 +119,16 @@ async function handleLogin() {
   pointer-events: none;
 }
 
+.login-page::after {
+  content: '';
+  position: absolute;
+  bottom: -260px; right: -120px;
+  width: 560px; height: 560px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(155,145,245,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
 /* ── Header ── */
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -130,7 +144,9 @@ async function handleLogin() {
   border-radius: 9px;
   display: flex; align-items: center; justify-content: center;
   color: white;
+  transition: background 0.2s, transform 0.2s;
 }
+.brand:hover .brand-icon { background: rgba(255,255,255,0.18); transform: translateY(-1px); }
 .brand-name { font-size: 16px; font-weight: 800; color: white; letter-spacing: -0.01em; }
 
 .header-guest-btn {
@@ -152,6 +168,12 @@ async function handleLogin() {
   width: 100%;
   max-width: 360px;
   display: flex; flex-direction: column; gap: 14px;
+  animation: formIn 0.5s var(--ease, cubic-bezier(0.4,0,0.2,1));
+}
+
+@keyframes formIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Heading ── */
@@ -170,17 +192,19 @@ async function handleLogin() {
   width: 100%;
   padding: 14px 16px;
   background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(8px);
   border: 1.5px solid rgba(255,255,255,0.14);
   border-radius: 12px;
   font-size: 15px;
   color: white;
   outline: none;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
 }
 .fields input::placeholder { color: rgba(255,255,255,0.3); }
 .fields input:focus {
   border-color: rgba(255,255,255,0.4);
   background: rgba(255,255,255,0.1);
+  box-shadow: 0 0 0 4px rgba(155,145,245,0.12);
 }
 
 /* ── Error ── */
@@ -200,8 +224,9 @@ async function handleLogin() {
   cursor: pointer; transition: all 0.2s;
   margin-top: 4px;
 }
-.btn-login:hover { background: rgba(255,255,255,0.9); transform: translateY(-1px); }
-.btn-login:active { transform: translateY(0); }
+.btn-login:hover:not(:disabled) { background: rgba(255,255,255,0.9); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,0.25); }
+.btn-login:active:not(:disabled) { transform: translateY(0); }
+.btn-login:disabled { opacity: 0.7; }
 
 /* ── Divider ── */
 .divider {

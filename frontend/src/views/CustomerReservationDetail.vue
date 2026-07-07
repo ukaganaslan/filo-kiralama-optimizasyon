@@ -314,17 +314,19 @@
               </span>
             </div>
 
-            <div v-if="canRequestExtension" class="ext-form">
+            <div v-if="canRequestExtension && maxExtendDate" class="ext-form">
               <label class="ext-label">Yeni Bitiş Tarihi</label>
               <div class="ext-row">
-                <input type="date" v-model="extendDate" :min="res.end_date" class="ext-input" />
+                <input type="date" v-model="extendDate" :min="res.end_date" :max="maxExtendDate" class="ext-input" />
                 <button class="btn-ext" :disabled="extendLoading" @click="submitExtension">
                   {{ extendLoading ? 'Gönderiliyor...' : 'Talep Et' }}
                 </button>
               </div>
+              <p class="ext-hint">Fiyatlandırılmış son gün: {{ formatDate(maxExtendDate) }}</p>
               <p v-if="extendError" class="inline-error">{{ extendError }}</p>
               <p v-if="extendMsg" class="inline-success">{{ extendMsg }}</p>
             </div>
+            <p v-else-if="canRequestExtension && !maxExtendDate" class="empty-note">İade gününden sonrası için henüz fiyatlandırılmış gün yok, uzatma talep edilemiyor.</p>
             <p v-else-if="!currentExtension" class="empty-note">Uzatma talebi, iade günü gelmeden yapılabilir.</p>
           </div>
         </div>
@@ -333,7 +335,9 @@
       <!-- Fotoğraf büyütme -->
       <div v-if="lightboxUrl" class="lightbox" @click="lightboxUrl = null">
         <img :src="lightboxUrl" alt="Araç fotoğrafı" />
-        <button class="lightbox-close" @click="lightboxUrl = null">✕</button>
+        <button class="lightbox-close" @click.stop="lightboxUrl = null">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     </template>
   </div>
@@ -359,6 +363,7 @@ const extendDate = ref('')
 const extendMsg = ref('')
 const extendError = ref('')
 const extendLoading = ref(false)
+const dailyPrices = ref([])
 
 const apiBase = axios.defaults.baseURL || ''
 function mediaUrl(path) {
@@ -455,6 +460,26 @@ const canRequestExtension = computed(() => {
 })
 const extStatusLabel = { pending: 'Bekliyor', approved: 'Onaylandı', rejected: 'Reddedildi' }
 
+function toLocalDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// Uzatma sadece res.end_date'ten itibaren ardışık olarak fiyatlandırılmış
+// günlere yapılabilir; input bu son güne kadar sınırlandırılır.
+const maxExtendDate = computed(() => {
+  if (!res.value) return null
+  const priced = new Set(dailyPrices.value.map(p => p.date))
+  const cursor = new Date(res.value.end_date + 'T00:00:00')
+  let last = null
+  for (let i = 0; i < 365; i++) {
+    cursor.setDate(cursor.getDate() + 1)
+    const str = toLocalDateStr(cursor)
+    if (!priced.has(str)) break
+    last = str
+  }
+  return last
+})
+
 async function loadData() {
   loading.value = true
   loadError.value = ''
@@ -465,6 +490,10 @@ async function loadData() {
     ])
     res.value = resR.data
     extensions.value = resE.data
+    if (res.value?.vehicle_group) {
+      const resP = await axios.get('/api/daily-prices/', { params: { group: res.value.vehicle_group } })
+      dailyPrices.value = resP.data
+    }
   } catch {
     loadError.value = 'Rezervasyon bulunamadı veya erişim yetkiniz yok.'
   } finally {
@@ -542,6 +571,7 @@ async function submitExtension() {
   background: none; border: none; padding: 0;
   color: #64748b; font-size: 13px; font-weight: 600; cursor: pointer;
 }
+.btn-back { transition: color 0.15s; }
 .btn-back:hover { color: #6366f1; }
 .btn-back i { font-size: 12px; }
 .head-title { display: flex; align-items: center; gap: 12px; }
@@ -557,12 +587,12 @@ async function submitExtension() {
 .btn-cancel {
   padding: 8px 16px; background: white; color: #dc2626;
   border: 1.5px solid #fca5a5; border-radius: 8px;
-  font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s;
 }
 .btn-cancel:hover { background: #fff1f2; border-color: #dc2626; }
 
 /* ── Zaman çizelgesi ── */
-.card { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 22px 24px; }
+.card { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 22px 24px; transition: box-shadow 0.2s; }
 .timeline-card { margin-bottom: 20px; padding: 24px 32px; }
 .timeline { display: flex; }
 .tl-step { display: flex; align-items: flex-start; gap: 12px; flex: 1; position: relative; }
@@ -572,6 +602,7 @@ async function submitExtension() {
   background: #f1f5f9; color: #94a3b8;
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; font-weight: 700; z-index: 1;
+  transition: background 0.25s, color 0.25s, box-shadow 0.25s;
 }
 .tl-dot i { font-size: 11px; }
 .tl-step.done .tl-dot { background: #6366f1; color: white; }
@@ -580,7 +611,7 @@ async function submitExtension() {
 .tl-label { font-size: 13px; font-weight: 700; color: #94a3b8; line-height: 1.3; padding-top: 2px; }
 .tl-step.done .tl-label { color: #0f172a; }
 .tl-date { font-size: 11.5px; color: #94a3b8; margin-top: 2px; }
-.tl-line { flex: 1; height: 2px; background: #f1f5f9; margin: 14px 12px 0 4px; border-radius: 2px; min-width: 20px; }
+.tl-line { flex: 1; height: 2px; background: #f1f5f9; margin: 14px 12px 0 4px; border-radius: 2px; min-width: 20px; transition: background 0.3s; }
 .tl-line.done { background: #6366f1; }
 .cancelled-banner {
   background: #fff1f2; border: 1px solid #fecdd3; color: #b91c1c;
@@ -653,24 +684,29 @@ async function submitExtension() {
 .ext-form { display: flex; flex-direction: column; gap: 8px; }
 .ext-label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.06em; text-transform: uppercase; }
 .ext-row { display: flex; gap: 8px; align-items: center; }
-.ext-input { flex: 1; min-width: 0; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; color: #1e293b; outline: none; }
-.ext-input:focus { border-color: #6366f1; }
-.btn-ext { padding: 8px 16px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.btn-ext:hover { background: #4f46e5; }
+.ext-hint { font-size: 12px; color: #94a3b8; margin: 0; }
+.ext-input { flex: 1; min-width: 0; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; color: #1e293b; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+.ext-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+.btn-ext { padding: 8px 16px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+.btn-ext:hover:not(:disabled) { background: #4f46e5; }
 .btn-ext:disabled { opacity: 0.6; cursor: default; }
 
 /* ── Lightbox ── */
 .lightbox {
-  position: fixed; inset: 0; background: rgba(15,23,42,0.85); z-index: 1100;
+  position: fixed; inset: 0; background: rgba(15,23,42,0.85); backdrop-filter: blur(2px); z-index: 1100;
   display: flex; align-items: center; justify-content: center; padding: 40px; cursor: zoom-out;
+  animation: lightboxIn 0.15s ease;
 }
-.lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; }
+@keyframes lightboxIn { from { opacity: 0; } to { opacity: 1; } }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
 .lightbox-close {
   position: absolute; top: 20px; right: 24px;
-  background: none; border: none; color: rgba(255,255,255,0.7);
-  font-size: 22px; cursor: pointer;
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.1); border: none; color: rgba(255,255,255,0.8);
+  cursor: pointer; transition: background 0.15s, color 0.15s;
 }
-.lightbox-close:hover { color: white; }
+.lightbox-close:hover { background: rgba(255,255,255,0.2); color: white; }
 
 /* ── Mobil ── */
 @media (max-width: 980px) {

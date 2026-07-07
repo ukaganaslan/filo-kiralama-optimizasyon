@@ -222,7 +222,9 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
   padding: 20px 24px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   border-left: 4px solid #6366f1;
+  transition: box-shadow 0.2s, transform 0.2s;
 }
+.stat-card:hover { box-shadow: 0 8px 24px rgba(15,23,42,0.08); transform: translateY(-2px); }
 .stat-card.stat-amber { border-left-color: #f59e0b; }
 .stat-card.stat-green { border-left-color: #10b981; }
 .stat-card.stat-blue  { border-left-color: #3b82f6; }
@@ -285,12 +287,15 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
 }
 
 .carousel-arrow:hover {
   border-color: #6366f1;
   color: #6366f1;
+  transform: scale(1.06);
 }
+.carousel-arrow:active { transform: scale(0.94); }
 
 .carousel-dots {
   display: flex;
@@ -307,6 +312,7 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
   background: #e2e8f0;
   cursor: pointer;
   padding: 0;
+  transition: background 0.2s, width 0.2s, border-radius 0.2s;
 }
 
 .dot--active {

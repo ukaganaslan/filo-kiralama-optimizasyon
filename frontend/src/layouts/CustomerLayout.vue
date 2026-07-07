@@ -176,7 +176,10 @@ async function handleLogout() {
   color: white;
   box-shadow: 0 4px 12px rgba(155,145,245,0.3);
   flex-shrink: 0;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
 }
+
+.brand-link:hover .brand-icon { transform: translateY(-1px) scale(1.04); box-shadow: 0 6px 16px rgba(155,145,245,0.4); }
 
 .brand-text {
   display: flex;
@@ -250,6 +253,12 @@ async function handleLogout() {
   width: 3px;
   background: #5548c8;
   border-radius: 0 3px 3px 0;
+  animation: navIndicatorIn 0.18s var(--ease);
+}
+
+@keyframes navIndicatorIn {
+  from { opacity: 0; transform: scaleY(0.4); }
+  to { opacity: 1; transform: scaleY(1); }
 }
 
 .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
@@ -343,6 +352,7 @@ async function handleLogout() {
   transition: background 0.15s, color 0.15s; flex-shrink: 0;
 }
 .hamburger:hover { background: #f1f5f9; color: #1e293b; }
+.hamburger:active { transform: scale(0.92); }
 
 .topbar-title { font-size: 15px; font-weight: 700; color: #0f172a; }
 

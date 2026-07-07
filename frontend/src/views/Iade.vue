@@ -332,8 +332,8 @@ async function exportPdf() {
 <style scoped>
 .content { padding: 32px 40px; }
 .page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
-.btn-back { background: none; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 14px; font-size: 14px; color: #475569; cursor: pointer; }
-.btn-back:hover { background: #f1f5f9; }
+.btn-back { background: none; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 14px; font-size: 14px; color: #475569; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.btn-back:hover { background: #f1f5f9; border-color: #cbd5e1; }
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .res-id { font-size: 13px; color: #94a3b8; font-family: monospace; }
 .loading { color: #94a3b8; font-size: 14px; }
@@ -376,17 +376,17 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-field { display: flex; flex-direction: column; gap: 5px; }
 .form-field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.06em; text-transform: uppercase; }
-.form-field input[type="number"], .form-field textarea { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; color: #1e293b; resize: vertical; }
-.form-field input[type="number"]:focus, .form-field textarea:focus { border-color: #6366f1; }
+.form-field input[type="number"], .form-field textarea { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; color: #1e293b; resize: vertical; transition: border-color 0.15s, box-shadow 0.15s; }
+.form-field input[type="number"]:focus, .form-field textarea:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
 .fuel-slider { width: 100%; accent-color: #6366f1; }
 .fuel-labels { display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; }
 .section-label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.06em; text-transform: uppercase; }
 .form-actions { display: flex; justify-content: flex-end; gap: 10px; }
-.btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
-.btn-save:hover:not(:disabled) { background: #4f46e5; }
+.btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.15s, transform 0.15s; }
+.btn-save:hover:not(:disabled) { background: #4f46e5; transform: translateY(-1px); }
 .btn-save:disabled { background: #a5b4fc; cursor: not-allowed; }
-.btn-export { padding: 8px 20px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
-.btn-export:hover { background: #0f172a; }
+.btn-export { padding: 8px 20px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.15s, transform 0.15s; }
+.btn-export:hover { background: #0f172a; transform: translateY(-1px); }
 .error { color: #dc2626; font-size: 13px; margin: 0; }
 .success { color: #16a34a; font-size: 13px; margin: 0; }
 :deep(.p-fileupload) { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }

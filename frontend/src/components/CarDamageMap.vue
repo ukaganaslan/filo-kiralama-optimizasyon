@@ -113,10 +113,11 @@ watch(() => props.modelValue, updateColors, { deep: true })
 .svg-wrapper { border-radius: 10px; overflow: hidden; max-width: 280px; }
 .svg-wrapper :deep(svg) { display: block; width: 100%; height: auto; }
 .picker-backdrop { position: fixed; inset: 0; z-index: 999; }
-.damage-picker { position: fixed; z-index: 1000; background: white; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.14); padding: 8px; display: flex; flex-direction: column; gap: 4px; min-width: 110px; }
+.damage-picker { position: fixed; z-index: 1000; background: white; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 8px 28px rgba(15,23,42,0.16); padding: 8px; display: flex; flex-direction: column; gap: 4px; min-width: 110px; animation: pickerIn 0.12s ease; }
+@keyframes pickerIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
 .picker-label { font-size: 10px; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 4px 6px; border-bottom: 1px solid #f1f5f9; margin-bottom: 2px; }
-.damage-picker button { padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; cursor: pointer; text-align: left; }
-.damage-picker button:hover { filter: brightness(0.92); }
+.damage-picker button { padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; cursor: pointer; text-align: left; transition: filter 0.12s, transform 0.12s; }
+.damage-picker button:hover { filter: brightness(0.92); transform: translateX(1px); }
 .damage-legend { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 280px; }
 .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #475569; }
 .legend-dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1px solid #cbd5e1; }

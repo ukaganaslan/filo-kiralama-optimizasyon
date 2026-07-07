@@ -161,7 +161,9 @@
       <!-- Fotoğraf büyütme -->
       <div v-if="lightboxUrl" class="lightbox" @click="lightboxUrl = null">
         <img :src="lightboxUrl" alt="Araç fotoğrafı" />
-        <button class="lightbox-close" @click="lightboxUrl = null">✕</button>
+        <button class="lightbox-close" @click.stop="lightboxUrl = null">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     </div>
   </div>
@@ -234,13 +236,14 @@ onMounted(async () => {
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 32px; background: white; border-bottom: 1px solid #e2e8f0;
 }
-.gd-back { color: #1B1063; font-size: 13px; font-weight: 700; text-decoration: none; }
-.gd-back:hover { text-decoration: underline; }
+.gd-back { color: #1B1063; font-size: 13px; font-weight: 700; text-decoration: none; transition: opacity 0.15s; }
+.gd-back:hover { text-decoration: underline; opacity: 0.8; }
 .gd-brand { font-size: 15px; font-weight: 800; color: #1e293b; }
 .gd-body { max-width: 640px; margin: 0 auto; padding: 28px 20px 60px; }
 .gd-loading, .gd-error-box { text-align: center; padding: 60px 0; color: #64748B; font-size: 14px; }
 .gd-error-box { color: #DC2626; }
-.gd-card { background: white; border-radius: 14px; padding: 20px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 16px; }
+.gd-card { background: white; border-radius: 14px; padding: 20px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 16px; animation: cardIn 0.25s ease; }
+@keyframes cardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .gd-top { display: flex; align-items: center; justify-content: space-between; }
 .gd-code { font-size: 16px; font-weight: 800; color: #1e293b; }
 .gd-name { font-size: 13px; color: #64748B; margin-top: 2px; }
@@ -276,14 +279,18 @@ onMounted(async () => {
 
 /* ── Lightbox ── */
 .lightbox {
-  position: fixed; inset: 0; background: rgba(15,23,42,0.85); z-index: 1100;
+  position: fixed; inset: 0; background: rgba(15,23,42,0.85); backdrop-filter: blur(2px); z-index: 1100;
   display: flex; align-items: center; justify-content: center; padding: 40px; cursor: zoom-out;
+  animation: lightboxIn 0.15s ease;
 }
-.lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; }
+@keyframes lightboxIn { from { opacity: 0; } to { opacity: 1; } }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
 .lightbox-close {
   position: absolute; top: 20px; right: 24px;
-  background: none; border: none; color: rgba(255,255,255,0.7);
-  font-size: 22px; cursor: pointer;
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.1); border: none; color: rgba(255,255,255,0.8);
+  cursor: pointer; transition: background 0.15s, color 0.15s;
 }
-.lightbox-close:hover { color: white; }
+.lightbox-close:hover { background: rgba(255,255,255,0.2); color: white; }
 </style>

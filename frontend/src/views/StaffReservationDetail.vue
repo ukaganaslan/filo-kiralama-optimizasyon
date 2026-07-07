@@ -356,7 +356,9 @@
       <!-- Fotoğraf büyütme -->
       <div v-if="lightboxUrl" class="lightbox" @click="lightboxUrl = null">
         <img :src="lightboxUrl" alt="Araç fotoğrafı" />
-        <button class="lightbox-close" @click="lightboxUrl = null">✕</button>
+        <button class="lightbox-close" @click.stop="lightboxUrl = null">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     </template>
   </div>
@@ -600,6 +602,7 @@ async function rejectExtension(id) {
   background: none; border: none; padding: 0;
   color: #64748b; font-size: 13px; font-weight: 600; cursor: pointer;
 }
+.btn-back { transition: color 0.15s; }
 .btn-back:hover { color: #6366f1; }
 .btn-back i { font-size: 12px; }
 .head-title { display: flex; align-items: center; gap: 12px; }
@@ -616,17 +619,18 @@ async function rejectExtension(id) {
   padding: 8px 18px; background: #6366f1; color: white;
   border: none; border-radius: 8px;
   font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
 }
-.btn-primary:hover { background: #4f46e5; }
+.btn-primary:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
 .btn-cancel {
   padding: 8px 16px; background: white; color: #dc2626;
   border: 1.5px solid #fca5a5; border-radius: 8px;
-  font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s;
 }
 .btn-cancel:hover { background: #fff1f2; border-color: #dc2626; }
 
 /* ── Zaman çizelgesi ── */
-.card { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 22px 24px; }
+.card { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 22px 24px; transition: box-shadow 0.2s; }
 .timeline-card { margin-bottom: 20px; padding: 24px 32px; }
 .timeline { display: flex; }
 .tl-step { display: flex; align-items: flex-start; gap: 12px; flex: 1; position: relative; }
@@ -636,6 +640,7 @@ async function rejectExtension(id) {
   background: #f1f5f9; color: #94a3b8;
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; font-weight: 700; z-index: 1;
+  transition: background 0.25s, color 0.25s, box-shadow 0.25s;
 }
 .tl-dot i { font-size: 11px; }
 .tl-step.done .tl-dot { background: #6366f1; color: white; }
@@ -644,7 +649,7 @@ async function rejectExtension(id) {
 .tl-label { font-size: 13px; font-weight: 700; color: #94a3b8; line-height: 1.3; padding-top: 2px; }
 .tl-step.done .tl-label { color: #0f172a; }
 .tl-date { font-size: 11.5px; color: #94a3b8; margin-top: 2px; }
-.tl-line { flex: 1; height: 2px; background: #f1f5f9; margin: 14px 12px 0 4px; border-radius: 2px; min-width: 20px; }
+.tl-line { flex: 1; height: 2px; background: #f1f5f9; margin: 14px 12px 0 4px; border-radius: 2px; min-width: 20px; transition: background 0.3s; }
 .tl-line.done { background: #6366f1; }
 .cancelled-banner {
   background: #fff1f2; border: 1px solid #fecdd3; color: #b91c1c;
@@ -719,24 +724,28 @@ async function rejectExtension(id) {
 .ext-rejected { background: #fee2e2; color: #b91c1c; }
 .ext-detail { font-size: 13px; color: #475569; }
 .ext-actions { display: flex; gap: 6px; }
-.btn-approve { padding: 6px 14px; background: #16a34a; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
-.btn-approve:hover { background: #15803d; }
+.btn-approve { padding: 6px 14px; background: #16a34a; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.btn-approve:hover:not(:disabled) { background: #15803d; }
 .btn-approve:disabled, .btn-reject:disabled { opacity: 0.6; cursor: default; }
-.btn-reject { padding: 6px 14px; background: white; color: #dc2626; border: 1.5px solid #fca5a5; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
-.btn-reject:hover { background: #fff1f2; border-color: #dc2626; }
+.btn-reject { padding: 6px 14px; background: white; color: #dc2626; border: 1.5px solid #fca5a5; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.btn-reject:hover:not(:disabled) { background: #fff1f2; border-color: #dc2626; }
 
 /* ── Lightbox ── */
 .lightbox {
-  position: fixed; inset: 0; background: rgba(15,23,42,0.85); z-index: 1100;
+  position: fixed; inset: 0; background: rgba(15,23,42,0.85); backdrop-filter: blur(2px); z-index: 1100;
   display: flex; align-items: center; justify-content: center; padding: 40px; cursor: zoom-out;
+  animation: lightboxIn 0.15s ease;
 }
-.lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; }
+@keyframes lightboxIn { from { opacity: 0; } to { opacity: 1; } }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
 .lightbox-close {
   position: absolute; top: 20px; right: 24px;
-  background: none; border: none; color: rgba(255,255,255,0.7);
-  font-size: 22px; cursor: pointer;
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.1); border: none; color: rgba(255,255,255,0.8);
+  cursor: pointer; transition: background 0.15s, color 0.15s;
 }
-.lightbox-close:hover { color: white; }
+.lightbox-close:hover { background: rgba(255,255,255,0.2); color: white; }
 
 /* ── Mobil ── */
 @media (max-width: 980px) {

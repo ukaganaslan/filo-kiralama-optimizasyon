@@ -149,16 +149,17 @@ async function handleSave() {
 
 <style scoped>
 .content { padding: 32px 40px; }
-.card { background: white; border-radius: 14px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); }
+.card { background: white; border-radius: 14px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); transition: box-shadow 0.2s; }
 h2 { font-size: 16px; font-weight: 700; color: #1e293b; margin: 0 0 20px; }
 h3 { font-size: 14px; font-weight: 700; color: #1e293b; margin: 0 0 16px; }
 .field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
 .field label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.06em; }
-.field input, .field select { padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 14px; color: #1e293b; outline: none; background: white; }
-.field input:focus, .field select:focus { border-color: #6366f1; }
+.field input, .field select { padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 14px; color: #1e293b; outline: none; background: white; transition: border-color 0.15s, box-shadow 0.15s; }
+.field input:focus, .field select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
 .divider { height: 1px; background: #f1f5f9; margin: 24px 0 20px; }
-.btn-save { margin-top: 8px; padding: 11px 28px; background: #6366f1; color: white; border: none; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; }
-.btn-save:hover { background: #4f46e5; }
+.btn-save { margin-top: 8px; padding: 11px 28px; background: #6366f1; color: white; border: none; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s, transform 0.15s, box-shadow 0.15s; box-shadow: 0 1px 2px rgba(79,70,229,0.25); }
+.btn-save:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
+.btn-save:active { transform: translateY(0); }
 .success { color: #16a34a; font-size: 13px; background: #f0fdf4; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-weight: 500; }
 .error { color: #dc2626; font-size: 13px; background: #fff1f2; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; }
 </style>

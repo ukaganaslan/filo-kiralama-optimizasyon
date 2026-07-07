@@ -61,14 +61,17 @@ onMounted(async () => {
 <style scoped>
 .content { padding: 32px 40px; }
 .empty-state { text-align: center; padding: 80px 40px; color: #94a3b8; font-size: 15px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.btn-go { padding: 10px 24px; background: #6366f1; color: white; border-radius: 50px; text-decoration: none; font-size: 14px; font-weight: 600; }
+.btn-go { padding: 10px 24px; background: #6366f1; color: white; border-radius: 50px; text-decoration: none; font-size: 14px; font-weight: 600; transition: background 0.15s, transform 0.15s; display: inline-block; }
+.btn-go:hover { background: #4f46e5; transform: translateY(-1px); }
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 20px; }
 .all-good { color: #10b981; font-size: 15px; font-weight: 500; }
 table { width: 100%; border-collapse: collapse; background: white; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-th.sortable { cursor: pointer; user-select: none; }
+th.sortable { cursor: pointer; user-select: none; transition: color 0.15s; }
 th.sortable:hover { color: #6366f1; }
 .sort-ind { font-size: 9px; color: #6366f1; }
+tbody tr { transition: background 0.12s; }
+tbody tr:hover { background: #fafbff; }
 td { border-top: 1px solid #f1f5f9; }
 </style>
