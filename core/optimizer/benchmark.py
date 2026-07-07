@@ -12,6 +12,13 @@ FIXED_PROBLEMS = [
     {'label': 'large',  'n_vehicles': 90, 'n_reservations': 180, 'seed': 125},
 ]
 
+# 'solvers' kısıtlı: greedy_solver her aday için DB sorgusu attığından (check_date_conflict),
+# güncel solver'daki post_swap ise O(n²) büyüdüğünden, bu ölçekte eski solver pratik değil.
+# Sadece güncel solver ile çalıştırılır; ~1500/3000'de solve() ~2.5 dk sürer.
+STRESS_PROBLEMS = [
+    {'label': 'stress', 'n_vehicles': 1500, 'n_reservations': 3000, 'seed': 999, 'solvers': ['güncel']},
+]
+
 SCENARIO_PROBLEMS = [
     'dense_dates',
     'high_transfer',
@@ -81,10 +88,22 @@ def _run_in_transaction():
             'reservations': reservations, 'vehicles': vehicles,
         })
 
+    for sp in STRESS_PROBLEMS:
+        reservations, vehicles = generated_problems.generate(
+            n_vehicles=sp['n_vehicles'], n_reservations=sp['n_reservations'], seed=sp['seed'],
+        )
+        problems.append({
+            'label': sp['label'], 'seed': str(sp['seed']),
+            'n_vehicles': len(vehicles), 'n_reservations': len(reservations),
+            'reservations': reservations, 'vehicles': vehicles,
+            'solvers': sp['solvers'],
+        })
+
     results = []
     for problem in problems:
-        for solver_adı, solver_fn in solvers.items():
-            sonuç = _run_on_data(solver_fn, problem['reservations'], problem['vehicles'])
+        solver_adları = problem.get('solvers', list(solvers.keys()))
+        for solver_adı in solver_adları:
+            sonuç = _run_on_data(solvers[solver_adı], problem['reservations'], problem['vehicles'])
             results.append({
                 'problem': problem['label'], 'seed': problem['seed'],
                 'solver': solver_adı,
