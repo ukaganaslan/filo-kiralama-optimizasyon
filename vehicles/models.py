@@ -105,6 +105,12 @@ class Reservation(models.Model):
         indexes = [
             models.Index(fields=['status', 'start_date', 'end_date']),
         ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(end_date__gte=models.F('start_date')),
+                name='reservation_end_date_gte_start_date',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.reservation_id} - {self.branch} - {self.get_vehicle_group_display()}"
