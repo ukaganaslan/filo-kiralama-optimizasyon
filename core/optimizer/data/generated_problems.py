@@ -14,7 +14,7 @@ def generate(n_vehicles=15, n_reservations=30, date_start=date.today(),
     if not branches:
         raise ValueError("Veritabanında şube yok. Önce fixtures yükle.")
 
-    Vehicle.objects.filter(vehicle_id__regex=r'^[EMS]\d{2}GEN').delete()
+    Vehicle.objects.filter(vehicle_id__regex=r'^[EMS]\d+GEN').delete()
     Reservation.objects.filter(reservation_id__startswith='GEN').delete()
 
     vehicles = []
@@ -57,7 +57,7 @@ def generate_scenario(scenario, seed=42):
     if not branches:
         raise ValueError("Veritabanında şube yok. Önce fixtures yükle.")
 
-    Vehicle.objects.filter(vehicle_id__regex=r'^[EMS]\d{2}GEN').delete()
+    Vehicle.objects.filter(vehicle_id__regex=r'^[EMS]\d+GEN').delete()
     Reservation.objects.filter(reservation_id__startswith='GEN').delete()
 
     today = date.today()
