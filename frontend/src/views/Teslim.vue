@@ -31,24 +31,40 @@
       </div>
 
       <div class="step-bar">
-        <div class="step-node" :class="{ completed: uiStep > 1, active: uiStep === 1 }">
+        <div
+          class="step-node"
+          :class="{ completed: backendStep > 1, active: displayStep === 1, clickable: backendStep > 1 }"
+          @click="goToStep(1)"
+        >
           <div class="step-circle">1</div>
           <span class="step-label">Bilgi Girişi</span>
         </div>
-        <div class="step-connector" :class="{ done: uiStep > 1 }"></div>
-        <div class="step-node" :class="{ completed: uiStep > 2, active: uiStep === 2 }">
+        <div class="step-connector" :class="{ done: backendStep > 1 }"></div>
+        <div
+          class="step-node"
+          :class="{ completed: backendStep > 2, active: displayStep === 2, clickable: backendStep > 2 }"
+          @click="goToStep(2)"
+        >
           <div class="step-circle">2</div>
           <span class="step-label">Belge Yükleme</span>
         </div>
-        <div class="step-connector" :class="{ done: uiStep > 2 }"></div>
-        <div class="step-node" :class="{ completed: uiStep > 3, active: uiStep === 3 }">
+        <div class="step-connector" :class="{ done: backendStep > 2 }"></div>
+        <div
+          class="step-node"
+          :class="{ completed: backendStep > 3, active: displayStep === 3, clickable: backendStep > 3 }"
+          @click="goToStep(3)"
+        >
           <div class="step-circle">3</div>
           <span class="step-label">Fotoğraf &amp; Onay</span>
         </div>
       </div>
 
+      <p v-if="manualStep !== null" class="edit-notice">
+        Önceki bir adımı düzenliyorsunuz — kaydettiğinizde sonraki adımlar buna göre güncellenecek.
+      </p>
+
       <!-- Adım 1: Bilgi girişi -->
-      <template v-if="uiStep === 1">
+      <template v-if="displayStep === 1">
         <div class="form-row">
           <div class="form-field">
             <label>Teslim KM</label>
@@ -79,7 +95,7 @@
       </template>
 
       <!-- Adım 2: Belge yükleme -->
-      <template v-else-if="uiStep === 2">
+      <template v-else-if="displayStep === 2">
         <p class="step-hint">İndirilen belgeyi yazdırıp imzalattıktan sonra, taranmış/fotoğraflanmış halini buraya yükleyin.</p>
         <FileUpload
           name="document"
@@ -109,7 +125,7 @@
       </template>
 
       <!-- Adım 3: Fotoğraf + onay -->
-      <template v-else-if="uiStep === 3">
+      <template v-else-if="displayStep === 3">
         <p class="step-hint">Aracın son halini gösteren bir fotoğraf yükleyip teslim işlemini tamamlayın.</p>
         <FileUpload
           name="photo"
@@ -177,7 +193,7 @@ function fuelLabel(v) {
   return { 0: 'E', 1: '1/8', 2: '1/4', 3: '3/8', 4: '1/2', 5: '5/8', 6: '3/4', 7: '7/8', 8: 'F' }[v] ?? '—'
 }
 
-const uiStep = computed(() => {
+const backendStep = computed(() => {
   const stage = reservation.value?.delivery_info?.delivered_stage
   if (stage === 'pending') return 2
   if (stage === 'photo_pending') return 3
@@ -185,9 +201,19 @@ const uiStep = computed(() => {
   return 1
 })
 
+const manualStep = ref(null)
+const displayStep = computed(() => manualStep.value ?? backendStep.value)
+
+function goToStep(n) {
+  if (n >= backendStep.value) return
+  error.value = ''
+  manualStep.value = n
+}
+
 async function reload() {
   const res = await axios.get(`/api/reservations/${route.params.id}/`)
   reservation.value = res.data
+  manualStep.value = null
 }
 
 onMounted(async () => {
@@ -309,9 +335,13 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .step-label { font-size: 10px; font-weight: 600; color: #9ca3af; white-space: nowrap; }
 .step-node.active .step-label { color: #6366f1; font-weight: 700; }
 .step-node.completed .step-label { color: #64748b; }
+.step-node.clickable { cursor: pointer; }
+.step-node.clickable:hover .step-circle { box-shadow: 0 0 0 4px rgba(99,102,241,0.15); }
+.step-node.clickable:hover .step-label { color: #6366f1; }
 .step-connector { flex: 1; height: 2px; background: #e5e7eb; margin-top: 15px; transition: background 0.2s; }
 .step-connector.done { background: #6366f1; }
 .step-hint { font-size: 13px; color: #64748b; margin: 0; }
+.edit-notice { font-size: 12px; color: #9a3412; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 8px 12px; margin: 0; }
 
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-field { display: flex; flex-direction: column; gap: 5px; }

@@ -33,7 +33,11 @@
       <!-- Step Bar -->
       <div class="step-bar">
         <template v-for="(label, i) in stepLabels" :key="i">
-          <div class="step-node" :class="{ completed: currentStep > i + 1, active: currentStep === i + 1 }">
+          <div
+            class="step-node"
+            :class="{ completed: currentStep > i + 1, active: currentStep === i + 1, clickable: currentStep > i + 1 && !formSuccess }"
+            @click="goToStep(i + 1)"
+          >
             <div class="step-circle">
               <svg v-if="currentStep > i + 1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20 6L9 17l-5-5"/>
@@ -441,6 +445,11 @@ function prevStep() {
   direction.value = 'back'
   currentStep.value--
 }
+function goToStep(n) {
+  if (n >= currentStep.value || formSuccess.value) return
+  direction.value = 'back'
+  currentStep.value = n
+}
 
 function selectGroup(val) {
   form.value.vehicle_group = val
@@ -674,6 +683,9 @@ function resetForm() {
 }
 .step-node.active .step-label   { color: #1B1063; font-weight: 700; }
 .step-node.completed .step-label { color: #64748b; }
+.step-node.clickable { cursor: pointer; }
+.step-node.clickable:hover .step-circle { box-shadow: 0 0 0 6px rgba(27,16,99,0.18); }
+.step-node.clickable:hover .step-label { color: #1B1063; }
 
 .step-connector {
   flex: 1;
