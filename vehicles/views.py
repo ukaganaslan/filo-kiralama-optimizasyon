@@ -150,7 +150,10 @@ class ReservationViewSet(viewsets.ModelViewSet):
         ]
         billing_data = {f: serializer.validated_data.get(f) for f in billing_fields}
         paid = bool(self.request.data.get('paid'))
+        resolved_branch = save_kwargs.get('branch') or serializer.validated_data.get('branch')
         with transaction.atomic():
+            if not _has_capacity_for_range(resolved_branch.id, group, start_date, end_date):
+                raise ValidationError({'non_field_errors': ['Seçilen tarihler için bu şube ve grupta müsait araç kalmadı.']})
             serializer.save(**save_kwargs)
             Payment.objects.create(
                 reservation=serializer.instance,
@@ -263,6 +266,26 @@ def _sync_maintenance():
     for log in done_logs:
         log.vehicle.status = 'available'
         log.vehicle.save(update_fields=['status'])
+
+def _has_capacity_for_range(branch_id, vehicle_group, start_date, end_date):
+    capacity = len(list(Vehicle.objects.select_for_update().filter(
+        branch_id=branch_id, group=vehicle_group, status='available'
+    )))
+    if capacity == 0:
+        return False
+    existing = list(Reservation.objects.filter(
+        branch_id=branch_id, vehicle_group=vehicle_group,
+        status__in=['pending', 'assigned'],
+        start_date__lte=end_date, end_date__gte=start_date,
+    ).values_list('start_date', 'end_date'))
+    day = start_date
+    while day <= end_date:
+        used = sum(1 for s, e in existing if s <= day <= e)
+        if used >= capacity:
+            return False
+        day += timedelta(days=1)
+    return True
+
 
 def _sync_delivery_logs():
     today = date.today()
@@ -746,6 +769,8 @@ def guest_reservation(request):
 
     paid = bool(request.data.get('paid'))
     with transaction.atomic():
+        if not _has_capacity_for_range(branch.id, vehicle_group, start, end):
+            return Response({'error': 'Seçilen tarihler için bu şube ve grupta müsait araç kalmadı.'}, status=status.HTTP_400_BAD_REQUEST)
         reservation = Reservation.objects.create(
             reservation_id=reservation_id,
             customer=None,
