@@ -10,14 +10,34 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-xl: 20px;
+  --shadow-xs: 0 1px 2px rgba(15,23,42,0.04);
   --shadow-card: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-card-hover: 0 8px 24px rgba(15,23,42,0.08), 0 2px 6px rgba(15,23,42,0.05);
   --shadow-elevated: 0 4px 20px rgba(0,0,0,0.1);
+  --shadow-modal: 0 20px 60px rgba(15,23,42,0.25), 0 4px 16px rgba(15,23,42,0.1);
   --accent: #1B1063;
   --accent-hover: #130d4a;
+  --accent-soft: #ede9fe;
+  --accent-glow: 0 4px 14px rgba(27,16,99,0.22);
+  --border: #e2e8f0;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 0.15s var(--ease);
+  --transition-base: 0.2s var(--ease);
   color-scheme: light;
 }
 
 html { scroll-behavior: smooth; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
 
 body {
   margin: 0;
@@ -49,6 +69,18 @@ input, select, textarea, button {
 }
 
 a { text-decoration: none; }
+
+button { transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast); }
+button:disabled { cursor: not-allowed; opacity: 0.55; }
+button:not(:disabled) { cursor: pointer; }
+
+input, select, textarea { transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
+
+:focus-visible {
+  outline: 2px solid #9b91f5;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

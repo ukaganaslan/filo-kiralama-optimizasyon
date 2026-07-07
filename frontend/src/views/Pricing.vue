@@ -177,22 +177,26 @@ async function doDelete() {
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 .calendar-container { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 20px; }
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; }
-.modal { background: white; border-radius: 14px; padding: 32px; width: 380px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 16px; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.45); backdrop-filter: blur(2px); z-index: 200; display: flex; align-items: center; justify-content: center; animation: overlayIn 0.15s ease; }
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+.modal { background: white; border-radius: 14px; padding: 32px; width: 380px; box-shadow: 0 20px 60px rgba(15,23,42,0.25); display: flex; flex-direction: column; gap: 16px; animation: modalIn 0.18s cubic-bezier(0.4,0,0.2,1); }
+@keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .modal-sm { width: 340px; }
 .modal h3 { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; }
 .modal-info { display: flex; gap: 8px; flex-wrap: wrap; }
 .info-chip { padding: 4px 12px; background: #f1f5f9; border-radius: 50px; font-size: 12px; font-weight: 600; color: #475569; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; text-transform: uppercase; }
-.field input { padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; }
-.field input:focus { border-color: #6366f1; }
+.field input { padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+.field input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
 .confirm-text { font-size: 14px; color: #374151; margin: 0; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-.btn-cancel-modal { padding: 8px 16px; background: white; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 14px; }
-.btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
-.btn-save:hover { background: #4f46e5; }
-.btn-delete-confirm { padding: 8px 20px; background: #dc2626; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.btn-cancel-modal { padding: 8px 16px; background: white; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 14px; transition: background 0.15s, border-color 0.15s; }
+.btn-cancel-modal:hover { background: #f8fafc; border-color: #cbd5e1; }
+.btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.15s, transform 0.15s; }
+.btn-save:hover { background: #4f46e5; transform: translateY(-1px); }
+.btn-delete-confirm { padding: 8px 20px; background: #dc2626; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.15s, transform 0.15s; }
+.btn-delete-confirm:hover { background: #b91c1c; transform: translateY(-1px); }
 .error-msg { color: #dc2626; font-size: 13px; margin: 0; }
 </style>
 

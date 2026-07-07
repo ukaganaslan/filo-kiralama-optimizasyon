@@ -79,11 +79,13 @@ onMounted(async () => {
 <style scoped>
 .content { padding: 32px 40px; }
 .empty-state { text-align: center; padding: 80px 40px; color: #94a3b8; font-size: 15px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.btn-go { padding: 10px 24px; background: #6366f1; color: white; border-radius: 50px; text-decoration: none; font-size: 14px; font-weight: 600; }
+.btn-go { padding: 10px 24px; background: #6366f1; color: white; border-radius: 50px; text-decoration: none; font-size: 14px; font-weight: 600; transition: background 0.15s, transform 0.15s; display: inline-block; }
+.btn-go:hover { background: #4f46e5; transform: translateY(-1px); }
 h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 20px; }
 h3 { font-size: 16px; font-weight: 700; color: #1e293b; margin: 24px 0 12px; }
 .stats-row { display: flex; gap: 16px; margin-bottom: 24px; }
-.stat-card { flex: 1; background: white; border-radius: 14px; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid #6366f1; }
+.stat-card { flex: 1; background: white; border-radius: 14px; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid #6366f1; transition: box-shadow 0.2s, transform 0.2s; }
+.stat-card:hover { box-shadow: 0 8px 24px rgba(15,23,42,0.08); transform: translateY(-2px); }
 .stat-card.green { border-color: #10b981; }
 .stat-card.red { border-color: #ef4444; }
 .stat-value { font-size: 28px; font-weight: 700; color: #1e293b; }
@@ -93,8 +95,10 @@ th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 .empty { text-align: center; color: #94a3b8; padding: 32px !important; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }
 th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-th.sortable { cursor: pointer; user-select: none; }
+th.sortable { cursor: pointer; user-select: none; transition: color 0.15s; }
 th.sortable:hover { color: #6366f1; }
 .sort-ind { font-size: 9px; color: #6366f1; }
+tbody tr { transition: background 0.12s; }
+tbody tr:hover { background: #fafbff; }
 td { border-top: 1px solid #f1f5f9; }
 </style>

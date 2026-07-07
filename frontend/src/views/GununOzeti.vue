@@ -221,7 +221,9 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   overflow: hidden;
   border-left: 4px solid transparent;
+  transition: box-shadow 0.2s;
 }
+.card:hover { box-shadow: 0 8px 24px rgba(15,23,42,0.08); }
 
 .card--green { border-left-color: #16a34a; }
 .card--amber { border-left-color: #f59e0b; }
@@ -265,6 +267,7 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
   padding: 10px 20px;
   border-top: 1px solid #f8fafc;
   font-size: 13px;
+  transition: background 0.12s;
 }
 
 .card-row:hover { background: #f6faff; }
@@ -324,9 +327,9 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
 .ext-dates strong { color: #6366f1; }
 .ext-price { font-size: 12px; font-weight: 700; color: #065f46; background: #d1fae5; padding: 2px 8px; border-radius: 50px; }
 .ext-actions { display: flex; gap: 8px; margin-left: auto; }
-.btn-approve { padding: 6px 14px; background: #16a34a; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
-.btn-approve:hover { background: #15803d; }
-.btn-reject { padding: 6px 14px; background: white; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
-.btn-reject:hover { background: #fef2f2; }
+.btn-approve { padding: 6px 14px; background: #16a34a; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.btn-approve:hover:not(:disabled) { background: #15803d; }
+.btn-reject { padding: 6px 14px; background: white; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.btn-reject:hover:not(:disabled) { background: #fef2f2; }
 .btn-approve:disabled, .btn-reject:disabled { opacity: 0.5; cursor: default; }
 </style>

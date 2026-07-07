@@ -93,7 +93,8 @@
           </div>
 
           <div v-if="transferCost !== null && differentReturn" class="transfer-notice" :class="{ free: transferCost === 0 }">
-            <span class="notice-icon">{{ transferCost === 0 ? '✅' : '💸' }}</span>
+            <svg v-if="transferCost === 0" class="notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            <svg v-else class="notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5M12 16.5h.01"/></svg>
             {{ transferCost > 0 ? `Transfer ücreti: ${transferCost} ₺` : 'Bu iade noktası için transfer ücreti yok' }}
           </div>
         </div>
@@ -115,7 +116,13 @@
               :class="{ selected: form.vehicle_group === g.value }"
               @click="selectGroup(g.value)"
             >
-              <span class="group-emoji">{{ g.emoji }}</span>
+              <span class="group-icon" :class="'group-icon--' + g.value">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 17H3a2 2 0 01-2-2V9a2 2 0 012-2h2M17 17h2a2 2 0 002-2V9a2 2 0 00-2-2h-2"/>
+                  <rect x="5" y="7" width="14" height="10" rx="2"/>
+                  <circle cx="7.5" cy="17" r="1.5"/><circle cx="16.5" cy="17" r="1.5"/>
+                </svg>
+              </span>
               <div class="group-info">
                 <div class="group-name">{{ g.label }}</div>
                 <div class="group-desc">{{ g.desc }}</div>
@@ -832,7 +839,18 @@ function resetForm() {
 .group-card:hover { border-color: #9b8ff5; background: #faf9ff; transform: translateX(2px); }
 .group-card.selected { border-color: #1B1063; background: #edeaff; box-shadow: 0 0 0 4px rgba(27,16,99,0.08); }
 
-.group-emoji { font-size: 30px; flex-shrink: 0; }
+.group-icon {
+  width: 44px; height: 44px; flex-shrink: 0;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f1f5f9; color: #64748b;
+  transition: background 0.2s, color 0.2s;
+}
+.group-icon svg { width: 22px; height: 22px; }
+.group-icon--economy { background: #ede9fe; color: #5b21b6; }
+.group-icon--mid { background: #dbeafe; color: #1e40af; }
+.group-icon--suv { background: #d1fae5; color: #065f46; }
+.group-card.selected .group-icon { background: #1B1063; color: white; }
 .group-info { flex: 1; }
 .group-name { font-size: 15px; font-weight: 700; color: #111827; }
 .group-desc { font-size: 12.5px; color: #64748B; margin-top: 2px; }

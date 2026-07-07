@@ -88,13 +88,25 @@ onUnmounted(() => {
   border-radius: 50px;
   display: flex; align-items: center; justify-content: center;
   line-height: 1;
+  animation: badgePop 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+
+@keyframes badgePop {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 .bell-dropdown {
   position: absolute; top: calc(100% + 8px); right: 0;
   width: 340px; max-height: 420px; overflow-y: auto;
   background: white; border: 1px solid #e2e8f0; border-radius: 14px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1); z-index: 300;
+  box-shadow: 0 8px 28px rgba(15,23,42,0.14); z-index: 300;
+  animation: bellDropIn 0.15s cubic-bezier(0.4,0,0.2,1);
+}
+
+@keyframes bellDropIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .bell-header {

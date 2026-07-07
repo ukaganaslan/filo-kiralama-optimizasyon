@@ -32,6 +32,7 @@
     <p v-if="error" class="form-error">{{ error }}</p>
 
     <button class="btn-pay" :disabled="submitting" @click="submit">
+      <span v-if="submitting" class="pay-spinner"></span>
       {{ submitting ? 'İşleniyor...' : 'Ödemeyi Tamamla' }}
     </button>
   </div>
@@ -189,7 +190,19 @@ function submit() {
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 4px 14px rgba(22,163,74,0.3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
+.pay-spinner {
+  width: 15px; height: 15px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: paySpin 0.7s linear infinite;
+}
+@keyframes paySpin { to { transform: rotate(360deg); } }
 .btn-pay:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(22,163,74,0.4);

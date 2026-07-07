@@ -78,9 +78,11 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
 table { width: 100%; border-collapse: collapse; background: white; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 th, td { padding: 12px 16px; text-align: left; font-size: 14px; }
 th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-th.sortable { cursor: pointer; user-select: none; }
+th.sortable { cursor: pointer; user-select: none; transition: color 0.15s; }
 th.sortable:hover { color: #6366f1; }
 .sort-ind { font-size: 9px; color: #6366f1; }
+tbody tr { transition: background 0.12s; }
+tbody tr:hover { background: #fafbff; }
 td { border-top: 1px solid #f1f5f9; color: #374151; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7), td:nth-child(8), th:nth-child(8), td:nth-child(9), th:nth-child(9), td:nth-child(10), th:nth-child(10) { text-align: center; }
 .res-id { font-weight: 700; color: #000000; font-family: monospace; }
