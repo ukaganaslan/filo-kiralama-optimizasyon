@@ -34,6 +34,13 @@
           <option value="">Tüm Aylar</option>
           <option v-for="m in availableMonths" :key="m" :value="m">{{ formatMonth(m) }}</option>
         </select>
+        <input v-if="activeView === 'calendar'" v-model="calendarVehicleSearch" class="search-input" placeholder="Araç/Plaka ara..." />
+        <select v-if="activeView === 'calendar'" v-model="calendarGroupFilter" class="filter-select">
+          <option value="">Tüm Sınıflar</option>
+          <option value="economy">Ekonomi</option>
+          <option value="mid">Orta Sınıf</option>
+          <option value="suv">SUV</option>
+        </select>
       </div>
       <div class="toolbar-view">
         <span class="toolbar-divider"></span>
@@ -273,6 +280,22 @@ const vehiclePlateMap = computed(() => {
   return m
 })
 
+const calendarGroupFilter = ref('')
+const calendarVehicleSearch = ref('')
+
+const filteredCalendarVehicles = computed(() => {
+  let list = vehicles.value
+  if (calendarGroupFilter.value) list = list.filter(v => v.group === calendarGroupFilter.value)
+  if (calendarVehicleSearch.value.trim()) {
+    const q = calendarVehicleSearch.value.trim().toLowerCase()
+    list = list.filter(v =>
+      (v.vehicle_id || '').toLowerCase().includes(q) ||
+      (v.plate || '').toLowerCase().includes(q)
+    )
+  }
+  return list
+})
+
 function sortBy(key) {
   if (sortKey.value === key) {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
@@ -414,12 +437,13 @@ const calendarOptions = computed(() => ({
   resourceAreaWidth: '210px',
   slotLabelFormat: [{ month: 'long', year: 'numeric' }, { day: 'numeric' }],
   headerToolbar: { left: 'prev,next', right: '' },
-  resources: vehicles.value.map(v => ({
+  resources: filteredCalendarVehicles.value.map(v => ({
     id: v.vehicle_id,
     title: `${v.vehicle_id} (${v.group})`,
   })),
   events: reservations.value
-    .filter(r => r.assigned_vehicle_id && r.status !== 'cancelled')
+    .filter(r => r.assigned_vehicle_id && r.status !== 'cancelled' &&
+      filteredCalendarVehicles.value.some(v => v.vehicle_id === r.assigned_vehicle_id))
     .map(r => ({
       id: r.id,
       resourceId: r.assigned_vehicle_id,
