@@ -18,7 +18,9 @@
         </div>
         <div class="head-actions">
           <button v-if="canDeliver" class="btn-primary" @click="router.push(`${basePath}/teslim/${res.id}`)">Teslim Et</button>
+          <button v-if="canResumeDeliver" class="btn-primary" @click="router.push(`${basePath}/teslim/${res.id}`)">Teslim Sürecine Devam Et</button>
           <button v-if="canReturn" class="btn-primary" @click="router.push(`${basePath}/iade/${res.id}`)">İade Al</button>
+          <button v-if="canResumeReturn" class="btn-primary" @click="router.push(`${basePath}/iade/${res.id}`)">İade Sürecine Devam Et</button>
           <button
             v-if="res.status !== 'cancelled' && !res.delivery_info?.delivered && isFuture"
             class="btn-cancel"
@@ -435,6 +437,16 @@ const canReturn = computed(() => {
   const r = res.value
   if (!r) return false
   return r.status === 'assigned' && r.delivery_info?.delivered && !r.delivery_info?.returned && !r.delivery_info?.returned_stage
+})
+const canResumeDeliver = computed(() => {
+  const r = res.value
+  if (!r) return false
+  return r.status === 'assigned' && !!r.delivery_info?.delivered_stage && !r.delivery_info?.delivered
+})
+const canResumeReturn = computed(() => {
+  const r = res.value
+  if (!r) return false
+  return r.status === 'assigned' && !!r.delivery_info?.returned_stage && !r.delivery_info?.returned
 })
 
 // Araç bilgisi: serializer başlangıç gününden önce assigned_vehicle_info döndürmez;
