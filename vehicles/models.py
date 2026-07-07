@@ -72,6 +72,7 @@ class Reservation(models.Model):
     km_driven = models.IntegerField(null=True, blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+    manually_locked = models.BooleanField(default=False)
 
     STATUS_CHOICES = [
         ('pending', 'Bekliyor'),

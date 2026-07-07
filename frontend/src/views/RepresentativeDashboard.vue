@@ -345,6 +345,8 @@ const calendarOptions = computed(() => ({
   plugins: [ResourceTimelinePlugin, interactionPlugin],
   initialView: 'resourceTimelineMonth',
   selectable: true,
+  eventStartEditable: false,
+  eventResourceEditable: true,
   select(info) {
     const startStr = info.startStr
     const endD = new Date(info.end)
@@ -353,6 +355,25 @@ const calendarOptions = computed(() => ({
     const vehicle = vehicles.value.find(v => v.vehicle_id === info.resource?.id)
     openCreate({ startDate: startStr, endDate: endStr, vehicleGroup: vehicle?.group || '' })
   },
+  eventDrop(info) {
+    const reservationId = info.event.id
+    const newVehicleId = info.newResource?.id
+    if (!newVehicleId) return
+    if (!confirm(`Rezervasyonu ${newVehicleId} aracına taşımak istiyor musunuz?`)) {
+      info.revert()
+      return
+    }
+    axios.post(`/api/reservations/${reservationId}/reassign-vehicle/`, { vehicle_id: newVehicleId })
+      .then(() => {
+        const idx = reservations.value.findIndex(r => r.id === Number(reservationId))
+        if (idx !== -1) reservations.value[idx] = { ...reservations.value[idx], assigned_vehicle_id: newVehicleId }
+      })
+      .catch(e => {
+        alert(e.response?.data?.non_field_errors?.[0] || e.response?.data?.detail || 'Araç değiştirilemedi.')
+        info.revert()
+      })
+  },
+
   schedulerLicenseKey: 'non-commercial-and-evaluation',
   locale: trLocale,
   height: 'auto',
@@ -367,6 +388,7 @@ const calendarOptions = computed(() => ({
   events: reservations.value
     .filter(r => r.assigned_vehicle_id && r.status !== 'cancelled')
     .map(r => ({
+      id: r.id,
       resourceId: r.assigned_vehicle_id,
       title: r.reservation_id,
       start: r.start_date,
