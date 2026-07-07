@@ -156,6 +156,7 @@
               v-model.range="dateRange"
               :disabled-dates="disabledDates"
               :min-date="new Date()"
+              :max-date="maxAvailabilityDate"
               color="indigo"
               is-expanded
               :columns = 2
@@ -385,16 +386,29 @@ const canAdvance = computed(() => {
   return false
 })
 
+function localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
+// Takvim penceresi, backend'in fiilen fiyatlandırdığı en son güne kadar açık;
+// sabit gün sayısı varsayımı ileri tarihli fiyatları yanlışlıkla pasif gösteriyordu.
+const maxAvailabilityDate = computed(() => {
+  if (!availableDates.value.length) return null
+  const maxStr = availableDates.value.reduce((a, b) => (a > b ? a : b))
+  return new Date(maxStr + 'T00:00:00')
+})
+
 const disabledDates = computed(() => {
-  if (!availableDates.value.length) return []
+  if (!availableDates.value.length || !maxAvailabilityDate.value) return []
   const available = new Set(availableDates.value)
   const disabled = []
   const today = new Date()
-  for (let i = 0; i < 90; i++) {
+  today.setHours(0, 0, 0, 0)
+  const totalDays = Math.round((maxAvailabilityDate.value - today) / 86400000) + 1
+  for (let i = 0; i < totalDays; i++) {
     const d = new Date(today)
     d.setDate(today.getDate() + i)
-    const str = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-    if (!available.has(str)) disabled.push(new Date(d))
+    if (!available.has(localDateStr(d))) disabled.push(new Date(d))
   }
   return disabled
 })

@@ -314,17 +314,19 @@
               </span>
             </div>
 
-            <div v-if="canRequestExtension" class="ext-form">
+            <div v-if="canRequestExtension && maxExtendDate" class="ext-form">
               <label class="ext-label">Yeni Bitiş Tarihi</label>
               <div class="ext-row">
-                <input type="date" v-model="extendDate" :min="res.end_date" class="ext-input" />
+                <input type="date" v-model="extendDate" :min="res.end_date" :max="maxExtendDate" class="ext-input" />
                 <button class="btn-ext" :disabled="extendLoading" @click="submitExtension">
                   {{ extendLoading ? 'Gönderiliyor...' : 'Talep Et' }}
                 </button>
               </div>
+              <p class="ext-hint">Fiyatlandırılmış son gün: {{ formatDate(maxExtendDate) }}</p>
               <p v-if="extendError" class="inline-error">{{ extendError }}</p>
               <p v-if="extendMsg" class="inline-success">{{ extendMsg }}</p>
             </div>
+            <p v-else-if="canRequestExtension && !maxExtendDate" class="empty-note">İade gününden sonrası için henüz fiyatlandırılmış gün yok, uzatma talep edilemiyor.</p>
             <p v-else-if="!currentExtension" class="empty-note">Uzatma talebi, iade günü gelmeden yapılabilir.</p>
           </div>
         </div>
@@ -361,6 +363,7 @@ const extendDate = ref('')
 const extendMsg = ref('')
 const extendError = ref('')
 const extendLoading = ref(false)
+const dailyPrices = ref([])
 
 const apiBase = axios.defaults.baseURL || ''
 function mediaUrl(path) {
@@ -457,6 +460,26 @@ const canRequestExtension = computed(() => {
 })
 const extStatusLabel = { pending: 'Bekliyor', approved: 'Onaylandı', rejected: 'Reddedildi' }
 
+function toLocalDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// Uzatma sadece res.end_date'ten itibaren ardışık olarak fiyatlandırılmış
+// günlere yapılabilir; input bu son güne kadar sınırlandırılır.
+const maxExtendDate = computed(() => {
+  if (!res.value) return null
+  const priced = new Set(dailyPrices.value.map(p => p.date))
+  const cursor = new Date(res.value.end_date + 'T00:00:00')
+  let last = null
+  for (let i = 0; i < 365; i++) {
+    cursor.setDate(cursor.getDate() + 1)
+    const str = toLocalDateStr(cursor)
+    if (!priced.has(str)) break
+    last = str
+  }
+  return last
+})
+
 async function loadData() {
   loading.value = true
   loadError.value = ''
@@ -467,6 +490,10 @@ async function loadData() {
     ])
     res.value = resR.data
     extensions.value = resE.data
+    if (res.value?.vehicle_group) {
+      const resP = await axios.get('/api/daily-prices/', { params: { group: res.value.vehicle_group } })
+      dailyPrices.value = resP.data
+    }
   } catch {
     loadError.value = 'Rezervasyon bulunamadı veya erişim yetkiniz yok.'
   } finally {
@@ -657,6 +684,7 @@ async function submitExtension() {
 .ext-form { display: flex; flex-direction: column; gap: 8px; }
 .ext-label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.06em; text-transform: uppercase; }
 .ext-row { display: flex; gap: 8px; align-items: center; }
+.ext-hint { font-size: 12px; color: #94a3b8; margin: 0; }
 .ext-input { flex: 1; min-width: 0; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; color: #1e293b; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
 .ext-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
 .btn-ext { padding: 8px 16px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; }

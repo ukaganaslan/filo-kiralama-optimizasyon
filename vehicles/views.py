@@ -3,7 +3,7 @@ import re
 import uuid
 from datetime import date, timedelta
 from rest_framework import viewsets, status, permissions
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
@@ -515,16 +515,26 @@ def availability(request):
     ).count()
 
     bugun = date.today()
+    # Pencere sabit 90 gün değil, admin'in fiilen fiyatlandırdığı en son güne
+    # kadar açık (aksi halde ileri tarihli fiyatlar yanlışlıkla "pasif" görünüyordu).
+    son_fiyatli_gun = DailyPrice.objects.filter(
+        vehicle_group=group, date__gte=bugun
+    ).aggregate(Max('date'))['date__max']
+
+    if not son_fiyatli_gun:
+        return Response({'available_dates': []})
+
+    gun_sayisi = min((son_fiyatli_gun - bugun).days + 1, 400)
     musait_gunler = []
     fiyatli_gunler = set(
         DailyPrice.objects.filter(
             vehicle_group=group,
             date__gte=bugun,
-            date__lt=bugun + timedelta(days=90)
+            date__lte=son_fiyatli_gun
         ).values_list('date', flat=True)
     )
 
-    for i in range(90):
+    for i in range(gun_sayisi):
         gun = bugun + timedelta(days=i)
         if gun not in fiyatli_gunler:
             continue
