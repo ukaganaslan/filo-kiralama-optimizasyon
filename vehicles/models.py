@@ -71,6 +71,7 @@ class Reservation(models.Model):
     end_date = models.DateField()
     km_driven = models.IntegerField(null=True, blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     STATUS_CHOICES = [
         ('pending', 'Bekliyor'),
@@ -111,6 +112,8 @@ class Reservation(models.Model):
                 name='reservation_end_date_gte_start_date',
             ),
         ]
+        ordering = ['-updated_at']
+        
 
     def __str__(self):
         return f"{self.reservation_id} - {self.branch} - {self.get_vehicle_group_display()}"
