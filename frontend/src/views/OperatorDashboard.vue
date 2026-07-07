@@ -18,24 +18,30 @@
       </div>
     </div>
 
-    <div class="section-header">
+    <div class="page-header">
       <h2>Tüm Rezervasyonlar</h2>
-      <div class="header-actions">
+      <button class="btn-add" @click="openCreate">+ Rezervasyon Oluştur</button>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-filters">
         <input v-if="activeView === 'list'" v-model="tableSearch" class="search-input" placeholder="Ara..." />
-        <select v-if="activeView === 'list'" v-model="statusFilter" class="view-select">
+        <select v-if="activeView === 'list'" v-model="statusFilter" class="filter-select">
           <option value="">Tüm Durumlar</option>
           <option v-for="o in statusOptions" :key="o.key" :value="o.key">{{ o.label }}</option>
         </select>
-        <select v-if="activeView === 'list'" v-model="selectedMonth" class="view-select">
+        <select v-if="activeView === 'list'" v-model="selectedMonth" class="filter-select">
           <option value="">Tüm Aylar</option>
           <option v-for="m in availableMonths" :key="m" :value="m">{{ formatMonth(m) }}</option>
         </select>
+      </div>
+      <div class="toolbar-view">
+        <span class="toolbar-divider"></span>
         <select v-model="activeView" class="view-select">
           <option value="list">Liste Görünümü</option>
           <option value="calendar">Takvim Görünümü</option>
         </select>
       </div>
-      <button class="btn-add" @click="openCreate">+ Rezervasyon Oluştur</button>
     </div>
 
     <FullCalendar v-if="activeView === 'calendar'" :options="calendarOptions" />
@@ -612,18 +618,42 @@ async function handleCreate() {
   font-size: 12px;
   color: #94a3b8;
 }
-.section-header {
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
-.header-actions {
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  border: 1px solid #eef0f4;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  flex-wrap: wrap;
+}
+.toolbar-filters {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
-.view-select {
+.toolbar-view {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: #e5e7eb;
+}
+.view-select, .filter-select {
   padding: 8px 12px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -632,24 +662,28 @@ async function handleCreate() {
   background: white;
   cursor: pointer;
   outline: none;
+  height: 36px;
 }
-.view-select:focus { border-color: #6366f1; }
+.view-select:focus, .filter-select:focus { border-color: #6366f1; }
 .search-input {
-  padding: 8px 12px;
+  padding: 8px 14px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   font-size: 13px;
   color: #475569;
-  background: white;
+  background: #f8fafc;
   outline: none;
-  width: 150px;
+  width: 180px;
+  height: 36px;
+  box-sizing: border-box;
+  transition: background 0.15s, border-color 0.15s;
 }
-.search-input:focus { border-color: #6366f1; }
+.search-input:focus { border-color: #6366f1; background: white; }
 .search-input::placeholder { color: #94a3b8; }
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover { color: #6366f1; }
 .sort-ind { font-size: 9px; color: #6366f1; }
-h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 16px; }
+h2 { font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.01em; margin: 0; }
 .btn-optimize {
   padding: 10px 24px;
   background: #6366f1;
@@ -697,7 +731,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .badge-returned { background: #e9d5ff; color: #6b21a8; }
 .badge-processing { background: #fed7aa; color: #9a3412; }
 
-.btn-add { padding: 8px 18px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-add { padding: 10px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(79,70,229,0.25); transition: background 0.15s; }
 .btn-add:hover { background: #4f46e5; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; }
 .modal { background: white; border-radius: 12px; padding: 32px; width: 460px; max-height: 85vh; overflow: visible; box-shadow: 0 8px 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 16px; }

@@ -1,9 +1,20 @@
 <template>
   <div class="content">
-    <div class="section-header">
+    <div class="page-header">
       <div class="section-title">
         <span>Rezervasyonlarım</span>
         <span v-if="reservations.length" class="count-badge">{{ reservations.length }}</span>
+      </div>
+      <button class="btn-add" @click="router.push('/dashboard')">+ Yeni Rezervasyon</button>
+    </div>
+
+    <div v-if="reservations.length" class="toolbar">
+      <div class="toolbar-filters">
+        <input v-model="tableSearch" class="search-input" placeholder="Ara..." />
+        <select v-model="statusFilter" class="filter-select">
+          <option value="">Tüm Durumlar</option>
+          <option v-for="o in statusOptions" :key="o.key" :value="o.key">{{ o.label }}</option>
+        </select>
       </div>
     </div>
 
@@ -28,7 +39,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in sorted" :key="r.id">
+          <tr v-if="filtered.length === 0"><td colspan="8" class="empty">Aramanızla eşleşen rezervasyon bulunamadı.</td></tr>
+          <tr v-for="r in filtered" :key="r.id">
             <td class="res-id">#{{ r.reservation_id }}</td>
             <td>{{ r.branch_title }}</td>
             <td>{{ groupLabel(r.vehicle_group) }}</td>
@@ -62,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useTableSort } from '@/composables/useTableSort'
@@ -70,6 +82,17 @@ import { useTableSort } from '@/composables/useTableSort'
 const router = useRouter()
 const reservations = ref([])
 const error = ref('')
+const tableSearch = ref('')
+const statusFilter = ref('')
+
+const statusOptions = [
+  { key: 'pending', label: 'Bekliyor' },
+  { key: 'assigned', label: 'Onaylandı' },
+  { key: 'delivered', label: 'Teslim Edildi' },
+  { key: 'returned', label: 'İade Edildi' },
+  { key: 'processing', label: 'İşlemde' },
+  { key: 'cancelled', label: 'İptal' },
+]
 
 const groupLabels = { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }
 function groupLabel(v) { return groupLabels[v] || v }
@@ -99,6 +122,21 @@ const { sortBy, sortArrow, sorted } = useTableSort(reservations, {
   status: r => displayStatus(r),
 })
 
+const filtered = computed(() => {
+  let list = sorted.value
+  if (statusFilter.value) list = list.filter(r => displayStatusKey(r) === statusFilter.value)
+  const q = tableSearch.value.trim().toLowerCase()
+  if (q) {
+    list = list.filter(r =>
+      [r.reservation_id, r.branch_title, groupLabel(r.vehicle_group), r.start_date, r.end_date,
+       r.assigned_vehicle_info?.brand, r.assigned_vehicle_info?.model, r.assigned_vehicle_info?.plate]
+        .filter(Boolean)
+        .some(v => String(v).toLowerCase().includes(q))
+    )
+  }
+  return list
+})
+
 onMounted(async () => {
   const res = await axios.get('/api/reservations/')
   reservations.value = res.data
@@ -121,8 +159,29 @@ function openDetail(r) {
 
 <style scoped>
 .content { padding: 32px 40px; }
-.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.section-title { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 800; color: #0f172a; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.section-title { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; color: #0f172a; }
+.btn-add { padding: 10px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(79,70,229,0.25); transition: background 0.15s; }
+.btn-add:hover { background: #4f46e5; }
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  border: 1px solid #eef0f4;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  flex-wrap: wrap;
+}
+.toolbar-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filter-select { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; color: #475569; background: white; outline: none; cursor: pointer; height: 36px; }
+.filter-select:focus { border-color: #6366f1; }
+.search-input { padding: 8px 14px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; color: #475569; background: #f8fafc; outline: none; width: 180px; height: 36px; box-sizing: border-box; transition: background 0.15s, border-color 0.15s; }
+.search-input:focus { border-color: #6366f1; background: white; }
+.search-input::placeholder { color: #94a3b8; }
 .count-badge { background: #ede9fe; color: #6366f1; font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 50px; }
 .empty-state { text-align: center; padding: 60px 24px; background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 .empty-icon { font-size: 36px; margin-bottom: 12px; color: #cbd5e1; }
