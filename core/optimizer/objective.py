@@ -2,8 +2,7 @@ import statistics
 from collections import defaultdict
 
 from .validator import validate_solution, check_group, check_status
-
-GROUP_LEVEL = {'economy': 0, 'mid': 1, 'suv': 2}
+from vehicles.constants import SIPP_CATEGORY_RANK as GROUP_LEVEL
 
 WEIGHTS = {
     'avoidable_miss': 35,       # kriter 1: uygun araç varken karşılanmamış rezervasyon
@@ -105,10 +104,10 @@ def _avoidable_upgrade_rate(assignments, all_vehicles, occupied, total):
 
 
 def _segment_distance_rate(assignments, total):
-    """Upgrade'in segment mesafesi ağırlıklı toplamı (economy->suv en ağır)."""
+    """Upgrade'in segment mesafesi ağırlıklı toplamı (Mini->Lüks en ağır)."""
     total_distance = 0
     for a in assignments:
-        if a['is_upgrade']:
+        if a['is_upgrade'] and a['vehicle'].group in GROUP_LEVEL and a['reservation'].vehicle_group in GROUP_LEVEL:
             total_distance += GROUP_LEVEL[a['vehicle'].group] - GROUP_LEVEL[a['reservation'].vehicle_group]
     return total_distance / (total * 2)
 
@@ -165,6 +164,8 @@ def _branch_inefficiency_rate(assignments, all_vehicles):
 def _swap_distance(vehicle_group, reservation_group):
     if not check_group(vehicle_group, reservation_group):
         return None
+    if vehicle_group not in GROUP_LEVEL or reservation_group not in GROUP_LEVEL:
+        return 0
     return GROUP_LEVEL[vehicle_group] - GROUP_LEVEL[reservation_group]
 
 

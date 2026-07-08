@@ -92,6 +92,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { categoryLabel as groupLabel } from '@/constants/sipp'
 
 const router = useRouter()
 const reservations = ref([])
@@ -180,9 +181,6 @@ function musteriAdi(r) {
   return r.customer_username || r.guest_name || 'Misafir'
 }
 
-function groupLabel(g) {
-  return { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }[g] || g
-}
 </script>
 
 <style scoped>

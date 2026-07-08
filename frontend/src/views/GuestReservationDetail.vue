@@ -25,6 +25,13 @@
               <span class="gd-label">Şube</span>
               <span class="gd-value">{{ res.branch }}</span>
             </div>
+            <div class="gd-item" v-if="res.preferred_vehicle_model_info">
+              <span class="gd-label">Talep Edilen Model</span>
+              <span class="gd-value">
+                {{ res.preferred_vehicle_model_info.brand }} {{ res.preferred_vehicle_model_info.model }}
+                <span class="equivalent-note">ya da eşdeğeri</span>
+              </span>
+            </div>
             <div class="gd-item">
               <span class="gd-label">Araç Grubu</span>
               <span class="gd-value">{{ groupLabel(res.vehicle_group) }}</span>
@@ -37,6 +44,9 @@
               <span class="gd-label">Araç</span>
               <span class="gd-value">{{ res.assigned_vehicle_info.brand }} {{ res.assigned_vehicle_info.model }} · {{ res.assigned_vehicle_info.plate }}</span>
             </div>
+            <p v-if="res.assigned_vehicle_info?.is_model_substitute" class="substitute-note">
+              Talep ettiğiniz {{ res.preferred_vehicle_model_info?.brand }} {{ res.preferred_vehicle_model_info?.model }} o an müsait olmadığı için aynı sınıftan bu araç size atandı.
+            </p>
             <div class="gd-item" v-if="res.total_price">
               <span class="gd-label">Tutar</span>
               <span class="gd-value gd-price">{{ Number(res.total_price).toLocaleString('tr-TR') }} ₺</span>
@@ -174,6 +184,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import CarDamageMap from '@/components/CarDamageMap.vue'
+import { categoryLabel as groupLabel } from '@/constants/sipp'
 
 const route = useRoute()
 const res = ref(null)
@@ -183,12 +194,6 @@ const lightboxUrl = ref(null)
 const pdfLoading = ref('')
 const pdfError = ref('')
 
-const groups = [
-  { value: 'economy', label: 'Ekonomi' },
-  { value: 'mid', label: 'Orta Sınıf' },
-  { value: 'suv', label: 'SUV' },
-]
-function groupLabel(v) { return groups.find(g => g.value === v)?.label || v }
 function statusLabel(s) { return { pending: 'Bekliyor', assigned: 'Onaylandı', cancelled: 'İptal' }[s] || s }
 function fuelLabel(v) {
   return { 0: 'E', 1: '1/8', 2: '1/4', 3: '3/8', 4: '1/2', 5: '5/8', 6: '3/4', 7: '7/8', 8: 'F' }[v] ?? '—'
@@ -253,6 +258,17 @@ onMounted(async () => {
 .gd-label { color: #64748B; }
 .gd-value { color: #1e293b; font-weight: 600; text-align: right; }
 .gd-price { color: #1B1063; }
+.substitute-note {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin: 8px 0 0;
+}
+.equivalent-note { color: #94a3b8; font-size: 11px; font-style: italic; margin-left: 6px; }
 .gd-damage { margin-top: 16px; }
 .gd-empty { color: #94a3b8; font-size: 13px; text-align: center; }
 .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }

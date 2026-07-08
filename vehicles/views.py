@@ -3,7 +3,7 @@ import re
 import uuid
 from datetime import date, timedelta
 from rest_framework import viewsets, status, permissions
-from django.db.models import Q, Max
+from django.db.models import Q, Max, Count
 from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
@@ -16,8 +16,9 @@ from django.conf import settings
 from django.utils import timezone
 from io import BytesIO
 from xhtml2pdf import pisa
-from .models import Branch, Vehicle, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment, ReservationExtension, Payment, Notification
-from .serializers import BranchSerializer, VehicleSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer, ReservationExtensionSerializer, validate_billing_payload, NotificationSerializer
+from .models import Branch, Vehicle, VehicleModel, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment, ReservationExtension, Payment, Notification
+from .serializers import BranchSerializer, VehicleSerializer, VehicleModelSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer, ReservationExtensionSerializer, validate_billing_payload, NotificationSerializer
+from .pricing import price_for_range
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
 
@@ -35,6 +36,47 @@ class TransferCostViewSet(viewsets.ModelViewSet):
     queryset = TransferCost.objects.select_related('from_branch', 'to_branch').all()
     serializer_class = TransferCostSerializer
     permission_classes = [permissions.IsAdminUser]
+
+class VehicleModelViewSet(viewsets.ModelViewSet):
+    serializer_class = VehicleModelSerializer
+
+    def get_queryset(self):
+        qs = VehicleModel.objects.all()
+        if not (self.request.user.is_authenticated and self.request.user.is_staff):
+            qs = qs.filter(is_active=True)
+        group = self.request.query_params.get('group')
+        fuel_type = self.request.query_params.get('fuel_type')
+        transmission = self.request.query_params.get('transmission')
+        if group:
+            qs = qs.filter(group=group)
+        if fuel_type:
+            qs = qs.filter(fuel_type=fuel_type)
+        if transmission:
+            qs = qs.filter(transmission=transmission)
+        branch = self.request.query_params.get('branch')
+        if branch:
+            qs = qs.annotate(
+                available_count=Count(
+                    'vehicles',
+                    filter=Q(vehicles__branch_id=branch, vehicles__status='available'),
+                )
+            )
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        if branch and start_date and end_date:
+            start = date.fromisoformat(start_date)
+            end = date.fromisoformat(end_date)
+            eligible_ids = [
+                m.id for m in qs
+                if _model_has_capacity_for_range(branch, m.id, start, end)
+            ]
+            qs = qs.filter(id__in=eligible_ids)
+        return qs
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAdminUser()]
 
 
 class VehicleViewSet(viewsets.ModelViewSet):
@@ -54,21 +96,23 @@ class VehicleViewSet(viewsets.ModelViewSet):
         return [permissions.IsAdminUser()]
 
     def perform_update(self, serializer):
+        from rest_framework.exceptions import ValidationError
         user = self.request.user
         profile = getattr(user, 'profile', None)
+        catalog = serializer.validated_data.get('catalog', serializer.instance.catalog)
+        if not catalog:
+            raise ValidationError({'catalog': ['Katalog modeli seçimi zorunludur.']})
+        extra = {'brand': catalog.brand, 'model': catalog.model, 'group': catalog.group}
         if not user.is_staff and profile and profile.role == 'representative':
             if serializer.instance.branch != profile.branch:
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied('Bu araca erişim yetkiniz yok.')
-            serializer.save(branch=serializer.instance.branch)
+            serializer.save(branch=serializer.instance.branch, **extra)
         else:
-            serializer.save()
+            serializer.save(**extra)
 
     def perform_create(self, serializer):
         from rest_framework.exceptions import PermissionDenied, ValidationError
-        from datetime import date
-        vehicle = serializer.validated_data.get('vehicle')
-        current_km = serializer.validated_data.get('current_km')
         user = self.request.user
         profile = getattr(user, 'profile', None)
         if not user.is_staff and profile and profile.role == 'representative':
@@ -77,8 +121,11 @@ class VehicleViewSet(viewsets.ModelViewSet):
             branch = profile.branch
         else:
             branch = serializer.validated_data.get('branch')
-        group = serializer.validated_data.get('group')
-        prefix = {'economy': 'E', 'mid': 'M', 'suv': 'S'}.get(group, 'X')
+        catalog = serializer.validated_data.get('catalog')
+        if not catalog:
+            raise ValidationError({'catalog': ['Katalog modeli seçimi zorunludur.']})
+        group = catalog.group
+        prefix = group
         suffix = 'GEN'
         existing = Vehicle.objects.filter(vehicle_id__startswith=prefix, vehicle_id__endswith=suffix)
         numbers = []
@@ -88,7 +135,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
                 numbers.append(int(mid))
         next_num = max(numbers, default=0) + 1
         vehicle_id = f"{prefix}{next_num:02d}{suffix}"
-        serializer.save(vehicle_id=vehicle_id, branch=branch)
+        serializer.save(vehicle_id=vehicle_id, branch=branch, brand=catalog.brand, model=catalog.model, group=group)
 
 
 
@@ -128,20 +175,14 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if overlap:
             raise ValidationError({'non_field_errors': ['Seçilen tarih aralığında aktif bir rezervasyon var.']})
         reservation_id = 'R' + uuid.uuid4().hex[:6].upper()
-        group = serializer.validated_data.get('vehicle_group')
-        total_days = (end_date - start_date).days + 1
-        prices = {
-            p.date: p.price_per_day
-            for p in DailyPrice.objects.filter(
-                vehicle_group=group,
-                date__gte=start_date,
-                date__lte=end_date,
-            )
-        }
-        if len(prices) < total_days:
+        preferred = serializer.validated_data.get('preferred_vehicle_model')
+        if not preferred:
+            raise ValidationError({'non_field_errors': ['Araç modeli seçimi zorunludur.']})
+        group = preferred.group
+        serializer.validated_data['vehicle_group'] = group
+        total = price_for_range(preferred.id, start_date, end_date)
+        if total is None:
             raise ValidationError({'non_field_errors': ['Seçilen tarih aralığında fiyatlandırılmamış günler var. Lütfen fiyat tanımlı bir aralık seçin.']})
-        total = sum(prices.get(start_date + timedelta(days=i), 0)
-                    for i in range(total_days))
         save_kwargs = {'customer': customer, 'status': 'pending', 'reservation_id': reservation_id, 'total_price': total or None}
         if profile and profile.role == 'representative' and profile.branch:
             save_kwargs['branch'] = profile.branch
@@ -334,6 +375,26 @@ def _has_capacity_for_range(branch_id, vehicle_group, start_date, end_date):
     return True
 
 
+def _model_has_capacity_for_range(branch_id, vehicle_model_id, start_date, end_date):
+    capacity = Vehicle.objects.filter(
+        branch_id=branch_id, catalog_id=vehicle_model_id, status='available'
+    ).count()
+    if capacity == 0:
+        return False
+    existing = list(Reservation.objects.filter(
+        branch_id=branch_id, preferred_vehicle_model_id=vehicle_model_id,
+        status__in=['pending', 'assigned'],
+        start_date__lte=end_date, end_date__gte=start_date,
+    ).values_list('start_date', 'end_date'))
+    day = start_date
+    while day <= end_date:
+        used = sum(1 for s, e in existing if s <= day <= e)
+        if used >= capacity:
+            return False
+        day += timedelta(days=1)
+    return True
+
+
 def _sync_delivery_logs():
     today = date.today()
     active = Reservation.objects.filter(status='assigned', start_date__lte=today, end_date__gte=today)
@@ -504,49 +565,62 @@ def transfer_cost_view(request):
 
 @api_view(['GET'])
 def availability(request):
+    """Belirli bir şubede, henüz araç modeli seçilmeden önce hangi günlerin
+    rezervasyona açık olduğunu döner. Artık tek bir gruba değil, o şubedeki
+    tüm aktif araç modellerine bakar: en az bir modelde o gün için hem fiyat
+    hem müsait araç varsa gün açık sayılır."""
     branch_id = request.query_params.get('branch')
-    group = request.query_params.get('group')
 
-    if not branch_id or not group:
-        return Response({'error': 'branch ve group gerekli'}, status=400)
+    if not branch_id:
+        return Response({'error': 'branch gerekli'}, status=400)
 
-    toplam = Vehicle.objects.filter(
-        branch_id=branch_id, group=group, status='available'
-    ).count()
+    models_qs = VehicleModel.objects.filter(is_active=True, vehicles__branch_id=branch_id).distinct()
+    kapasiteler = {
+        vm.id: Vehicle.objects.filter(branch_id=branch_id, catalog_id=vm.id, status='available').count()
+        for vm in models_qs
+    }
+    kapasiteler = {vm_id: c for vm_id, c in kapasiteler.items() if c > 0}
+    if not kapasiteler:
+        return Response({'available_dates': []})
 
     bugun = date.today()
     # Pencere sabit 90 gün değil, admin'in fiilen fiyatlandırdığı en son güne
     # kadar açık (aksi halde ileri tarihli fiyatlar yanlışlıkla "pasif" görünüyordu).
     son_fiyatli_gun = DailyPrice.objects.filter(
-        vehicle_group=group, date__gte=bugun
+        vehicle_model_id__in=kapasiteler.keys(), date__gte=bugun
     ).aggregate(Max('date'))['date__max']
 
     if not son_fiyatli_gun:
         return Response({'available_dates': []})
 
     gun_sayisi = min((son_fiyatli_gun - bugun).days + 1, 400)
-    musait_gunler = []
-    fiyatli_gunler = set(
-        DailyPrice.objects.filter(
-            vehicle_group=group,
-            date__gte=bugun,
-            date__lte=son_fiyatli_gun
-        ).values_list('date', flat=True)
-    )
+    son_gun = bugun + timedelta(days=gun_sayisi - 1)
 
+    fiyatli_gunler = {}
+    for vm_id, gun in DailyPrice.objects.filter(
+        vehicle_model_id__in=kapasiteler.keys(), date__gte=bugun, date__lte=son_fiyatli_gun
+    ).values_list('vehicle_model_id', 'date'):
+        fiyatli_gunler.setdefault(vm_id, set()).add(gun)
+
+    rezervasyonlar = {}
+    for vm_id, s, e in Reservation.objects.filter(
+        branch_id=branch_id,
+        preferred_vehicle_model_id__in=kapasiteler.keys(),
+        status__in=['pending', 'assigned'],
+        start_date__lte=son_gun, end_date__gte=bugun,
+    ).values_list('preferred_vehicle_model_id', 'start_date', 'end_date'):
+        rezervasyonlar.setdefault(vm_id, []).append((s, e))
+
+    musait_gunler = []
     for i in range(gun_sayisi):
         gun = bugun + timedelta(days=i)
-        if gun not in fiyatli_gunler:
-            continue
-        dolu = Reservation.objects.filter(
-            branch_id=branch_id,
-            vehicle_group=group,
-            status__in=['pending', 'assigned'],
-            start_date__lte=gun,
-            end_date__gte=gun
-        ).count()
-        if dolu < toplam:
-            musait_gunler.append(str(gun))
+        for vm_id, kapasite in kapasiteler.items():
+            if gun not in fiyatli_gunler.get(vm_id, set()):
+                continue
+            dolu = sum(1 for s, e in rezervasyonlar.get(vm_id, []) if s <= gun <= e)
+            if dolu < kapasite:
+                musait_gunler.append(str(gun))
+                break
 
     return Response({'available_dates': musait_gunler})
 
@@ -780,7 +854,14 @@ def guest_reservation(request):
     guest_phone = request.data.get('guest_phone', '')
     guest_email = request.data.get('guest_email')
     branch_id = request.data.get('branch')
-    vehicle_group = request.data.get('vehicle_group')
+    preferred_vehicle_model_id = request.data.get('preferred_vehicle_model')
+    if not preferred_vehicle_model_id:
+        return Response({'error': 'Araç modeli seçimi zorunludur.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        preferred_vehicle_model = VehicleModel.objects.get(id=preferred_vehicle_model_id)
+    except VehicleModel.DoesNotExist:
+        return Response({'error': 'Seçilen araç modeli bulunamadı'}, status=status.HTTP_400_BAD_REQUEST)
+    vehicle_group = preferred_vehicle_model.group
     start_date = request.data.get('start_date')
     end_date = request.data.get('end_date')
 
@@ -801,19 +882,9 @@ def guest_reservation(request):
     from datetime import datetime
     start = datetime.strptime(start_date, '%Y-%m-%d').date()
     end   = datetime.strptime(end_date,   '%Y-%m-%d').date()
-    total_days = (end - start).days + 1
-    prices = {
-        p.date: p.price_per_day
-        for p in DailyPrice.objects.filter(
-            vehicle_group=vehicle_group,
-            date__gte=start,
-            date__lte=end,
-        )
-    }
-    if len(prices) < total_days:
+    total = price_for_range(preferred_vehicle_model.id, start, end)
+    if total is None:
         return Response({'error': 'Seçilen tarih aralığında fiyatlandırılmamış günler var. Lütfen fiyat tanımlı bir aralık seçin.'}, status=status.HTTP_400_BAD_REQUEST)
-    total = sum(prices.get(start + timedelta(days=i), 0)
-                for i in range(total_days))
 
     return_branch_id = request.data.get('return_branch')
     return_branch = None
@@ -836,6 +907,7 @@ def guest_reservation(request):
             branch=branch,
             return_branch=return_branch,
             vehicle_group=vehicle_group,
+            preferred_vehicle_model=preferred_vehicle_model,
             start_date=start_date,
             end_date=end_date,
             status='pending',
@@ -903,12 +975,21 @@ def guest_reservation_detail(request):
     if not reservation:
         return Response({'error': 'Rezervasyon bulunamadı'}, status=status.HTTP_404_NOT_FOUND)
 
+    preferred_info = None
+    if reservation.preferred_vehicle_model:
+        m = reservation.preferred_vehicle_model
+        preferred_info = {'brand': m.brand, 'model': m.model, 'sipp_code': m.sipp_code}
+
     vehicle_info = None
     if reservation.status == 'assigned' and reservation.start_date <= date.today():
         result = reservation.assignmentresult_set.order_by('-run__created_at').first()
         if result:
             v = result.vehicle
-            vehicle_info = {'plate': v.plate, 'brand': v.brand, 'model': v.model}
+            vehicle_info = {
+                'plate': v.plate, 'brand': v.brand, 'model': v.model,
+                'sipp_code': v.catalog.sipp_code if v.catalog else None,
+                'is_model_substitute': bool(reservation.preferred_vehicle_model_id and v.catalog_id != reservation.preferred_vehicle_model_id),
+            }
 
     logs = {log.event_type: log for log in reservation.delivery_logs.all()}
     delivered = logs.get('delivered')
@@ -942,6 +1023,7 @@ def guest_reservation_detail(request):
         'end_date': str(reservation.end_date),
         'status': reservation.status,
         'total_price': str(reservation.total_price) if reservation.total_price else None,
+        'preferred_vehicle_model_info': preferred_info,
         'assigned_vehicle_info': vehicle_info,
         'delivery_info': delivery_info,
     })
@@ -1020,9 +1102,9 @@ class DailyPriceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = DailyPrice.objects.all()
-        group = self.request.query_params.get('group')
-        if group:
-            qs = qs.filter(vehicle_group=group)
+        vehicle_model = self.request.query_params.get('vehicle_model')
+        if vehicle_model:
+            qs = qs.filter(vehicle_model_id=vehicle_model)
         return qs
 
     @action(detail=False, methods=['post'])
@@ -1030,9 +1112,9 @@ class DailyPriceViewSet(viewsets.ModelViewSet):
         from rest_framework.exceptions import ValidationError
         start = request.data.get('start_date')
         end = request.data.get('end_date')
-        group = request.data.get('vehicle_group')
+        vehicle_model = request.data.get('vehicle_model')
         price = request.data.get('price_per_day')
-        if not all([start, end, group, price]):
+        if not all([start, end, vehicle_model, price]):
             raise ValidationError('Tüm alanlar gerekli.')
         start_d = date.fromisoformat(start)
         end_d = date.fromisoformat(end)
@@ -1040,7 +1122,7 @@ class DailyPriceViewSet(viewsets.ModelViewSet):
         while current <= end_d:
             DailyPrice.objects.update_or_create(
                 date=current,
-                vehicle_group=group,
+                vehicle_model_id=vehicle_model,
                 defaults={'price_per_day': price}
             )
             current += timedelta(days=1)
@@ -1239,19 +1321,15 @@ def _extension_customer_conflict(reservation, window_start, window_end):
 def _extension_price(reservation, new_end_date):
     """Uzatılan günlerin (mevcut end_date+1 .. new_end_date) DailyPrice toplamı.
     (toplam, eksik_fiyat_var_mı) döner."""
+    if not reservation.preferred_vehicle_model_id:
+        return None, True
     start = reservation.end_date + timedelta(days=1)
     days = (new_end_date - start).days + 1
     if days <= 0:
         return None, False
-    prices = {
-        p.date: p.price_per_day
-        for p in DailyPrice.objects.filter(
-            vehicle_group=reservation.vehicle_group, date__gte=start, date__lte=new_end_date
-        )
-    }
-    if len(prices) < days:
+    total = price_for_range(reservation.preferred_vehicle_model_id, start, new_end_date)
+    if total is None:
         return None, True
-    total = sum(prices.get(start + timedelta(days=i), 0) for i in range(days))
     return total, False
 
 

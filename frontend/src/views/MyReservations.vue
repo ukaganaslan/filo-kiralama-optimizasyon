@@ -78,6 +78,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useTableSort } from '@/composables/useTableSort'
+import { categoryLabel as groupLabel } from '@/constants/sipp'
 
 const router = useRouter()
 const reservations = ref([])
@@ -94,8 +95,6 @@ const statusOptions = [
   { key: 'cancelled', label: 'İptal' },
 ]
 
-const groupLabels = { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }
-function groupLabel(v) { return groupLabels[v] || v }
 function statusLabel(s) {
   if (s === 'pending') return 'Bekliyor'
   if (s === 'assigned') return 'Onaylandı'

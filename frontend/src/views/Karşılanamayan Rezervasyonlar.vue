@@ -28,7 +28,7 @@
             <td>{{ r.reservation_id }}</td>
             <td>{{ r.customer_username }}</td>
             <td>{{ r.branch_name }}</td>
-            <td>{{ r.vehicle_group }}</td>
+            <td>{{ categoryLabel(r.vehicle_group) }}</td>
             <td>{{ r.start_date }}</td>
             <td>{{ r.end_date }}</td>
           </tr>
@@ -43,6 +43,7 @@ import { computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useOptimizationStore } from '../stores/optimization'
 import { useTableSort } from '@/composables/useTableSort'
+import { categoryLabel } from '@/constants/sipp'
 
 const optimizationStore = useOptimizationStore()
 const result = computed(() => optimizationStore.result)

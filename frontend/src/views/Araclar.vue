@@ -30,7 +30,7 @@
           <td>{{ v.sasi || '—' }}</td>
           <td>{{ v.brand }} {{ v.model }}</td>
           <td>{{ v.plate || '—' }}</td>
-          <td><span :class="'badge-group badge-' + v.group">{{ groupLabel(v.group) }}</span></td>
+          <td><span class="badge-group" :style="{ background: CATEGORY_COLORS[v.group]?.bg, color: CATEGORY_COLORS[v.group]?.text }">{{ categoryLabel(v.group) }}</span></td>
           <td>{{ v.branch_name || '—' }}</td>
           <td><span :class="'badge-status badge-' + v.current_status">{{ statusLabel(v.current_status) }}</span></td>
           <td class="actions">
@@ -54,14 +54,6 @@
     <div class="modal">
       <h3>{{ editingId ? 'Araç Düzenle' : 'Yeni Araç Ekle' }}</h3>
       <div class="field">
-        <label>Marka</label>
-        <input v-model="form.brand" type="text" placeholder="Araç Markası" />
-      </div>
-      <div class="field">
-        <label>Model</label>
-        <input v-model="form.model" type="text" placeholder="Araç Modeli" />
-      </div>
-      <div class="field">
         <label>Plaka</label>
         <input v-model="form.plate" type="text" placeholder="Plaka" />
       </div>
@@ -70,12 +62,10 @@
         <input v-model="form.sasi" type="text" placeholder="Sasi Kodu" />
       </div>
       <div class="field">
-        <label>Grup</label>
-        <select v-model="form.group">
-          <option value="">Seçin</option>
-          <option value="economy">Ekonomi</option>
-          <option value="mid">Orta Sınıf</option>
-          <option value="suv">SUV</option>
+        <label>Katalog Modeli</label>
+        <select v-model="form.catalog">
+        <option :value="null">Seçin</option>
+        <option v-for="m in models" :key="m.id" :value="m.id">{{ m.brand }} {{ m.model }} ({{ m.sipp_code }})</option>
         </select>
       </div>
       <div class="field">
@@ -183,6 +173,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useTableSort } from '@/composables/useTableSort'
+import { CATEGORY_ORDER, CATEGORY_COLORS, categoryLabel } from '@/constants/sipp'
 
 const vehicles = ref([])
 const search = ref('')
@@ -190,34 +181,32 @@ const branches = ref([])
 const openMenuId = ref(null)
 const formModal = ref(false)
 const editingId = ref(null)
-const form = ref({ brand: '', model: '', plate: '', sasi: '', group: '', branch: '', status: 'available' })
+const form = ref({ plate: '', sasi: '', branch: '', status: 'available', catalog: null })
 const formError = ref('')
 const deleteModal = ref(false)
 const deletingVehicle = ref(null)
 const historyModal = ref(false)
 const historyData = ref({})
+const models = ref([])
 
 async function loadData() {
-  const [vRes, bRes] = await Promise.all([
+  const [vRes, bRes, mRes] = await Promise.all([
     axios.get('/api/vehicles/'),
     axios.get('/api/branches/'),
+    axios.get('/api/vehicle-models/'),
   ])
   vehicles.value = vRes.data.sort((a, b) => {
     if (a.branch !== b.branch) return a.branch - b.branch
-    const grupSira = { economy: 1, mid: 2, suv: 3 }
-    return grupSira[a.group] - grupSira[b.group]
+    return CATEGORY_ORDER.indexOf(a.group) - CATEGORY_ORDER.indexOf(b.group)
   })
   branches.value = bRes.data
+  models.value = mRes.data
 }
 
 function toggleMenu(id) { openMenuId.value = openMenuId.value === id ? null : id }
 function closeMenu() { openMenuId.value = null }
 onMounted(() => { loadData(); document.addEventListener('click', closeMenu) })
 onUnmounted(() => document.removeEventListener('click', closeMenu))
-
-function groupLabel(g) {
-  return { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }[g] || g
-}
 
 function statusLabel(s) {
   return { available: 'Müsait', rented: 'Kiralandı', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif' }[s] || s
@@ -234,27 +223,27 @@ const filteredVehicles = computed(() => {
 
 const { sortBy, sortArrow, sorted: sortedVehicles } = useTableSort(filteredVehicles, {
   brand_model: v => `${v.brand} ${v.model}`,
-  group: v => groupLabel(v.group),
+  group: v => categoryLabel(v.group),
   status: v => statusLabel(v.current_status),
 })
 
 function openAdd() {
   editingId.value = null
-  form.value = { brand: '', model: '', plate: '', sasi: '', group: '', branch: '', status: 'available' }
+  form.value = { plate: '', sasi: '', branch: '', status: 'available', catalog: null }
   formError.value = ''
   formModal.value = true
 }
 
 function openEdit(v) {
   editingId.value = v.id
-  form.value = { brand: v.brand || '', model: v.model || '', plate: v.plate || '', sasi: v.sasi || '', group: v.group, branch: v.branch, status: v.status }
+  form.value = { plate: v.plate || '', sasi: v.sasi || '', branch: v.branch, status: v.status, catalog: v.catalog || null }
   formError.value = ''
   formModal.value = true
 }
 
 async function saveForm() {
-  if (!form.value.group || !form.value.branch) {
-    formError.value = 'Tüm alanları doldurun.'
+  if (!form.value.catalog || !form.value.branch) {
+    formError.value = 'Katalog modeli ve şube zorunludur.'
     return
   }
   try {
@@ -328,9 +317,6 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7) { text-align: center; }
 .vehicle-id { font-weight: 700; color: #1e293b; font-family: monospace; }
 .badge-group, .badge-status { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.badge-economy { background: #ede9fe; color: #5b21b6; }
-.badge-mid { background: #dbeafe; color: #1e40af; }
-.badge-suv { background: #d1fae5; color: #065f46; }
 .badge-available { background: #d1fae5; color: #065f46; }
 .badge-rented { background: #dbeafe; color: #1e40af; }
 .badge-maintenance { background: #fef3c7; color: #92400e; }
