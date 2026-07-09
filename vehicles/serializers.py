@@ -69,13 +69,20 @@ class VehicleSerializer(serializers.ModelSerializer):
     sipp_code = serializers.SerializerMethodField()
 
     def get_current_status(self, obj):
+        from django.db.models import Q
+        from datetime import datetime
         if obj.status in ('maintenance', 'service', 'inactive'):
             return obj.status
-        today = date.today()
+        now = datetime.now()
+        today = now.date()
         is_rented = obj.assignmentresult_set.filter(
             reservation__status='assigned',
-            reservation__start_date__lte=today,
-            reservation__end_date__gte=today,
+        ).filter(
+            Q(reservation__start_date__lt=today) |
+            Q(reservation__start_date=today, reservation__start_time__lte=now.time())
+        ).filter(
+            Q(reservation__end_date__gt=today) |
+            Q(reservation__end_date=today, reservation__end_time__gte=now.time())
         ).exists()
         return 'rented' if is_rented else 'available'
 
@@ -123,8 +130,8 @@ class ReservationSerializer(serializers.ModelSerializer):
         }
 
     def get_assigned_vehicle_info(self, obj):
-        from datetime import date
-        if obj.status != 'assigned' or obj.start_date > date.today():
+        from datetime import datetime
+        if obj.status != 'assigned' or obj.start_datetime > datetime.now():
             return None
         result = obj.assignmentresult_set.order_by('-run__created_at').first()
         if not result:
@@ -172,14 +179,14 @@ class ReservationSerializer(serializers.ModelSerializer):
         }
 
     def get_current_status(self, obj):
-        from datetime import date
-        today = date.today()
+        from datetime import datetime
+        now = datetime.now()
         if obj.status == 'cancelled':
             return 'cancelled'
         if obj.status == 'assigned':
-            if obj.start_date <= today and obj.end_date >= today:
+            if obj.start_datetime <= now <= obj.end_datetime:
                 return 'active'
-            if obj.end_date < today:
+            if obj.end_datetime < now:
                 return 'completed'
         return obj.status
 
@@ -194,7 +201,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'reservation_id', 'branch', 'branch_name', 'branch_title',
             'return_branch', 'return_branch_name', 'return_branch_title',
-            'vehicle_group', 'preferred_vehicle_model', 'preferred_vehicle_model_info', 'start_date', 'end_date', 'status',
+            'vehicle_group', 'preferred_vehicle_model', 'preferred_vehicle_model_info', 'start_date', 'end_date', 'start_time', 'end_time', 'status',
             'customer_username', 'assigned_vehicle_id', 'assigned_vehicle_info', 'current_status',
             'guest_name', 'guest_phone', 'guest_email', 'total_price', 'delivery_info', 'payment_info',
             'billing_type', 'billing_name', 'billing_tckn', 'billing_tax_office', 'billing_tax_no',

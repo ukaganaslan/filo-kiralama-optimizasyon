@@ -59,7 +59,7 @@ def validate_solution(assignments):
         vid = entry['vehicle'].vehicle_id
         r = entry['reservation']
         for prev_r in vehicle_reservations.get(vid, []):
-            if prev_r.start_date <= r.end_date and r.start_date <= prev_r.end_date:
+            if prev_r.start_datetime < r.end_datetime and r.start_datetime < prev_r.end_datetime:
                 violations.append(
                     f"{vid}: {prev_r.reservation_id} ve {r.reservation_id} çakışıyor"
                 )

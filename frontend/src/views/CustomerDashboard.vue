@@ -125,6 +125,16 @@
               is-expanded
               :columns = 2
             />
+            <div class="time-grid">
+              <div class="loc-field">
+                <div class="loc-label"><span>Alış Saati</span></div>
+                <input v-model="form.start_time" type="time" class="filled" />
+              </div>
+              <div class="loc-field">
+                <div class="loc-label"><span>İade Saati</span></div>
+                <input v-model="form.end_time" type="time" class="filled" />
+              </div>
+            </div>
           </template>
 
           <div v-else class="no-avail">
@@ -293,12 +303,12 @@
               <div class="summary-val">{{ selectedModel ? `${selectedModel.brand} ${selectedModel.model}` : groupLabel(form.vehicle_group) }}</div>
             </div>
             <div class="summary-item">
-              <div class="summary-key">Başlangıç</div>
-              <div class="summary-val">{{ toLocalDateStr(dateRange.start) }}</div>
+              <div class="summary-key">Alış</div>
+              <div class="summary-val">{{ toLocalDateStr(dateRange.start) }} · {{ form.start_time }}</div>
             </div>
             <div class="summary-item">
-              <div class="summary-key">Bitiş</div>
-              <div class="summary-val">{{ toLocalDateStr(dateRange.end) }}</div>
+              <div class="summary-key">İade</div>
+              <div class="summary-val">{{ toLocalDateStr(dateRange.end) }} · {{ form.end_time }}</div>
             </div>
             <div v-if="transferCost !== null && differentReturn" class="summary-item">
               <div class="summary-key">Transfer Ücreti</div>
@@ -375,6 +385,7 @@ const formError = ref('')
 const formSuccess = ref('')
 const form = ref({
   branch: '', vehicle_group: '', preferred_vehicle_model: '', return_branch: '',
+  start_time: '10:00', end_time: '10:00',
   billing_type: 'bireysel', billing_name: '', billing_tckn: '', billing_tax_office: '', billing_tax_no: '',
   billing_address: '', billing_neighborhood: '', billing_district: '', billing_city: '', billing_phone: '',
 })
@@ -524,6 +535,8 @@ async function fetchModels() {
       branch: form.value.branch,
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
+      start_time: form.value.start_time,
+      end_time: form.value.end_time,
     }
     if (modelFilterGroup.value) params.group = modelFilterGroup.value
     if (modelFilterFuel.value) params.fuel_type = modelFilterFuel.value
@@ -569,6 +582,8 @@ async function handleCreate() {
       preferred_vehicle_model: form.value.preferred_vehicle_model,
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
+      start_time: form.value.start_time,
+      end_time: form.value.end_time,
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
       billing_type: form.value.billing_type,
       billing_name: form.value.billing_name,
@@ -594,6 +609,7 @@ function resetForm() {
   direction.value = 'forward'
   form.value = {
     branch: '', vehicle_group: '', return_branch: '',
+    start_time: '10:00', end_time: '10:00',
     billing_type: form.value.billing_type,
     billing_name: form.value.billing_name,
     billing_tckn: form.value.billing_tckn,
@@ -990,6 +1006,7 @@ function resetForm() {
 
 /* ── Step 3: Tarih ── */
 .date-hint { font-size: 13px; color: #64748B; margin-bottom: 16px; }
+.time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
 
 .loading-state {
   display: flex;

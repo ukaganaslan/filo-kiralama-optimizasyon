@@ -50,7 +50,7 @@
           </div>
           <div class="info-item">
             <span class="info-label">TARİH</span>
-            <span class="info-value">{{ reservation.start_date }} → {{ reservation.end_date }}</span>
+            <span class="info-value">{{ reservation.start_date }} {{ formatTime(reservation.start_time) }} → {{ reservation.end_date }} {{ formatTime(reservation.end_time) }}</span>
           </div>
         </div>
 
@@ -200,6 +200,7 @@ import FileUpload from 'primevue/fileupload'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import CarDamageMap from '@/components/CarDamageMap.vue'
+import { formatTime } from '@/utils/datetime'
 
 const route = useRoute()
 const router = useRouter()

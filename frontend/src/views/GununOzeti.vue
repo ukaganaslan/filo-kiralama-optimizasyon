@@ -20,6 +20,7 @@
         <div v-for="r in teslimlBugün" :key="r.id" class="card-row clickable"
              @click="router.push('/representative/teslim/' + r.id)">
           <span class="col-name">{{ musteriAdi(r) }}</span>
+          <span class="col-time">{{ formatTime(r.start_time) }}</span>
           <span class="col-group">{{ groupLabel(r.vehicle_group) }}</span>
           <span class="col-vehicle">{{ r.assigned_vehicle_id || '—' }}</span>
         </div>
@@ -34,6 +35,7 @@
         <div v-for="r in iadelerBugün" :key="r.id" class="card-row clickable"
              @click="router.push('/representative/iade/' + r.id)">
           <span class="col-name">{{ musteriAdi(r) }}</span>
+          <span class="col-time">{{ formatTime(r.end_time) }}</span>
           <span class="col-group">{{ groupLabel(r.vehicle_group) }}</span>
           <span class="col-vehicle">{{ r.assigned_vehicle_id || '—' }}</span>
         </div>
@@ -93,6 +95,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { categoryLabel as groupLabel } from '@/constants/sipp'
+import { formatTime } from '@/utils/datetime'
 
 const router = useRouter()
 const reservations = ref([])
@@ -274,6 +277,7 @@ h2 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
 .card--amber .clickable:hover { background: #fffbeb; }
 
 .col-name { flex: 1; font-weight: 500; color: #1e293b; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-time { color: #6366f1; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .col-group { color: #64748b; font-size: 12px; white-space: nowrap; }
 .col-vehicle { font-family: monospace; font-size: 12px; color: #6366f1; font-weight: 600; white-space: nowrap; }
 

@@ -73,11 +73,11 @@
               </div>
               <div class="info-item">
                 <span class="ilabel">Başlangıç Tarihi</span>
-                <span class="ival">{{ formatDate(res.start_date) }}</span>
+                <span class="ival">{{ formatDate(res.start_date) }} <span class="time-tag">{{ formatTime(res.start_time) }}</span></span>
               </div>
               <div class="info-item">
                 <span class="ilabel">Bitiş Tarihi</span>
-                <span class="ival">{{ formatDate(res.end_date) }}</span>
+                <span class="ival">{{ formatDate(res.end_date) }} <span class="time-tag">{{ formatTime(res.end_time) }}</span></span>
               </div>
               <div class="info-item">
                 <span class="ilabel">Süre</span>
@@ -382,6 +382,7 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import CarDamageMap from '@/components/CarDamageMap.vue'
 import { categoryLabel as groupLabel } from '@/constants/sipp'
+import { formatTime } from '@/utils/datetime'
 
 const route = useRoute()
 const router = useRouter()
@@ -444,7 +445,8 @@ const isFuture = computed(() => res.value && res.value.start_date > bugun)
 const canDeliver = computed(() => {
   const r = res.value
   if (!r) return false
-  return r.status === 'assigned' && r.start_date <= bugun && !r.delivery_info?.delivered && !r.delivery_info?.delivered_stage
+  const startDt = new Date(`${r.start_date}T${r.start_time || '10:00:00'}`)
+  return r.status === 'assigned' && startDt <= new Date() && !r.delivery_info?.delivered && !r.delivery_info?.delivered_stage
 })
 const canReturn = computed(() => {
   const r = res.value
@@ -683,6 +685,7 @@ async function rejectExtension(id) {
 .ilabel { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
 .ival { font-size: 14px; font-weight: 600; color: #1e293b; overflow-wrap: break-word; }
 .ival.price { font-weight: 800; color: #0f172a; }
+.time-tag { color: #94a3b8; font-weight: 500; }
 
 .fuel-item { grid-column: span 2; }
 .info-grid.one-col .fuel-item { grid-column: span 1; }

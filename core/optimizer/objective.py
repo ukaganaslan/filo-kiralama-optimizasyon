@@ -49,14 +49,14 @@ def _build_occupied(assignments):
     occupied = {}
     for a in assignments:
         occupied.setdefault(a['vehicle'].vehicle_id, []).append(
-            (a['reservation'].start_date, a['reservation'].end_date)
+            (a['reservation'].start_datetime, a['reservation'].end_datetime)
         )
     return occupied
 
 
-def _has_conflict(vehicle_id, start_date, end_date, occupied):
+def _has_conflict(vehicle_id, start_dt, end_dt, occupied):
     for s, e in occupied.get(vehicle_id, []):
-        if s <= end_date and start_date <= e:
+        if s < end_dt and start_dt < e:
             return True
     return False
 
@@ -72,7 +72,7 @@ def _avoidable_miss_rate(unassigned, all_vehicles, occupied, total):
                 continue
             if not check_group(v.group, r.vehicle_group):
                 continue
-            if _has_conflict(v.vehicle_id, r.start_date, r.end_date, occupied):
+            if _has_conflict(v.vehicle_id, r.start_datetime, r.end_datetime, occupied):
                 continue
             count += 1
             break
@@ -96,7 +96,7 @@ def _avoidable_upgrade_rate(assignments, all_vehicles, occupied, total):
                 continue
             if not check_status(v):
                 continue
-            if _has_conflict(v.vehicle_id, r.start_date, r.end_date, occupied):
+            if _has_conflict(v.vehicle_id, r.start_datetime, r.end_datetime, occupied):
                 continue
             count += 1
             break

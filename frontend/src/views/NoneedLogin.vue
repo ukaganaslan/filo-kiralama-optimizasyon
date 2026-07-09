@@ -144,6 +144,16 @@
               is-expanded
               :columns = 2
             />
+            <div class="time-grid">
+              <div class="loc-field">
+                <div class="loc-label"><span>Alış Saati</span></div>
+                <input v-model="form.start_time" type="time" class="filled" />
+              </div>
+              <div class="loc-field">
+                <div class="loc-label"><span>İade Saati</span></div>
+                <input v-model="form.end_time" type="time" class="filled" />
+              </div>
+            </div>
           </template>
 
           <div v-else class="no-avail">
@@ -239,7 +249,7 @@
                 </div>
                 <div class="mini-item">
                   <span class="mini-key">Tarih</span>
-                  <span class="mini-val">{{ toLocalDateStr(dateRange.start) }} → {{ toLocalDateStr(dateRange.end) }}</span>
+                  <span class="mini-val">{{ toLocalDateStr(dateRange.start) }} {{ form.start_time }} → {{ toLocalDateStr(dateRange.end) }} {{ form.end_time }}</span>
                 </div>
               </div>
 
@@ -419,7 +429,7 @@ const reservationPrice = ref(null)
 const differentReturn = ref(false)
 const transferCost = ref(null)
 
-const form = ref({ branch: '', vehicle_group: '', preferred_vehicle_model: '', return_branch: '' })
+const form = ref({ branch: '', vehicle_group: '', preferred_vehicle_model: '', return_branch: '', start_time: '10:00', end_time: '10:00' })
 const availableModels = ref([])
 const modelsLoading = ref(false)
 const modelFilterGroup = ref('')
@@ -551,6 +561,8 @@ async function fetchModels() {
       branch: form.value.branch,
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
+      start_time: form.value.start_time,
+      end_time: form.value.end_time,
     }
     if (modelFilterGroup.value) params.group = modelFilterGroup.value
     if (modelFilterFuel.value) params.fuel_type = modelFilterFuel.value
@@ -594,6 +606,8 @@ async function handleCreate() {
       preferred_vehicle_model: form.value.preferred_vehicle_model,
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
+      start_time: form.value.start_time,
+      end_time: form.value.end_time,
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
       billing_type: guest.value.billing_type,
       billing_name: guest.value.billing_type === 'kurumsal' ? guest.value.billing_name : guest.value.name,
@@ -617,7 +631,7 @@ async function handleCreate() {
 function resetForm() {
   currentStep.value = 1
   direction.value = 'forward'
-  form.value = { branch: '', vehicle_group: '', preferred_vehicle_model: '', return_branch: '' }
+  form.value = { branch: '', vehicle_group: '', preferred_vehicle_model: '', return_branch: '', start_time: '10:00', end_time: '10:00' }
   dateRange.value = { start: null, end: null }
   availableModels.value = []
   guest.value = {
@@ -870,6 +884,8 @@ function copyCode(){
 
 /* ── Step 3 ── */
 .date-hint { font-size: 13px; color: #64748B; margin-bottom: 14px; }
+.time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
+.time-grid input[type="time"] { padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; color: #111827; outline: none; background: white; }
 .loading-state { display: flex; align-items: center; gap: 12px; padding: 40px 0; justify-content: center; color: #64748B; font-size: 14px; }
 .loading-spinner { width: 22px; height: 22px; border: 2.5px solid #e2e8f0; border-top-color: #1B1063; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

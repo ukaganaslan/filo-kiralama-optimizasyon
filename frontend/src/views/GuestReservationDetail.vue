@@ -38,7 +38,7 @@
             </div>
             <div class="gd-item">
               <span class="gd-label">Tarih</span>
-              <span class="gd-value">{{ res.start_date }} → {{ res.end_date }}</span>
+              <span class="gd-value">{{ res.start_date }} {{ formatTime(res.start_time) }} → {{ res.end_date }} {{ formatTime(res.end_time) }}</span>
             </div>
             <div class="gd-item" v-if="res.assigned_vehicle_info">
               <span class="gd-label">Araç</span>
@@ -185,6 +185,7 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 import CarDamageMap from '@/components/CarDamageMap.vue'
 import { categoryLabel as groupLabel } from '@/constants/sipp'
+import { formatTime } from '@/utils/datetime'
 
 const route = useRoute()
 const res = ref(null)

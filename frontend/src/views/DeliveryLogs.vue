@@ -28,8 +28,8 @@
           <td>{{ log.assigned_vehicle_plate }}</td>
           <td>{{ log.customer }}</td>
           <td>{{ groupLabel(log.vehicle_group) }}</td>
-          <td>{{ log.start_date }}</td>
-          <td>{{ log.end_date }}</td>
+          <td>{{ log.start_date }} <span class="time-tag">{{ formatTime(log.start_time) }}</span></td>
+          <td>{{ log.end_date }} <span class="time-tag">{{ formatTime(log.end_time) }}</span></td>
           <td><span v-if="log.total_price" class="price-badge">{{ Number(log.total_price).toLocaleString('tr-TR') }} ₺</span><span v-else class="price-na">—</span></td>
           <td><span :class="'badge-event-' + log.event_type">{{ eventLabel(log.event_type) }}</span></td>
         </tr>
@@ -43,6 +43,7 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useTableSort } from '@/composables/useTableSort'
 import { categoryLabel as groupLabel } from '@/constants/sipp'
+import { formatTime } from '@/utils/datetime'
 
 const logs = ref([])
 
@@ -85,6 +86,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .res-id { font-weight: 700; color: #000000; font-family: monospace; }
 .price-badge { font-size: 13px; font-weight: 700; color: #000000; }
 .price-na { color: #94a3b8; }
+.time-tag { color: #94a3b8; font-size: 12px; }
 .badge-event-delivered { background: #d1fae5; color: #065f46; display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
 .badge-event-returned { background: #e9d5ff; color: #6b21a8; display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
 </style>

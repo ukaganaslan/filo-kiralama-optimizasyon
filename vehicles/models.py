@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from datetime import time, datetime
 from .constants import SIPP_CATEGORY_CHOICES, SIPP_BODY_TYPE_CHOICES
 
 
@@ -106,6 +107,8 @@ class Reservation(models.Model):
     preferred_vehicle_model = models.ForeignKey('VehicleModel', on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
     start_date = models.DateField()
     end_date = models.DateField()
+    start_time = models.TimeField(default=time(10, 0))
+    end_time = models.TimeField(default=time(10, 0))
     km_driven = models.IntegerField(null=True, blank=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -146,15 +149,26 @@ class Reservation(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(end_date__gte=models.F('start_date')),
-                name='reservation_end_date_gte_start_date',
+                check=(
+                    models.Q(end_date__gt=models.F('start_date')) |
+                    models.Q(end_date=models.F('start_date'), end_time__gt=models.F('start_time'))
+                ),
+                name='reservation_end_after_start',
             ),
         ]
         ordering = ['-updated_at']
-        
+
 
     def __str__(self):
         return f"{self.reservation_id} - {self.branch} - {self.get_vehicle_group_display()}"
+
+    @property
+    def start_datetime(self):
+        return datetime.combine(self.start_date, self.start_time)
+
+    @property
+    def end_datetime(self):
+        return datetime.combine(self.end_date, self.end_time)
 
 
 class Assignment(models.Model):
