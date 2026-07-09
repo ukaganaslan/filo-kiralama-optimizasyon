@@ -780,7 +780,7 @@ function copyCode(){
 .change-link { color: #1B1063; font-weight: 700; margin-left: 4px; }
 .transfer-notice { margin-top: 14px; display: flex; align-items: center; gap: 8px; padding: 11px 14px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 9px; font-size: 13px; color: #92400e; font-weight: 500; }
 .transfer-notice.free { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
-.notice-icon { font-size: 15px; flex-shrink: 0; }
+.notice-icon { width: 17px; height: 17px; flex-shrink: 0; }
 
 /* ── Step 2 ── */
 .group-list { display: flex; flex-direction: column; gap: 10px; }
