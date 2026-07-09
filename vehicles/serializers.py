@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog, DailyPrice, ReservationExtension, Payment, Notification
+from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog, DailyPrice, ReservationExtension, Payment, Notification, VehicleModel
+from .pricing import price_for_range
 from datetime import date
 
 
@@ -36,12 +37,36 @@ class BranchSerializer(serializers.ModelSerializer):
         model = Branch
         fields = ['id', 'name', 'title']
 
+class VehicleModelSerializer(serializers.ModelSerializer):
+    available_count = serializers.IntegerField(read_only=True, default=None)
+    total_price = serializers.SerializerMethodField()
+    sipp_code = serializers.ReadOnlyField()
+
+    def get_total_price(self, obj):
+        request = self.context.get('request')
+        if not request:
+            return None
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        if not start_date or not end_date:
+            return None
+        total = price_for_range(obj.id, date.fromisoformat(start_date), date.fromisoformat(end_date))
+        return total
+
+    class Meta:
+        model = VehicleModel
+        fields = [
+            'id', 'brand', 'model', 'group', 'fuel_type', 'transmission', 'body_type', 'is_4wd', 'has_ac',
+            'sipp_code', 'image', 'is_active', 'available_count', 'total_price',
+        ]
+
 
 class VehicleSerializer(serializers.ModelSerializer):
     branch_name = serializers.CharField(source='branch.name', read_only=True)
     branch_title = serializers.CharField(source='branch.title', read_only=True)
     vehicle_id = serializers.CharField(read_only=True)
     current_status = serializers.SerializerMethodField()
+    sipp_code = serializers.SerializerMethodField()
 
     def get_current_status(self, obj):
         if obj.status in ('maintenance', 'service', 'inactive'):
@@ -54,10 +79,13 @@ class VehicleSerializer(serializers.ModelSerializer):
         ).exists()
         return 'rented' if is_rented else 'available'
 
+    def get_sipp_code(self, obj):
+        return obj.catalog.sipp_code if obj.catalog else None
+
     class Meta:
         model = Vehicle
         fields = [
-            'id', 'vehicle_id', 'group', 'brand', 'model', 'plate', 'sasi', 'branch', 'branch_name', 'branch_title',
+            'id', 'vehicle_id', 'group', 'brand', 'model', 'catalog', 'sipp_code', 'plate', 'sasi', 'branch', 'branch_name', 'branch_title',
             'status', 'current_status', 'total_reservations', 'total_km', 'maintenance_due',
         ]
 
@@ -75,10 +103,24 @@ class ReservationSerializer(serializers.ModelSerializer):
     current_status = serializers.SerializerMethodField()
     delivery_info = serializers.SerializerMethodField()
     payment_info = serializers.SerializerMethodField()
+    preferred_vehicle_model = serializers.PrimaryKeyRelatedField(
+        queryset=VehicleModel.objects.all(), required=False, allow_null=True
+    )
+    preferred_vehicle_model_info= serializers.SerializerMethodField()
 
     def get_assigned_vehicle_id(self, obj):
         result = obj.assignmentresult_set.order_by('-run__created_at').first()
         return result.vehicle.vehicle_id if result else None
+
+    def get_preferred_vehicle_model_info(self, obj):
+        m = obj.preferred_vehicle_model
+        if not m:
+            return None
+        return {
+            'id': m.id, 'brand': m.brand, 'model': m.model, 'sipp_code': m.sipp_code,
+            'fuel_type': m.fuel_type, 'transmission': m.transmission,
+            'image': m.image.url if m.image else None,
+        }
 
     def get_assigned_vehicle_info(self, obj):
         from datetime import date
@@ -88,7 +130,11 @@ class ReservationSerializer(serializers.ModelSerializer):
         if not result:
             return None
         v = result.vehicle
-        return {'plate': v.plate, 'brand': v.brand, 'model': v.model, 'total_km': v.total_km, 'damage_map': v.damage_map}
+        return {
+            'plate': v.plate, 'brand': v.brand, 'model': v.model, 'total_km': v.total_km, 'damage_map': v.damage_map,
+            'sipp_code': v.catalog.sipp_code if v.catalog else None,
+            'is_model_substitute': bool(obj.preferred_vehicle_model_id and v.catalog_id != obj.preferred_vehicle_model_id),
+        }
 
     def get_delivery_info(self, obj):
         logs = {log.event_type: log for log in obj.delivery_logs.all()}
@@ -148,7 +194,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'reservation_id', 'branch', 'branch_name', 'branch_title',
             'return_branch', 'return_branch_name', 'return_branch_title',
-            'vehicle_group', 'start_date', 'end_date', 'status',
+            'vehicle_group', 'preferred_vehicle_model', 'preferred_vehicle_model_info', 'start_date', 'end_date', 'status',
             'customer_username', 'assigned_vehicle_id', 'assigned_vehicle_info', 'current_status',
             'guest_name', 'guest_phone', 'guest_email', 'total_price', 'delivery_info', 'payment_info',
             'billing_type', 'billing_name', 'billing_tckn', 'billing_tax_office', 'billing_tax_no',
@@ -179,9 +225,15 @@ class MaintenanceLogSerializer(serializers.ModelSerializer):
         ]
 
 class DailyPriceSerializer(serializers.ModelSerializer):
+    vehicle_model_info = serializers.SerializerMethodField()
+
+    def get_vehicle_model_info(self, obj):
+        m = obj.vehicle_model
+        return {'id': m.id, 'brand': m.brand, 'model': m.model, 'group': m.group, 'sipp_code': m.sipp_code}
+
     class Meta:
         model = DailyPrice
-        fields = ['id', 'date', 'vehicle_group', 'price_per_day']
+        fields = ['id', 'date', 'vehicle_model', 'vehicle_model_info', 'price_per_day']
 
 
 class ReservationExtensionSerializer(serializers.ModelSerializer):

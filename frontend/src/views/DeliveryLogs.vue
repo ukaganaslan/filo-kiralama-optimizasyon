@@ -42,6 +42,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useTableSort } from '@/composables/useTableSort'
+import { categoryLabel as groupLabel } from '@/constants/sipp'
 
 const logs = ref([])
 
@@ -49,10 +50,6 @@ onMounted(async () => {
   const res = await axios.get('/api/delivery-logs/')
   logs.value = res.data
 })
-
-function groupLabel(g) {
-  return { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }[g] || g
-}
 
 function eventLabel(e) {
   return { delivered: 'Teslim Edildi', returned: 'İade Alındı' }[e] || e

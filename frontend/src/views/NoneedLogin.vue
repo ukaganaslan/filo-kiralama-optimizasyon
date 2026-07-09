@@ -119,60 +119,103 @@
               </div>
             </div>
 
-            <!-- Step 2: Araç Grubu -->
-            <div v-else-if="currentStep === 2" key="s2" class="step-card">
-              <div class="card-title">
-                <div>
-                  <div class="card-title-text">Araç Grubu</div>
-                  <div class="card-title-sub">Size uygun araç kategorisini seçin</div>
-                </div>
-              </div>
-              <div class="group-list">
-                <button
-                  v-for="g in groups" :key="g.value"
-                  class="group-card"
-                  :class="{ selected: form.vehicle_group === g.value }"
-                  @click="form.vehicle_group = g.value"
-                >
-                  <span class="group-icon" :class="'group-icon--' + g.value">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M5 17H3a2 2 0 01-2-2V9a2 2 0 012-2h2M17 17h2a2 2 0 002-2V9a2 2 0 00-2-2h-2"/>
-                      <rect x="5" y="7" width="14" height="10" rx="2"/>
-                      <circle cx="7.5" cy="17" r="1.5"/><circle cx="16.5" cy="17" r="1.5"/>
-                    </svg>
-                  </span>
-                  <div class="group-info">
-                    <div class="group-name">{{ g.label }}</div>
-                    <div class="group-desc">{{ g.desc }}</div>
-                  </div>
-                  <div class="group-check-circle" :class="{ visible: form.vehicle_group === g.value }">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M20 6L9 17l-5-5"/>
-                    </svg>
-                  </div>
-                </button>
-              </div>
+        <!-- Step 2: Tarih -->
+        <div v-else-if="currentStep === 2" key="step2" class="step-card">
+          <div class="card-title">
+            <div>
+              <div class="card-title-text">Tarih Aralığı</div>
+              <div class="card-title-sub">Kiralama başlangıç ve bitiş tarihini seçin</div>
             </div>
+          </div>
 
-            <!-- Step 3: Tarih -->
-            <div v-else-if="currentStep === 3" key="s3" class="step-card">
-              <div class="card-title">
-                <div>
-                  <div class="card-title-text">Tarih Aralığı</div>
-                  <div class="card-title-sub">Kiralama başlangıç ve bitiş tarihini seçin</div>
-                </div>
-              </div>
+          <div v-if="availabilityLoading" class="loading-state">
+            <div class="loading-spinner"></div>
+            <span>Müsait günler yükleniyor...</span>
+          </div>
 
-              <div v-if="availabilityLoading" class="loading-state">
-                <div class="loading-spinner"></div>
-                <span>Müsait günler yükleniyor...</span>
-              </div>
-              <template v-else-if="availableDates.length > 0">
-                <p class="date-hint">Açık günler müsait, gri günler dolu.</p>
-                <VDatePicker v-model.range="dateRange" :disabled-dates="disabledDates" :min-date="new Date()" :max-date="maxAvailabilityDate" color="indigo" is-expanded :columns="2" />
-              </template>
-              <div v-else class="no-avail"><i class="pi pi-exclamation-triangle"></i> Bu şube ve grupta müsait gün bulunmuyor.</div>
+          <template v-else-if="availableDates.length > 0">
+            <p class="date-hint">Koyu renkli günler müsait, gri günler dolu.</p>
+            <VDatePicker
+              v-model.range="dateRange"
+              :disabled-dates="disabledDates"
+              :min-date="new Date()"
+              :max-date="maxAvailabilityDate"
+              color="indigo"
+              is-expanded
+              :columns = 2
+            />
+          </template>
+
+          <div v-else class="no-avail">
+            <i class="pi pi-exclamation-triangle"></i> Bu şubede müsait gün bulunmuyor.
+          </div>
+        </div>
+
+        <!-- Step 3: Araç Modeli -->
+        <div v-else-if="currentStep === 3" key="step3" class="step-card">
+          <div class="card-title">
+            <div>
+              <div class="card-title-text">Araç Modeli</div>
+              <div class="card-title-sub">Bir marka/model seçin — stok kalmazsa aynı sınıftan başka bir araç size atanabilir</div>
             </div>
+          </div>
+
+          <div class="model-filters">
+            <select v-model="modelFilterGroup" @change="fetchModels">
+              <option value="">Tüm Sınıflar</option>
+              <option v-for="g in CATEGORY_ORDER" :key="g" :value="g">{{ categoryLabel(g) }}</option>
+            </select>
+            <select v-model="modelFilterFuel" @change="fetchModels">
+              <option value="">Tüm Yakıtlar</option>
+              <option value="benzin">Benzin</option>
+              <option value="dizel">Dizel</option>
+              <option value="hibrit">Hibrit</option>
+              <option value="elektrik">Elektrik</option>
+            </select>
+            <select v-model="modelFilterTransmission" @change="fetchModels">
+              <option value="">Tüm Vitesler</option>
+              <option value="manuel">Manuel</option>
+              <option value="otomatik">Otomatik</option>
+            </select>
+          </div>
+
+          <div v-if="modelsLoading" class="loading-state">
+            <div class="loading-spinner"></div>
+            <span>Araçlar yükleniyor...</span>
+          </div>
+
+          <div v-else-if="availableModels.length === 0" class="no-avail">
+            <i class="pi pi-exclamation-triangle"></i> Bu tarih aralığında ve filtrelerde uygun araç bulunamadı.
+          </div>
+
+          <div v-else class="model-grid">
+            <button
+              v-for="m in availableModels"
+              :key="m.id"
+              class="model-card"
+              :class="{ selected: form.preferred_vehicle_model === m.id }"
+              @click="selectModel(m)"
+            >
+              <img v-if="m.image" :src="m.image" class="model-img" />
+              <div v-else class="model-img model-img-empty" :style="{ background: CATEGORY_COLORS[m.group]?.bg }"></div>
+              <div class="model-body">
+                <div class="model-name">{{ m.brand }} {{ m.model }}</div>
+                <div class="model-alt">ya da benzeri</div>
+                <div class="model-badges">
+                  <span class="model-badge" :style="{ background: CATEGORY_COLORS[m.group]?.bg, color: CATEGORY_COLORS[m.group]?.text }">{{ categoryLabel(m.group) }}</span>
+                  <span class="model-badge">{{ m.fuel_type === 'benzin' ? 'Benzin' : m.fuel_type === 'dizel' ? 'Dizel' : m.fuel_type === 'hibrit' ? 'Hibrit' : 'Elektrik' }}</span>
+                  <span class="model-badge">{{ m.transmission === 'otomatik' ? 'Otomatik' : 'Manuel' }}</span>
+                </div>
+                <div class="model-price" v-if="m.total_price">{{ Number(m.total_price).toLocaleString('tr-TR') }} ₺ <span class="model-price-sub">toplam</span></div>
+              </div>
+              <div class="model-check-circle" :class="{ visible: form.preferred_vehicle_model === m.id }">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </div>
+            </button>
+          </div>
+        </div>
 
             <!-- Step 4: Bilgileriniz -->
             <div v-else-if="currentStep === 4" key="s4" class="step-card">
@@ -191,8 +234,8 @@
                   <span class="mini-val">{{ branchName(form.branch) }}</span>
                 </div>
                 <div class="mini-item">
-                  <span class="mini-key">Grup</span>
-                  <span class="mini-val">{{ groupLabel(form.vehicle_group) }}</span>
+                  <span class="mini-key">Araç Modeli</span>
+                  <span class="mini-val">{{ selectedModel ? `${selectedModel.brand} ${selectedModel.model}` : groupLabel(form.vehicle_group) }}</span>
                 </div>
                 <div class="mini-item">
                   <span class="mini-key">Tarih</span>
@@ -360,15 +403,15 @@ import StepPanel from 'primevue/steppanel'
 import axios from 'axios'
 import { ILLER, getIlceler } from '../utils/address'
 import MockPaymentForm from '../components/MockPaymentForm.vue'
+import { CATEGORY_ORDER, CATEGORY_COLORS, categoryLabel } from '@/constants/sipp'
 
 const iller = ILLER
 const currentStep = ref(1)
 const direction = ref('forward')
-const stepLabels = ['Lokasyon', 'Araç Grubu', 'Tarih', 'Bilgileriniz', 'Ödeme']
+const stepLabels = ['Lokasyon', 'Tarih', 'Araç Modeli', 'Bilgileriniz', 'Ödeme']
 
 const branches = ref([])
 const availableDates = ref([])
-const dailyPrices = ref([])
 const availabilityLoading = ref(false)
 const formError = ref('')
 const reservationCode = ref('')
@@ -376,7 +419,12 @@ const reservationPrice = ref(null)
 const differentReturn = ref(false)
 const transferCost = ref(null)
 
-const form = ref({ branch: '', vehicle_group: '', return_branch: '' })
+const form = ref({ branch: '', vehicle_group: '', preferred_vehicle_model: '', return_branch: '' })
+const availableModels = ref([])
+const modelsLoading = ref(false)
+const modelFilterGroup = ref('')
+const modelFilterFuel = ref('')
+const modelFilterTransmission = ref('')
 const paid = ref(false)
 const dateRange = ref({ start: null, end: null })
 const guest = ref({
@@ -392,32 +440,17 @@ const queryError = ref('')
 const cancelError = ref('')
 const cancelSuccess = ref('')
 
-const groups = [
-  { value: 'economy', label: 'Ekonomi',desc: 'Şehir içi, yakıt dostu' },
-  { value: 'mid',     label: 'Orta Sınıf', desc: 'Konfor ve performans' },
-  { value: 'suv',     label: 'SUV', desc: 'Geniş, güçlü, her arazi' },
-]
+const groups = CATEGORY_ORDER.map(value => ({ value, label: categoryLabel(value), desc: '' }))
 
-const totalPrice = computed(() => {
-  if (!dateRange.value.start || !dateRange.value.end || !dailyPrices.value.length) return null
-  const priceMap = {}
-  dailyPrices.value.forEach(p => { priceMap[p.date] = Number(p.price_per_day) })
-  const start = new Date(dateRange.value.start)
-  const end = new Date(dateRange.value.end)
-  let total = 0
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-    total += priceMap[key] || 0
-  }
-  return total
-})
+const selectedModel = computed(() => availableModels.value.find(m => m.id === form.value.preferred_vehicle_model) || null)
+const totalPrice = computed(() => selectedModel.value ? Number(selectedModel.value.total_price) : null)
 
 const transitionName = computed(() => direction.value === 'forward' ? 'step-fwd' : 'step-back')
 
 const canAdvance = computed(() => {
   if (currentStep.value === 1) return !!form.value.branch
-  if (currentStep.value === 2) return !!form.value.vehicle_group
-  if (currentStep.value === 3) return !!(dateRange.value.start && dateRange.value.end)
+  if (currentStep.value === 2) return !!(dateRange.value.start && dateRange.value.end)
+  if (currentStep.value === 3) return !!form.value.preferred_vehicle_model
   if (currentStep.value === 4) return true
   return false
 })
@@ -467,9 +500,10 @@ function openDetail() {
 
 function nextStep() {
   if (!canAdvance.value) return
-  if (currentStep.value === 2) fetchAvailability()
   direction.value = 'forward'
   currentStep.value++
+  if (currentStep.value === 2) fetchAvailability()
+  if (currentStep.value === 3) fetchModels()
 }
 function prevStep() {
   direction.value = 'back'
@@ -484,6 +518,8 @@ function goToStep(n) {
 function onPickupChange() {
   form.value.return_branch = ''
   transferCost.value = null
+  form.value.preferred_vehicle_model = ''
+  availableModels.value = []
 }
 
 async function fetchTransferCost() {
@@ -495,20 +531,40 @@ async function fetchTransferCost() {
 }
 
 async function fetchAvailability() {
-  if (!form.value.branch || !form.value.vehicle_group) return
+  if (!form.value.branch) return
   availabilityLoading.value = true
   availableDates.value = []
   dateRange.value = { start: null, end: null }
   try {
-    const [availRes, priceRes] = await Promise.all([
-      axios.get('/api/availability/', { params: { branch: form.value.branch, group: form.value.vehicle_group } }),
-      axios.get('/api/daily-prices/', { params: { group: form.value.vehicle_group } }),
-    ])
-    availableDates.value = availRes.data.available_dates
-    dailyPrices.value = priceRes.data
+    const res = await axios.get('/api/availability/', { params: { branch: form.value.branch } })
+    availableDates.value = res.data.available_dates
   } finally {
     availabilityLoading.value = false
   }
+}
+
+async function fetchModels() {
+  if (!form.value.branch || !dateRange.value.start || !dateRange.value.end) return
+  modelsLoading.value = true
+  try {
+    const params = {
+      branch: form.value.branch,
+      start_date: toLocalDateStr(dateRange.value.start),
+      end_date: toLocalDateStr(dateRange.value.end),
+    }
+    if (modelFilterGroup.value) params.group = modelFilterGroup.value
+    if (modelFilterFuel.value) params.fuel_type = modelFilterFuel.value
+    if (modelFilterTransmission.value) params.transmission = modelFilterTransmission.value
+    const res = await axios.get('/api/vehicle-models/', { params })
+    availableModels.value = res.data
+  } finally {
+    modelsLoading.value = false
+  }
+}
+
+function selectModel(m) {
+  form.value.preferred_vehicle_model = m.id
+  form.value.vehicle_group = m.group
 }
 
 function toLocalDateStr(date) {
@@ -535,6 +591,7 @@ async function handleCreate() {
       guest_email: guest.value.email,
       branch: form.value.branch,
       vehicle_group: form.value.vehicle_group,
+      preferred_vehicle_model: form.value.preferred_vehicle_model,
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
@@ -560,8 +617,9 @@ async function handleCreate() {
 function resetForm() {
   currentStep.value = 1
   direction.value = 'forward'
-  form.value = { branch: '', vehicle_group: '', return_branch: '' }
+  form.value = { branch: '', vehicle_group: '', preferred_vehicle_model: '', return_branch: '' }
   dateRange.value = { start: null, end: null }
+  availableModels.value = []
   guest.value = {
     name: '', phone: '', email: '',
     billing_type: 'bireysel', billing_name: '', billing_tckn: '', billing_tax_office: '', billing_tax_no: '',
@@ -737,9 +795,6 @@ function copyCode(){
   transition: background 0.2s, color 0.2s;
 }
 .group-icon svg { width: 20px; height: 20px; }
-.group-icon--economy { background: #ede9fe; color: #5b21b6; }
-.group-icon--mid { background: #dbeafe; color: #1e40af; }
-.group-icon--suv { background: #d1fae5; color: #065f46; }
 .group-card.selected .group-icon { background: #1B1063; color: white; }
 .group-info { flex: 1; }
 .group-name { font-size: 14px; font-weight: 700; color: #111827; }
@@ -747,6 +802,71 @@ function copyCode(){
 .group-check-circle { width: 28px; height: 28px; border-radius: 50%; background: #1B1063; display: flex; align-items: center; justify-content: center; flex-shrink: 0; opacity: 0; transform: scale(0.6); transition: opacity 0.2s, transform 0.2s; }
 .group-check-circle.visible { opacity: 1; transform: scale(1); }
 .group-check-circle svg { width: 13px; height: 13px; color: white; }
+
+/* ── Step 3: Araç Modeli ── */
+.model-filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.model-filters select {
+  padding: 9px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 13.5px;
+  color: #374151;
+  background: white;
+  cursor: pointer;
+}
+.model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.model-card {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  position: relative;
+  padding: 0;
+}
+.model-card:hover { border-color: #9b8ff5; transform: translateY(-2px); }
+.model-card.selected { border-color: #1B1063; box-shadow: 0 0 0 4px rgba(27,16,99,0.08); }
+.model-img { width: 100%; height: 120px; object-fit: cover; background: #f1f5f9; }
+.model-img-empty { display: flex; }
+.model-body { padding: 14px 16px 16px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.model-name { font-size: 15px; font-weight: 700; color: #111827; }
+.model-alt { font-size: 11.5px; color: #94a3b8; font-style: italic; margin-top: -4px; }
+.model-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.model-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 50px;
+  background: #f1f5f9;
+  color: #475569;
+}
+.model-price { font-size: 15px; font-weight: 700; color: #1B1063; margin-top: 6px; }
+.model-price-sub { font-size: 11px; font-weight: 500; color: #94a3b8; }
+.model-check-circle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #1B1063;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.model-check-circle.visible { opacity: 1; transform: scale(1); }
+.model-check-circle svg { width: 13px; height: 13px; color: white; }
 
 /* ── Step 3 ── */
 .date-hint { font-size: 13px; color: #64748B; margin-bottom: 14px; }

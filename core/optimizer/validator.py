@@ -1,10 +1,5 @@
 from vehicles.models import Assignment
-
-ELIGIBLE_GROUPS = {
-    'economy': ['economy', 'mid', 'suv'],
-    'mid': ['mid', 'suv'],
-    'suv': ['suv'],
-}
+from vehicles.constants import SIPP_CATEGORY_RANK
 
 
 
@@ -25,8 +20,13 @@ def check_date_conflict(vehicle, start_date, end_date):
 
 
 def check_group(vehicle_group, requested_group):
-    """Bu araç grubu talebi karşılayabilir mi?"""
-    return vehicle_group in ELIGIBLE_GROUPS[requested_group]
+    """Bu araç grubu talebi karşılayabilir mi? Aynı veya daha üst kategori kabul edilir.
+    X (Özel) sıralamaya dahil değil, sadece kendisiyle eşleşir."""
+    if requested_group == 'X' or vehicle_group == 'X':
+        return vehicle_group == requested_group
+    if vehicle_group not in SIPP_CATEGORY_RANK or requested_group not in SIPP_CATEGORY_RANK:
+        return False
+    return SIPP_CATEGORY_RANK[vehicle_group] >= SIPP_CATEGORY_RANK[requested_group]
 
 
 

@@ -47,6 +47,7 @@ const routes = [
             { path: '', component: () => import('../views/OperatorDashboard.vue') },
             { path: 'rezervasyonlar/:id', component: () => import('../views/StaffReservationDetail.vue') },
             { path: 'araclar', component: () => import('../views/Araclar.vue') },
+            { path: 'arac-modelleri', component: () => import('../views/AracModelleri.vue')},
             { path: 'subeler', component: () => import('../views/Subeler.vue') },
             { path: 'kullanıcılar', component: () => import('../views/Kullanıcılar.vue') },
             { path: 'optimizasyon-sonuc', component: () => import('../views/Optimizasyon Sonucu.vue') },

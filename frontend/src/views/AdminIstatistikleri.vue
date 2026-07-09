@@ -68,6 +68,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { CATEGORY_COLORS, categoryLabel } from '@/constants/sipp'
 
 const stats = ref(null)
 const branches = ref([])
@@ -178,12 +179,10 @@ const revenueSeries = computed(() => [
   { name:'Ciro', data: stats.value ? stats.value.monthly_revenue.map(m => Number(m.total)) : [] }
 ])
 
-const groupLabel = (g) => ({ economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }[g] || g)
-
 const groupOptions = computed(() => ({
   chart: { type: 'pie' },
-  labels: stats.value ? stats.value.groups.map(g => groupLabel(g.vehicle_group)) : [],
-  colors: ['#6366f1', '#3b82f6', '#10b981'],
+  labels: stats.value ? stats.value.groups.map(g => categoryLabel(g.vehicle_group)) : [],
+  colors: stats.value ? stats.value.groups.map(g => CATEGORY_COLORS[g.vehicle_group]?.border || '#94a3b8') : [],
   legend: { position: 'bottom' },
   dataLabels: { enabled: true, formatter: (val) => `${val.toFixed(0)}%` },
 }))

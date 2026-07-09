@@ -13,7 +13,7 @@
     <div class="modal">
       <h3>Fiyat Belirle</h3>
       <div class="modal-info">
-        <span class="info-chip">{{ groupLabel(pendingGroup) }}</span>
+        <span class="info-chip">{{ modelLabel(pendingModel) }}</span>
         <span class="info-chip">{{ pendingStart }} → {{ pendingEnd }}</span>
       </div>
       <div class="field">
@@ -32,7 +32,7 @@
     <div class="modal modal-sm">
       <h3>Fiyatı Sil</h3>
       <p class="confirm-text">
-        <strong>{{ groupLabel(deleteTarget?.group) }}</strong> — {{ deleteTarget?.date }} tarihli fiyat silinsin mi?
+        <strong>{{ deleteTarget?.modelLabel }}</strong> — {{ deleteTarget?.date }} tarihli fiyat silinsin mi?
       </p>
       <div class="modal-actions">
         <button class="btn-cancel-modal" @click="showDeleteModal = false">Vazgeç</button>
@@ -43,12 +43,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import FullCalendar from '@fullcalendar/vue3'
 import ResourceTimelinePlugin from '@fullcalendar/resource-timeline'
 import InteractionPlugin from '@fullcalendar/interaction'
 import trLocale from '@fullcalendar/core/locales/tr'
+import { CATEGORY_COLORS } from '@/constants/sipp'
 
 const calendarRef = ref(null)
 const showModal = ref(false)
@@ -57,16 +58,18 @@ const priceInput = ref('')
 const modalError = ref('')
 const pendingStart = ref('')
 const pendingEnd = ref('')
-const pendingGroup = ref('')
+const pendingModel = ref('')
 const deleteTarget = ref(null)
+const models = ref([])
 
-const groupLabels = { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }
-function groupLabel(g) { return groupLabels[g] || g }
+function modelLabel(id) {
+  const m = models.value.find(x => String(x.id) === String(id))
+  return m ? `${m.brand} ${m.model} (${m.sipp_code})` : ''
+}
 
-const groupColors = {
-  economy: { bg: '#ede9fe', border: '#7c3aed', text: '#5b21b6' },
-  mid:     { bg: '#dbeafe', border: '#2563eb', text: '#1e40af' },
-  suv:     { bg: '#d1fae5', border: '#059669', text: '#065f46' },
+async function loadModels() {
+  const res = await axios.get('/api/vehicle-models/')
+  models.value = res.data
 }
 
 async function loadPrices() {
@@ -75,19 +78,21 @@ async function loadPrices() {
   if (!api) return
   api.removeAllEvents()
   res.data.forEach(p => {
-    const c = groupColors[p.vehicle_group] || {}
+    const group = p.vehicle_model_info?.group
+    const c = CATEGORY_COLORS[group] || {}
     const next = new Date(p.date + 'T00:00:00')
     next.setDate(next.getDate() + 1)
+    const label = p.vehicle_model_info ? `${p.vehicle_model_info.brand} ${p.vehicle_model_info.model} (${p.vehicle_model_info.sipp_code})` : ''
     api.addEvent({
       id: String(p.id),
-      resourceId: p.vehicle_group,
+      resourceId: String(p.vehicle_model),
       title: `${p.price_per_day} ₺`,
       start: p.date,
       end: next.toISOString().slice(0, 10),
       backgroundColor: c.bg,
       borderColor: c.border,
       textColor: c.text,
-      extendedProps: { dbId: p.id, group: p.vehicle_group, date: p.date },
+      extendedProps: { dbId: p.id, modelLabel: label, date: p.date },
     })
   })
 }
@@ -112,18 +117,14 @@ const calendarOptions = computed(() => ({
   selectable: true,
   selectMirror: true,
   slotDuration: { days: 1 },
-  resourceAreaWidth: '160px',
-  resourceAreaHeaderContent: 'Araç Grubu',
+  resourceAreaWidth: '200px',
+  resourceAreaHeaderContent: 'Araç Modeli',
   slotLabelFormat: [{ month: 'long', year: 'numeric' }, { day: 'numeric', weekday: 'short' }],
   headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-  resources: [
-    { id: 'economy', title: 'Ekonomi' },
-    { id: 'mid',     title: 'Orta Sınıf' },
-    { id: 'suv',     title: 'SUV' },
-  ],
+  resources: models.value.map(m => ({ id: String(m.id), title: `${m.brand} ${m.model} (${m.sipp_code})` })),
   events: [],
   select(info) {
-    pendingGroup.value = info.resource?.id || 'economy'
+    pendingModel.value = info.resource?.id || ''
     pendingStart.value = toISO(info.start)
     pendingEnd.value = prevDay(toISO(info.end))
     priceInput.value = ''
@@ -134,7 +135,7 @@ const calendarOptions = computed(() => ({
   eventClick(info) {
     deleteTarget.value = {
       id: info.event.extendedProps.dbId,
-      group: info.event.extendedProps.group,
+      modelLabel: info.event.extendedProps.modelLabel,
       date: info.event.extendedProps.date,
     }
     showDeleteModal.value = true
@@ -144,17 +145,23 @@ const calendarOptions = computed(() => ({
   },
 }))
 
+onMounted(loadModels)
+
 async function savePrice() {
   modalError.value = ''
   if (!priceInput.value || Number(priceInput.value) <= 0) {
     modalError.value = 'Geçerli bir fiyat girin.'
     return
   }
+  if (!pendingModel.value) {
+    modalError.value = 'Araç modeli seçin.'
+    return
+  }
   try {
     await axios.post('/api/daily-prices/bulk_set/', {
       start_date: pendingStart.value,
       end_date: pendingEnd.value,
-      vehicle_group: pendingGroup.value,
+      vehicle_model: pendingModel.value,
       price_per_day: priceInput.value,
     })
     showModal.value = false

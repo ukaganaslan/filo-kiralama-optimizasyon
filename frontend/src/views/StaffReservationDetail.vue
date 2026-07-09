@@ -218,11 +218,23 @@
             </div>
           </div>
 
+          <!-- Talep Edilen Model -->
+          <div class="card" v-if="res.preferred_vehicle_model_info">
+            <div class="card-title">Talep Edilen Model</div>
+            <div class="vehicle-head">
+              <div class="vehicle-name">{{ res.preferred_vehicle_model_info.brand }} {{ res.preferred_vehicle_model_info.model }} <span class="sipp-tag">{{ res.preferred_vehicle_model_info.sipp_code }}</span></div>
+            </div>
+            <p class="equivalent-note">ya da eşdeğeri</p>
+          </div>
+
           <!-- Araç -->
           <div class="card" v-if="vehicleDisplay">
             <div class="card-title">Atanan Araç</div>
+            <p v-if="res.assigned_vehicle_info?.is_model_substitute" class="substitute-note">
+              Talep edilen {{ res.preferred_vehicle_model_info?.brand }} {{ res.preferred_vehicle_model_info?.model }} o an müsait olmadığı için aynı sınıftan bu araç atandı.
+            </p>
             <div class="vehicle-head">
-              <div class="vehicle-name">{{ vehicleDisplay.brand }} {{ vehicleDisplay.model }}</div>
+              <div class="vehicle-name">{{ vehicleDisplay.brand }} {{ vehicleDisplay.model }} <span class="sipp-tag" v-if="vehicleDisplay.sipp_code">{{ vehicleDisplay.sipp_code }}</span></div>
               <div class="vehicle-plate" v-if="vehicleDisplay.plate">{{ vehicleDisplay.plate }}</div>
             </div>
             <div class="info-grid one-col">
@@ -369,6 +381,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import CarDamageMap from '@/components/CarDamageMap.vue'
+import { categoryLabel as groupLabel } from '@/constants/sipp'
 
 const route = useRoute()
 const router = useRouter()
@@ -393,8 +406,6 @@ function mediaUrl(path) {
   return path.startsWith('http') ? path : apiBase + path
 }
 
-const groupLabels = { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }
-function groupLabel(v) { return groupLabels[v] || v }
 function fuelLabel(v) {
   return { 0: 'Boş', 1: '1/8', 2: '1/4', 3: '3/8', 4: '1/2', 5: '5/8', 6: '3/4', 7: '7/8', 8: 'Dolu' }[v] ?? '—'
 }
@@ -459,7 +470,7 @@ const vehicleDisplay = computed(() => {
   if (r.assigned_vehicle_info) return r.assigned_vehicle_info
   if (r.assigned_vehicle_id) {
     const v = vehicles.value.find(v => v.vehicle_id === r.assigned_vehicle_id)
-    if (v) return { brand: v.brand, model: v.model, plate: v.plate, total_km: v.total_km }
+    if (v) return { brand: v.brand, model: v.model, plate: v.plate, total_km: v.total_km, sipp_code: v.sipp_code }
     return { brand: r.assigned_vehicle_id, model: '', plate: '', total_km: null }
   }
   return null
@@ -681,6 +692,29 @@ async function rejectExtension(id) {
 .fuel-seg.on { background: #6366f1; }
 
 .empty-note { color: #94a3b8; font-size: 13px; margin: 0; line-height: 1.5; }
+.substitute-note {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin: 0 0 12px;
+}
+.sipp-tag {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b21b6;
+  background: #ede9fe;
+  padding: 2px 7px;
+  border-radius: 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.equivalent-note { color: #94a3b8; font-size: 11.5px; font-style: italic; margin: 4px 0 0; }
 
 /* ── Araç ── */
 .vehicle-head { margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #f1f5f9; }

@@ -32,24 +32,24 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 
 ### Misafir (Hesapsız)
 - Hesap oluşturmadan araç rezervasyonu yapma
-- Şube, araç grubu ve tarih seçimi
+- Şube ve tarih seçiminin ardından, resimli/filtrelenebilir bir katalogdan marka/model seçimi (bkz. "Araç Kataloğu ve SIPP Kodu" bölümü) — seçilen modelin o tarih aralığı için kesin fiyatı kartta gösterilir
 - Rezervasyon kodu ile sorgulama ve iptal (kod + e-posta doğrulaması)
 - Rezervasyon koduna tıklayarak panoya kopyalama
-- Detay modalı: araç bilgisi (teslim günü geldiyse plaka/marka/model), teslim/iade KM-yakıt-not, hasar haritası ve yüklenen belge — kayıtlı müşteriyle aynı görünüm
+- Detay modalı: talep edilen model ("ya da eşdeğeri" notuyla), araç bilgisi (teslim günü geldiyse plaka/marka/model, farklı bir modelle karşılandıysa bilgilendirme notu), teslim/iade KM-yakıt-not, hasar haritası ve yüklenen belge — kayıtlı müşteriyle aynı görünüm
 
 ### Müşteri
-- Şube ve araç grubu (Ekonomi / Orta Sınıf / SUV) seçerek rezervasyon oluşturma
+- Şube → tarih → araç modeli sırasıyla rezervasyon oluşturma: resimli kartlarla marka/model seçimi, grup/yakıt/vites filtreleri, her kartta o tarih aralığı için kesin fiyat ve "ya da eşdeğeri" uyarısı (bkz. "Araç Kataloğu ve SIPP Kodu")
 - Farklı iade şubesi seçimi ve transfer ücreti önizlemesi
 - Müsait günleri iki aylı takvim üzerinde görme
 - Rezervasyonları listeleme ve iptal etme
-- Rezervasyon detay modalı: araç bilgisi, teslim/iade KM-yakıt-not, hasar haritası (readonly), belge; durum etiketi teslim/iade durumuna göre dinamik
+- Rezervasyon detay modalı: talep edilen model, atanan araç bilgisi (farklı bir modelle karşılandıysa bilgilendirme notu), teslim/iade KM-yakıt-not, hasar haritası (readonly), belge; durum etiketi teslim/iade durumuna göre dinamik
 - Profil bilgilerini düzenleme (kullanıcı adı, ad soyad, e-posta, telefon, şifre)
 
 ### Temsilci
-- Kendi şubesine ait rezervasyonları liste veya Gantt takviminde görme
+- Kendi şubesine ait rezervasyonları liste veya Gantt takviminde görme (kaynak etiketleri: marka/model · plaka · SIPP kodu)
 - Takvimde araç satırına sürükleyerek tarih + araç grubu otomatik dolu rezervasyon oluşturma
-- Müşteri adına rezervasyon oluşturma (searchable dropdown ile müşteri seçimi)
-- Şubesine ait araçları listeleme — gerçek zamanlı durum gösterimi (Müsait / Kiralandı / Bakımda / Serviste)
+- Müşteri adına rezervasyon oluşturma (searchable dropdown ile müşteri seçimi, katalogdan araç modeli seçimi zorunlu)
+- Şubesine ait araçları listeleme — gerçek zamanlı durum gösterimi (Müsait / Kiralandı / Bakımda / Serviste); araç eklerken/düzenlerken katalog modeli seçilir, marka/model/grup otomatik gelir
 - Araç geçmişi modalı (rezervasyon + bakım logları, toplam KM)
 - **Araç Teslimi / İadesi:** 3 aşamalı onay süreci (bkz. "Araç Teslim / İade Akışı" bölümü)
 - Sayfa yarım kalmış bir süreçle tekrar açıldığında kaldığı adıma otomatik yönlendirme
@@ -61,20 +61,33 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 - Profil bilgilerini düzenleme
 
 ### Admin (Operatör)
-- Tüm şubelerdeki rezervasyonları liste veya Gantt takviminde görme
+- Tüm şubelerdeki rezervasyonları liste veya Gantt takviminde görme (kaynak etiketleri: marka/model · plaka · SIPP kodu)
 - İstatistik kartları: Aktif Rezervasyon, Bekleyen, Atandı, Araç Filosu
 - Tek tıkla greedy optimizasyonu çalıştırma
 - Optimizasyon sonuçlarını (skor, atamalar, karşılanamayan rezervasyonlar) inceleme
-- Araç yönetimi: ekleme, düzenleme, silme (marka / model / plaka / şasi / grup / şube / durum)
+- **Araç Modelleri (katalog):** marka, model, grup, yakıt, vites, kaporta tipi, çekiş, klima, resim tanımlama; her modelin SIPP kodu (örn. `EDMN`) otomatik hesaplanır
+- Araç yönetimi: ekleme, düzenleme, silme (plaka / şasi / katalog modeli / şube / durum — marka/model/grup artık katalogdan otomatik gelir, elle girilmez)
 - Araç gerçek zamanlı durum takibi (`current_status`: Müsait / Kiralandı / Bakımda / Serviste)
 - Araç geçmişi modalı (rezervasyon + bakım logları)
 - Şube yönetimi: ekleme, düzenleme (81 il dropdown)
 - Kullanıcı yönetimi: listeleme, rol atama (müşteri / temsilci / admin), şube atama, aktif/pasif toggle
 - Şubeler arası transfer ücreti tanımlama ve yönetimi
-- Fiyatlandırma: FullCalendar üzerinde araç grubu ve tarih aralığı bazlı günlük fiyat tanımlama
+- Fiyatlandırma: FullCalendar üzerinde **araç modeli** ve tarih aralığı bazlı günlük fiyat tanımlama
 - Bakım kayıtları yönetimi
 - Teslimat logları görüntüleme
 - **İstatistik sayfası:** bu ay ciro, ortalama doluluk, toplam araç kartları; aylık ciro trendi (son 12 ay), günlük doluluk trendi (son 30 gün), şube bazlı doluluk ve araç grubu talep dağılımı grafikleri (ApexCharts, carousel); tarih aralığı ve şube filtreleme
+
+## Araç Kataloğu ve SIPP Kodu
+
+Fiziksel araçlar (`Vehicle`, plaka bazlı) bir **katalog kaydına** (`VehicleModel` — marka, model, yakıt, vites, kaporta tipi, çekiş, klima, resim) bağlanır; aynı marka/model birden fazla plaka arasında paylaşılır. Her katalog kaydının kiralama sektörü standardı **SIPP kodu** (4 karakter: kategori + kaporta tipi + şanzıman/çekiş + yakıt/klima, örn. `EDMN`) `VehicleModel.sipp_code` property'si ile otomatik hesaplanır.
+
+**Araç sınıfı (grup) 9 SIPP kategorisine göre**: Mini / Ekonomi / Kompakt / Orta / Standart / Tam Boyut / Premium / Lüks / Özel (`M`/`E`/`C`/`I`/`S`/`F`/`P`/`L`/`X`). Yükseltme sıralaması M→L doğrusaldır; Özel (`X`) bu zincirin dışındadır, sadece kendisiyle eşleşir ve otomatik yükseltilmez.
+
+**Müşteri/misafir seçim akışı**: rezervasyon sihirbazı Lokasyon → Tarih → **Araç Modeli** sırasıyla ilerler. Tarih seçildikten sonra, o tarih aralığında fiziksel aracı olan modeller (grup/yakıt/vites filtrelenebilir) resimli kartlar halinde, kesin toplam fiyatıyla listelenir; kartta her zaman "ya da eşdeğeri" notu bulunur — seçim **kesin talep değil, yumuşak tercihtir** (`Reservation.preferred_vehicle_model`).
+
+**Overbook / eşleştirme önceliği** (`greedy_solver_güncel.py::score_vehicle`): talep edilen model her zaman öncelenir (skor 0). Müsait değilse sırasıyla: aynı SIPP koduna sahip başka bir marka/model (skor 0.5 — örn. aynı kaporta+şanzıman+yakıt/klima kombinasyonuna sahip iki farklı marka birbirinin yerine geçebilir), aynı sınıftaki (grup) herhangi bir araç (skor 1), üst sınıfa yükseltme (skor 10). Rezervasyon oluşturma anındaki kapasite kontrolü kasıtlı olarak **grup bazlı** kalır (belirli bir plaka kilitlenmez) — asıl model eşleştirmesi atama zamanında yapılır; bu, sistemin bilinçli bir "overbook payı"dır.
+
+**Fiyatlandırma tamamen model bazlıdır** (`DailyPrice.vehicle_model`) — aynı gruptaki farklı modeller farklı günlük fiyata sahip olabilir.
 
 ## Araç Teslim / İade Akışı
 
@@ -105,7 +118,7 @@ Akıllı Greedy algoritması + post-swap iyileştirmesi:
 
 1. Rezervasyonları bitiş tarihine göre sırala (EDF)
 2. Her rezervasyon için uygun araçları bul — **yalnızca aynı şubedeki araçlar** adaydır
-3. En düşük maliyetli aracı seç (aynı grup → 0 puan, upgrade → -10 puan)
+3. En düşük maliyetli aracı seç — talep edilen model → 0 puan, aynı SIPP koduna sahip farklı marka → 0.5 puan, aynı grup farklı model → 1 puan, farklı grup (upgrade) → 10 puan
 4. Transfer maliyeti yalnızca **iade şubesi** farklıysa uygulanır
 5. Atama yapılamayan rezervasyonlar için post-swap: mevcut atamaları takasa sokarak yeni slot aç
 6. Başlangıç tarihi bugün veya öncesinde olan rezervasyonlar (aktif veya tamamlanmış) kilitlenir — sadece **gelecekteki** rezervasyonlar optimizer tarafından yeniden atanabilir
@@ -118,7 +131,7 @@ Skor 100 puandan başlar; algoritmanın kaçırdığı daha iyi seçeneklere gö
 |--------|----------|---------|
 | Önlenebilir kayıp | Uygun (müsait, çakışmasız) araç varken karşılanmayan rezervasyon | 35 |
 | Önlenebilir upgrade | Aynı şubede tam segment eşleşen araç müsaitken üst gruba atama yapılması | 20 |
-| Segment mesafesi | Upgrade'in segment farkı (economy→suv, economy→mid'den daha ağır cezalanır) | 15 |
+| Segment mesafesi | Upgrade'in SIPP kategori mesafesi (Mini→Lüks, Mini→Ekonomi'den daha ağır cezalanır) | 15 |
 | Düşük değerli upgrade | Medyan altı fiyatlı veya kısa süreli (3 günden az) rezervasyona pahalı araç verilmesi | 15 |
 | Şube verimsizliği | Upgrade yapılan şubelerde atıl müsait araç oranı (transfer dahil değil — iade şubesini müşteri seçer, algoritmanın kontrolünde değildir) | 10 |
 | Kaçırılan takas | Aynı şubedeki iki atamanın aracı takas edilseydi toplam ceza azalacaksa | 5 |
@@ -180,8 +193,10 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 │   ├── settings.py
 │   └── urls.py
 ├── vehicles/
-│   ├── models.py           # Branch, Vehicle, Reservation, DeliveryLog (stage/photo dahil), MaintenanceLog, DailyPrice...
-│   ├── serializers.py      # current_status, delivery_info dahil tüm serializer'lar
+│   ├── models.py           # Branch, Vehicle, VehicleModel (katalog + SIPP kodu), Reservation, DeliveryLog (stage/photo dahil), MaintenanceLog, DailyPrice (model bazlı)...
+│   ├── constants.py        # SIPP kategori/kaporta tipi sabitleri (SIPP_CATEGORY_CHOICES, SIPP_CATEGORY_RANK, ...)
+│   ├── pricing.py          # price_for_range() — model bazlı ortak fiyat hesaplama
+│   ├── serializers.py      # current_status, delivery_info, sipp_code dahil tüm serializer'lar
 │   ├── views.py            # Tüm API endpoint'leri
 │   └── fixtures/
 │       └── initial_data.json
@@ -189,15 +204,17 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 │   └── pdfs/
 │       ├── teslim_belgesi.html    # xhtml2pdf ile üretilen teslim belgesi
 │       └── iade_belgesi.html      # xhtml2pdf ile üretilen iade belgesi
-├── media/                  # Yüklenen teslim/iade belgeleri (delivery_docs/)
+├── media/                  # Yüklenen teslim/iade belgeleri (delivery_docs/), araç kataloğu resimleri (vehicle_models/)
 └── frontend/
     └── src/
         ├── assets/
         │   └── cardamage_frame.svg       # SVG hasar haritası çizimi
         ├── components/
         │   └── CarDamageMap.vue          # İnteraktif hasar haritası bileşeni
+        ├── constants/
+        │   └── sipp.js                    # SIPP kategori etiket/renk/sıralama sabitleri (frontend genelinde paylaşılır)
         ├── layouts/        # AdminLayout, RepresentativeLayout, CustomerLayout
-        ├── views/          # Tüm sayfa bileşenleri (AdminIstatistikleri.vue, RepresentativeIstatistikleri.vue dahil)
+        ├── views/          # Tüm sayfa bileşenleri (AracModelleri.vue — katalog yönetimi, AdminIstatistikleri.vue, RepresentativeIstatistikleri.vue dahil)
         ├── stores/         # auth, optimization (Pinia)
         ├── router/         # Rol tabanlı route koruması
         └── style.css       # Global badge renk standardı (pending/assigned/cancelled/delivered/returned/processing)
@@ -212,9 +229,10 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 | POST | `/api/register/` | Müşteri kaydı | Herkese açık |
 | GET/PATCH | `/api/profile/` | Profil görüntüle / güncelle | Auth |
 | GET/POST/PATCH/DELETE | `/api/branches/` | Şube CRUD | Okuma: Herkese açık, Yazma: Admin |
-| GET/POST/PATCH/DELETE | `/api/vehicles/` | Araç CRUD | Okuma: Auth, Yazma: Admin |
+| GET/POST/PATCH/DELETE | `/api/vehicles/` | Araç CRUD (katalog modeli zorunlu, marka/model/grup oradan senkronlanır) | Okuma: Auth, Yazma: Admin |
+| GET/POST/PATCH/DELETE | `/api/vehicle-models/` | Araç kataloğu CRUD — marka/model/yakıt/vites/kaporta/çekiş/klima/resim, SIPP kodu otomatik hesaplanır; `branch`/`group`/`fuel_type`/`transmission`/`start_date`/`end_date` filtreleri | Okuma: Herkese açık, Yazma: Admin |
 | GET | `/api/vehicles/{id}/history/` | Araç rezervasyon + bakım geçmişi | Auth |
-| GET/POST/DELETE | `/api/reservations/` | Rezervasyon listesi / oluşturma / silme | Auth |
+| GET/POST/DELETE | `/api/reservations/` | Rezervasyon listesi / oluşturma / silme (`preferred_vehicle_model` zorunlu) | Auth |
 | POST | `/api/reservations/{reservation_id}/cancel/` | Rezervasyon iptali | Auth |
 | POST | `/api/reservations/{id}/deliver/` | Teslim 1. aşama — KM/yakıt/hasar/not kaydı | Temsilci / Admin |
 | POST | `/api/reservations/{id}/deliver/document/` | Teslim 2. aşama — imzalı belge yükleme | Temsilci / Admin |
@@ -224,11 +242,11 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 | POST | `/api/reservations/{id}/return/photo/` | İade 3. aşama — araç fotoğrafı yükleme + onay | Temsilci / Admin |
 | GET | `/api/reservations/{id}/pdf/{teslim\|iade}/` | Teslim/iade PDF belgesi indirme | Auth |
 | GET | `/api/admin-stats/` | İstatistik verisi (ciro, doluluk, grup dağılımı) — `start`/`end`/`branch` filtreleri | Admin (tüm şubeler) / Temsilci (kendi şubesiyle sınırlı) |
-| GET | `/api/availability/` | Şube + grup bazlı müsait günler | Herkese açık |
+| GET | `/api/availability/` | Şube bazlı müsait günler (şubedeki tüm katalog modelleri taranır) | Herkese açık |
 | GET | `/api/transfer-cost/` | İki şube arası transfer ücreti | Auth |
 | GET/POST/PATCH/DELETE | `/api/transfer-costs/` | Transfer ücreti CRUD | Admin |
-| GET | `/api/daily-prices/` | Günlük fiyat listesi | Auth |
-| POST | `/api/daily-prices/bulk_set/` | Tarih aralığı toplu fiyat tanımlama | Admin |
+| GET | `/api/daily-prices/` | Günlük fiyat listesi (araç modeli bazlı) | Auth |
+| POST | `/api/daily-prices/bulk_set/` | Tarih aralığı + araç modeli bazlı toplu fiyat tanımlama | Admin |
 | DELETE | `/api/daily-prices/{id}/` | Fiyat kaydı silme | Admin |
 | GET | `/api/delivery-logs/` | Teslimat logları | Temsilci / Admin |
 | GET/POST/PATCH/DELETE | `/api/maintenance-logs/` | Bakım kayıtları CRUD | Temsilci / Admin |
@@ -238,6 +256,6 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 | POST | `/api/users/create/` | Kullanıcı oluşturma | Admin |
 | PATCH | `/api/users/{id}/update/` | Kullanıcı güncelleme | Admin |
 | POST | `/api/users/{id}/toggle-active/` | Aktif/pasif toggle | Admin |
-| POST | `/api/guest-reservation/` | Misafir rezervasyon oluşturma | Herkese açık |
+| POST | `/api/guest-reservation/` | Misafir rezervasyon oluşturma (`preferred_vehicle_model` zorunlu) | Herkese açık |
 | GET | `/api/guest-reservation/query/` | Rezervasyon kodu ile sorgulama (araç, teslim/iade bilgisi dahil) | Herkese açık |
 | POST | `/api/guest-reservation/cancel/` | Misafir rezervasyon iptali | Herkese açık |

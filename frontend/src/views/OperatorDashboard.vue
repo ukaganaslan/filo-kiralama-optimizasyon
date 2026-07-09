@@ -37,9 +37,7 @@
         <input v-if="activeView === 'calendar'" v-model="calendarVehicleSearch" class="search-input" placeholder="Araç/Plaka ara..." />
         <select v-if="activeView === 'calendar'" v-model="calendarGroupFilter" class="filter-select">
           <option value="">Tüm Sınıflar</option>
-          <option value="economy">Ekonomi</option>
-          <option value="mid">Orta Sınıf</option>
-          <option value="suv">SUV</option>
+          <option v-for="g in CATEGORY_ORDER" :key="g" :value="g">{{ categoryLabel(g) }}</option>
         </select>
       </div>
       <div class="toolbar-view">
@@ -76,7 +74,7 @@
           <td>{{ r.customer_username || `Misafir - ${r.guest_name}` }}</td>
           <td>{{ r.branch_title }}</td>
           <td>{{ r.return_branch ? (r.return_branch_title || r.return_branch_name) : (r.branch_title || r.branch_name) }}</td>
-          <td>{{ r.vehicle_group }}</td>
+          <td>{{ categoryLabel(r.vehicle_group) }}</td>
           <td>{{ r.start_date }}</td>
           <td>{{ r.end_date }}</td>
           <td><span v-if="r.total_price" class="price-badge">{{ Number(r.total_price).toLocaleString('tr-TR') }} ₺</span><span v-else class="price-na">—</span></td>
@@ -106,12 +104,21 @@
         </div>
         <div class="info-item">
           <span class="info-label">GRUP</span>
-          <span class="info-value">{{ groupLabel(form.vehicle_group) }}</span>
+          <span class="info-value">{{ categoryLabel(form.vehicle_group) }}</span>
         </div>
         <div class="info-item">
           <span class="info-label">TARİH</span>
           <span class="info-value">{{ toLocalDateStr(dateRange.start) }} → {{ toLocalDateStr(dateRange.end) }}</span>
         </div>
+      </div>
+
+      <div v-if="calendarMode" class="field">
+        <label>Araç Modeli</label>
+        <select v-model="form.preferred_vehicle_model">
+          <option value="">Seçin</option>
+          <option v-for="m in preferredModels" :key="m.id" :value="m.id">{{ m.brand }} {{ m.model }} ({{ m.sipp_code }})</option>
+        </select>
+        <span v-if="preferredModels.length === 0" class="transfer-hint">Bu grupta katalog modeli bulunamadı.</span>
       </div>
 
       <div class="field">
@@ -175,10 +182,17 @@
           <label>Araç Grubu</label>
           <select v-model="form.vehicle_group" @change="fetchAvailability">
             <option value="">Seçin</option>
-            <option value="economy">Ekonomi</option>
-            <option value="mid">Orta Sınıf</option>
-            <option value="suv">SUV</option>
+            <option v-for="g in CATEGORY_ORDER" :key="g" :value="g">{{ categoryLabel(g) }}</option>
           </select>
+        </div>
+
+        <div v-if="form.vehicle_group" class="field">
+          <label>Araç Modeli</label>
+          <select v-model="form.preferred_vehicle_model">
+            <option value="">Seçin</option>
+            <option v-for="m in preferredModels" :key="m.id" :value="m.id">{{ m.brand }} {{ m.model }} ({{ m.sipp_code }})</option>
+          </select>
+          <span v-if="form.vehicle_group && preferredModels.length === 0" class="transfer-hint">Bu grupta katalog modeli bulunamadı.</span>
         </div>
 
         <div v-if="availabilityLoading" class="loading-hint">Müsait günler yükleniyor...</div>
@@ -219,6 +233,7 @@ import ResourceTimelinePlugin from '@fullcalendar/resource-timeline'
 import interactionPlugin from '@fullcalendar/interaction'
 import trLocale from '@fullcalendar/core/locales/tr'
 import { useRouter } from 'vue-router'
+import { CATEGORY_ORDER, categoryLabel } from '@/constants/sipp'
 
 
 const reservations = ref([])
@@ -434,12 +449,12 @@ const calendarOptions = computed(() => ({
   locale: trLocale,
   height: 'auto',
   slotDuration: { days: 1 },
-  resourceAreaWidth: '210px',
+  resourceAreaWidth: '300px',
   slotLabelFormat: [{ month: 'long', year: 'numeric' }, { day: 'numeric' }],
   headerToolbar: { left: 'prev,next', right: '' },
   resources: filteredCalendarVehicles.value.map(v => ({
     id: v.vehicle_id,
-    title: `${v.vehicle_id} (${v.group})`,
+    title: v.sipp_code ? `${v.brand} ${v.model} · ${v.plate} (${v.sipp_code})` : `${v.brand} ${v.model} · ${v.plate}`,
   })),
   events: reservations.value
     .filter(r => r.assigned_vehicle_id && r.status !== 'cancelled' &&
@@ -464,18 +479,15 @@ function branchName(id) {
   return b ? (b.title || b.name) : '—'
 }
 
-function groupLabel(g) {
-  return { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }[g] || g
-}
-
 const createModal = ref(false)
 const calendarMode = ref(false)
-const form = ref({ customer_id: '', vehicle_group: '', branch: '', return_branch: '' })
+const form = ref({ customer_id: '', vehicle_group: '', preferred_vehicle_model: '', branch: '', return_branch: '' })
 const differentReturn = ref(false)
 const transferCost = ref(null)
 const dateRange = ref({ start: null, end: null })
 const availableDates = ref([])
 const availabilityLoading = ref(false)
+const preferredModels = ref([])
 const formError = ref('')
 const formSuccess = ref('')
 
@@ -515,7 +527,7 @@ onMounted(() => document.addEventListener('click', handleOutsideClick))
 onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 const canCreate = computed(() =>
-  form.value.customer_id && form.value.branch && form.value.vehicle_group && dateRange.value.start && dateRange.value.end
+  form.value.customer_id && form.value.branch && form.value.vehicle_group && form.value.preferred_vehicle_model && dateRange.value.start && dateRange.value.end
 )
 
 // Takvim penceresi, backend'in fiilen fiyatlandırdığı en son güne kadar açık;
@@ -546,6 +558,8 @@ function onBranchChange() {
   form.value.return_branch = ''
   transferCost.value = null
   form.value.vehicle_group = ''
+  form.value.preferred_vehicle_model = ''
+  preferredModels.value = []
   dateRange.value = { start: null, end: null }
   availableDates.value = []
 }
@@ -568,11 +582,14 @@ async function fetchAvailability() {
   availabilityLoading.value = true
   availableDates.value = []
   dateRange.value = { start: null, end: null }
+  form.value.preferred_vehicle_model = ''
   try {
-    const res = await axios.get('/api/availability/', {
-      params: { branch: form.value.branch, group: form.value.vehicle_group }
-    })
-    availableDates.value = res.data.available_dates
+    const [availRes, modelsRes] = await Promise.all([
+      axios.get('/api/availability/', { params: { branch: form.value.branch } }),
+      axios.get('/api/vehicle-models/', { params: { branch: form.value.branch, group: form.value.vehicle_group } }),
+    ])
+    availableDates.value = availRes.data.available_dates
+    preferredModels.value = modelsRes.data
   } finally {
     availabilityLoading.value = false
   }
@@ -584,9 +601,10 @@ function toLocalDateStr(date) {
 }
 
 async function openCreate({ startDate = null, endDate = null, vehicleGroup = '', branchId = '' } = {}) {
-  form.value = { customer_id: '', vehicle_group: vehicleGroup, branch: branchId || '', return_branch: '' }
+  form.value = { customer_id: '', vehicle_group: vehicleGroup, preferred_vehicle_model: '', branch: branchId || '', return_branch: '' }
   dateRange.value = { start: null, end: null }
   availableDates.value = []
+  preferredModels.value = []
   formError.value = ''
   formSuccess.value = ''
   customerQuery.value = ''
@@ -603,6 +621,11 @@ async function openCreate({ startDate = null, endDate = null, vehicleGroup = '',
       end: new Date(endDate + 'T00:00:00'),
     }
   }
+
+  if (vehicleGroup && branchId) {
+    const res = await axios.get('/api/vehicle-models/', { params: { branch: branchId, group: vehicleGroup } })
+    preferredModels.value = res.data
+  }
 }
 
 async function handleCreate() {
@@ -612,6 +635,7 @@ async function handleCreate() {
     await axios.post('/api/reservations/', {
       branch: form.value.branch,
       vehicle_group: form.value.vehicle_group,
+      preferred_vehicle_model: form.value.preferred_vehicle_model,
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
       customer_id: form.value.customer_id,
@@ -620,9 +644,10 @@ async function handleCreate() {
     formSuccess.value = 'Rezervasyon oluşturuldu.'
     const res = await axios.get('/api/reservations/')
     reservations.value = res.data
-    form.value = { customer_id: '', vehicle_group: '', branch: '', return_branch: '' }
+    form.value = { customer_id: '', vehicle_group: '', preferred_vehicle_model: '', branch: '', return_branch: '' }
     dateRange.value = { start: null, end: null }
     availableDates.value = []
+    preferredModels.value = []
   } catch (e) {
     const msg = e.response?.data?.non_field_errors?.[0]
     formError.value = msg || 'Rezervasyon oluşturulamadı.'

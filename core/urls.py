@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from vehicles.views import BranchViewSet, VehicleViewSet, ReservationViewSet, TransferCostViewSet, optimize, latest_optimization, login_view, logout_view, register_view, availability, cancel_reservation, user_list, toggle_user_active, profile_view, create_user, update_user, transfer_cost_view, guest_reservation, guest_reservation_detail, guest_cancel, delivery_logs, MaintenanceLogViewSet, DailyPriceViewSet, deliver_reservation, deliver_document, deliver_photo, return_reservation, return_document, return_photo, vehicle_history, reservation_pdf, guest_reservation_pdf, admin_stats, extend_reservation, extension_list, approve_extension, reject_extension, notifications_list, notifications_unread_count, notifications_mark_read, notifications_mark_all_read
+from vehicles.views import BranchViewSet, VehicleViewSet, ReservationViewSet, TransferCostViewSet, optimize, latest_optimization, login_view, logout_view, register_view, availability, cancel_reservation, user_list, toggle_user_active, profile_view, create_user, update_user, transfer_cost_view, guest_reservation, guest_reservation_detail, guest_cancel, delivery_logs, MaintenanceLogViewSet, DailyPriceViewSet, deliver_reservation, deliver_document, deliver_photo, return_reservation, return_document, return_photo, vehicle_history, reservation_pdf, guest_reservation_pdf, admin_stats, extend_reservation, extension_list, approve_extension, reject_extension, notifications_list, notifications_unread_count, notifications_mark_read, notifications_mark_all_read, VehicleModelViewSet
 
 from django.conf import settings
 from django.conf.urls.static import static
@@ -13,7 +13,8 @@ router.register(r'vehicles', VehicleViewSet)
 router.register(r'reservations', ReservationViewSet, basename='reservation')
 router.register(r'transfer-costs', TransferCostViewSet, basename='transfer-cost')
 router.register(r'maintenance-logs', MaintenanceLogViewSet, basename='maintenance-log')
-router.register(r'daily-prices', DailyPriceViewSet, basename='daily-price')  
+router.register(r'daily-prices', DailyPriceViewSet, basename='daily-price')
+router.register(r'vehicle-models', VehicleModelViewSet, basename='vehicle-model')  
 
 urlpatterns = [
     path('admin/', admin.site.urls),

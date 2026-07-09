@@ -28,6 +28,10 @@
           <i class="pi pi-list nav-icon"></i>
           <span class="nav-label">Rezervasyonlar</span>
         </router-link>
+        <router-link to="/operator/arac-modelleri" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Araç Modelleri' : ''" @click="mobileOpen = false">
+          <i class="pi pi-verified nav-icon"></i>
+          <span class="nav-label">Araç Modelleri</span>
+        </router-link>
         <router-link to="/operator/araclar" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Araçlar' : ''" @click="mobileOpen = false">
           <i class="pi pi-car nav-icon"></i>
           <span class="nav-label">Araçlar</span>
@@ -143,6 +147,7 @@ const initials = computed(() => (auth.username || '').substring(0, 2).toUpperCas
 const pageTitles = {
   '/operator': 'Rezervasyonlar',
   '/operator/araclar': 'Araç Yönetimi',
+  '/operator/arac-modelleri': 'Araç Modelleri',
   '/operator/subeler': 'Şube Yönetimi',
   '/operator/kullanıcılar': 'Kullanıcı Yönetimi',
   '/operator/transfer-ucretleri': 'Transfer Ücretleri',

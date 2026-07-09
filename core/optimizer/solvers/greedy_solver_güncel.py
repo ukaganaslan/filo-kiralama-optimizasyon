@@ -13,7 +13,6 @@ def get_transfer_cost(from_branch, to_branch):
 
 
 def return_transfer_cost(reservation):
-    """Transfer cost only when return branch differs from pickup branch."""
     if not reservation.return_branch_id:
         return 0
     if reservation.return_branch_id == reservation.branch_id:
@@ -22,8 +21,16 @@ def return_transfer_cost(reservation):
 
 
 def score_vehicle(vehicle, reservation):
-    upgrade_penalty = 0 if vehicle.group == reservation.vehicle_group else 10
-    return upgrade_penalty
+    if vehicle.group != reservation.vehicle_group:
+        return 10
+    preferred = getattr(reservation, 'preferred_vehicle_model', None)
+    if not preferred:
+        return 0
+    if vehicle.catalog_id == preferred.id:
+        return 0
+    if vehicle.catalog_id and vehicle.catalog.sipp_code == preferred.sipp_code:
+        return 0.5
+    return 1
 
 
 def has_memory_conflict(vehicle, start_date, end_date, occupied):
@@ -42,7 +49,7 @@ def post_swap(assignments, unassigned, all_vehicles, occupied):
             rez_y = assignment['reservation']
             rez_y_dates = (rez_y.start_date, rez_y.end_date)
 
-            # Vehicle must be at rez_x's branch (no cross-branch swap)
+            
             if vehicle.branch_id != rez_x.branch_id:
                 continue
 

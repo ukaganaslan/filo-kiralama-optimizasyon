@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Branch, TransferCost, Vehicle, Reservation, Assignment, MaintenanceLog
+from .models import Branch, TransferCost, Vehicle, Reservation, Assignment, MaintenanceLog, VehicleModel
 
 
 @admin.register(Branch)
@@ -14,3 +14,4 @@ admin.site.register(Vehicle)
 admin.site.register(Reservation)
 admin.site.register(Assignment)
 admin.site.register(MaintenanceLog)
+admin.site.register(VehicleModel)

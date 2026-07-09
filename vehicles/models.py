@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from .constants import SIPP_CATEGORY_CHOICES, SIPP_BODY_TYPE_CHOICES
 
 
 class Branch(models.Model):
@@ -18,6 +19,48 @@ class TransferCost(models.Model):
     def __str__(self):
         return f"{self.from_branch} → {self.to_branch}: {self.cost}"
 
+class VehicleModel(models.Model):
+    GROUP_CHOICES = SIPP_CATEGORY_CHOICES
+
+    FUEL_CHOICES = [
+        ('benzin', 'Benzin'), ('dizel', 'Dizel'), ('hibrit', 'Hibrit'),
+        ('elektrik', 'Elektrik')
+    ]
+
+    TRANSMISSION_CHOICES = [('manuel', 'Manuel'), ('otomatik', 'Otomatik')]
+
+    brand = models.CharField(max_length=50)
+    model = models.CharField(max_length=50)
+    group = models.CharField(max_length=20, choices=GROUP_CHOICES)
+    fuel_type = models.CharField(max_length=20, choices=FUEL_CHOICES)
+    transmission = models.CharField(max_length=20, choices=TRANSMISSION_CHOICES)
+    body_type = models.CharField(max_length=1, choices=SIPP_BODY_TYPE_CHOICES, default='D')
+    is_4wd = models.BooleanField(default=False)
+    has_ac = models.BooleanField(default=True)
+    image = models.ImageField(upload_to='vehicle_models/', null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('brand', 'model', 'fuel_type', 'transmission')
+
+    @property
+    def sipp_code(self):
+        transmission_code = {
+            ('manuel', False): 'M', ('otomatik', False): 'A',
+            ('manuel', True): 'N', ('otomatik', True): 'C',
+        }.get((self.transmission, self.is_4wd), '?')
+        fuel_ac = {
+            ('benzin', False): 'R', ('benzin', True): 'N',
+            ('lpg', False): 'R', ('lpg', True): 'N',
+            ('dizel', False): 'D', ('dizel', True): 'Q',
+            ('hibrit', False): 'H', ('hibrit', True): 'H',
+            ('elektrik', False): 'E', ('elektrik', True): 'E',
+        }.get((self.fuel_type, self.has_ac), '?')
+        return f"{self.group}{self.body_type}{transmission_code}{fuel_ac}"
+
+    def __str__(self):
+        return f"{self.brand} {self.model} ({self.get_fuel_type_display()}, {self.get_transmission_display()})"
+
 
 class Vehicle(models.Model):
     STATUS_CHOICES = [
@@ -28,17 +71,14 @@ class Vehicle(models.Model):
         ('reserved', 'Rezerve Edildi'),
     ]
 
-    GROUP_CHOICES = [
-        ('economy', 'Ekonomi'),
-        ('mid', 'Orta Sınıf'),
-        ('suv', 'SUV'),
-    ]
+    GROUP_CHOICES = SIPP_CATEGORY_CHOICES
 
     vehicle_id = models.CharField(max_length=10, unique=True)
     sasi = models.CharField(max_length=20, unique=True)
     group = models.CharField(max_length=20, choices=GROUP_CHOICES)
     brand = models.CharField(max_length=50, default='')
     model = models.CharField(max_length=50, default='')
+    catalog = models.ForeignKey('VehicleModel', on_delete=models.SET_NULL, null=True, blank=True, related_name='vehicles')
     plate = models.CharField(max_length=20, unique=True)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='vehicles')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available')
@@ -58,15 +98,12 @@ class Vehicle(models.Model):
 
 
 class Reservation(models.Model):
-    GROUP_CHOICES = [
-        ('economy', 'Ekonomi'),
-        ('mid', 'Orta Sınıf'),
-        ('suv', 'SUV'),
-    ]
+    GROUP_CHOICES = SIPP_CATEGORY_CHOICES
 
     reservation_id = models.CharField(max_length=10, unique=True)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='reservations')
     vehicle_group = models.CharField(max_length=20, choices=GROUP_CHOICES)
+    preferred_vehicle_model = models.ForeignKey('VehicleModel', on_delete=models.SET_NULL, null=True, blank=True, related_name='reservations')
     start_date = models.DateField()
     end_date = models.DateField()
     km_driven = models.IntegerField(null=True, blank=True)
@@ -258,11 +295,11 @@ class DeliveryLog(models.Model):
 
 class DailyPrice(models.Model):
     date = models.DateField()
-    vehicle_group = models.CharField(max_length=20, choices=Vehicle.GROUP_CHOICES)
+    vehicle_model = models.ForeignKey('VehicleModel', on_delete=models.CASCADE, related_name='daily_prices')
     price_per_day = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
-        unique_together = ('date', 'vehicle_group')
+        unique_together = ('date', 'vehicle_model')
 
 class Payment(models.Model):
     STATUS_CHOICES = [

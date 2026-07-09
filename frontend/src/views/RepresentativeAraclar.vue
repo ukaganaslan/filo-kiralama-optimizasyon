@@ -29,7 +29,7 @@
           <td>{{ v.sasi }}</td>
           <td>{{ v.brand }} {{ v.model }}</td>
           <td>{{ v.plate || '—' }}</td>
-          <td><span :class="'badge-group badge-' + v.group">{{ groupLabel(v.group) }}</span></td>
+          <td><span class="badge-group" :style="{ background: CATEGORY_COLORS[v.group]?.bg, color: CATEGORY_COLORS[v.group]?.text }">{{ categoryLabel(v.group) }}</span></td>
           <td><span :class="'badge-status badge-' + v.current_status">{{ statusLabel(v.current_status) }}</span></td>
           <td class="actions">
             <div class="action-menu" @click.stop>
@@ -56,14 +56,6 @@
         <input :value="editForm.vehicle_id" type="text" disabled class="disabled" />
       </div>
       <div class="field">
-        <label>Marka</label>
-        <input v-model="editForm.brand" type="text" placeholder="Araç Markası" />
-      </div>
-      <div class="field">
-        <label>Model</label>
-        <input v-model="editForm.model" type="text" placeholder="Araç Modeli" />
-      </div>
-      <div class="field">
         <label>Plaka</label>
         <input v-model="editForm.plate" type="text" placeholder="Plaka" />
       </div>
@@ -72,11 +64,10 @@
         <input v-model="editForm.sasi" type="text" placeholder="Sasi Kodu" />
       </div>
       <div class="field">
-        <label>Grup</label>
-        <select v-model="editForm.group">
-          <option value="economy">Ekonomi</option>
-          <option value="mid">Orta Sınıf</option>
-          <option value="suv">SUV</option>
+        <label>Katalog Modeli</label>
+        <select v-model="editForm.catalog">
+          <option :value="null">Seçin</option>
+          <option v-for="m in models" :key="m.id" :value="m.id">{{ m.brand }} {{ m.model }} ({{ m.sipp_code }})</option>
         </select>
       </div>
       <div class="field">
@@ -179,6 +170,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useTableSort } from '@/composables/useTableSort'
+import { CATEGORY_COLORS, categoryLabel } from '@/constants/sipp'
 
 const vehicles = ref([])
 const search = ref('')
@@ -191,6 +183,7 @@ const deleteModal = ref(false)
 const deletingVehicle = ref(null)
 const historyModal = ref(false)
 const historyData = ref({})
+const models = ref ([])
 
 function toggleMenu(id) { openMenuId.value = openMenuId.value === id ? null : id }
 function closeMenu() { openMenuId.value = null }
@@ -198,44 +191,48 @@ onMounted(() => { loadVehicles(); document.addEventListener('click', closeMenu) 
 onUnmounted(() => document.removeEventListener('click', closeMenu))
 
 async function loadVehicles() {
-  const res = await axios.get('/api/vehicles/')
-  vehicles.value = res.data
+  const [vRes, mRes] = await Promise.all([
+    axios.get('/api/vehicles/'),
+    axios.get('/api/vehicle-models/'),
+  ])
+  vehicles.value = vRes.data
+  models.value = mRes.data
 }
 
 function openAdd() {
   editingId.value = null
-  editForm.value = { brand: '', model: '', plate: '', sasi: '', group: 'economy', status: 'available' }
+  editForm.value = { plate: '', sasi: '', status: 'available', catalog: null }
   formError.value = ''
   editModal.value = true
 }
 
 function openEdit(v) {
   editingId.value = v.id
-  editForm.value = { id: v.id, vehicle_id: v.vehicle_id, brand: v.brand, model: v.model, plate: v.plate, sasi: v.sasi, group: v.group, status: v.status }
+  editForm.value = { id: v.id, vehicle_id: v.vehicle_id, plate: v.plate, sasi: v.sasi, status: v.status, catalog: v.catalog || null }
   formError.value = ''
   editModal.value = true
 }
 
 async function saveEdit() {
   formError.value = ''
+  if (!editForm.value.catalog) {
+    formError.value = 'Katalog modeli zorunludur.'
+    return
+  }
   try {
     if (editingId.value) {
       await axios.patch(`/api/vehicles/${editingId.value}/`, {
-        brand: editForm.value.brand,
-        model: editForm.value.model,
         plate: editForm.value.plate,
         sasi: editForm.value.sasi,
-        group: editForm.value.group,
         status: editForm.value.status,
+        catalog: editForm.value.catalog,
       })
     } else {
       await axios.post('/api/vehicles/', {
-        brand: editForm.value.brand,
-        model: editForm.value.model,
         plate: editForm.value.plate,
         sasi: editForm.value.sasi,
-        group: editForm.value.group,
         status: editForm.value.status,
+        catalog: editForm.value.catalog,
       })
     }
     editModal.value = false
@@ -271,10 +268,6 @@ async function openHistory(v) {
   }
 }
 
-function groupLabel(g) {
-  return { economy: 'Ekonomi', mid: 'Orta Sınıf', suv: 'SUV' }[g] || g
-}
-
 function statusLabel(s) {
   return { available: 'Müsait', rented: 'Kiralandı', maintenance: 'Bakımda', service: 'Serviste', inactive: 'Pasif' }[s] || s
 }
@@ -290,7 +283,7 @@ const filteredVehicles = computed(() => {
 
 const { sortBy, sortArrow, sorted: sortedVehicles } = useTableSort(filteredVehicles, {
   brand_model: v => `${v.brand} ${v.model}`,
-  group: v => groupLabel(v.group),
+  group: v => categoryLabel(v.group),
   status: v => statusLabel(v.current_status),
 })
 </script>
@@ -321,9 +314,6 @@ td { border-top: 1px solid #f1f5f9; color: #374151; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7), td:nth-child(8), th:nth-child(8) { text-align: center; }
 .id { font-family: monospace; font-weight: 600; color: #1e293b; }
 .badge-group, .badge-status { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 12px; font-weight: 600; }
-.badge-economy { background: #ede9fe; color: #5b21b6; }
-.badge-mid { background: #dbeafe; color: #1e40af; }
-.badge-suv { background: #d1fae5; color: #065f46; }
 .badge-available { background: #d1fae5; color: #065f46; }
 .badge-rented { background: #dbeafe; color: #1e40af; }
 .badge-maintenance { background: #fef3c7; color: #92400e; }
