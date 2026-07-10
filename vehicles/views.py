@@ -2016,16 +2016,33 @@ def admin_stats(request):
         pct = round(len(busy) / total_vehicle_count * 100) if total_vehicle_count else 0
         daily_occupancy.append({'date': d.isoformat(), 'occupancy': pct})
 
+    # Bugün aktif olan rezervasyonlar için de her rezervasyonun en güncel run'daki ataması geçerli
+    today_assignments = (
+        AssignmentResult.objects
+        .filter(
+            reservation__status='assigned',
+            reservation__start_date__lte=today,
+            reservation__end_date__gte=today,
+        )
+        .order_by('run_id')
+        .values('reservation_id', 'vehicle_id', 'vehicle__branch_id')
+    )
+    latest_today_assignments = {r['reservation_id']: r for r in today_assignments}
+
+    active_vehicles_by_branch = {}
+    for r in latest_today_assignments.values():
+        active_vehicles_by_branch.setdefault(r['vehicle__branch_id'], set()).add(r['vehicle_id'])
+
     branches = Branch.objects.filter(id=branch_id) if branch_id else Branch.objects.all()
     branch_stats = []
     for b in branches:
         total = Vehicle.objects.filter(branch=b).count()
-        active = AssignmentResult.objects.filter(vehicle__branch=b, reservation__start_date__lte=today, reservation__end_date__gte=today, reservation__status="assigned").values('vehicle').distinct().count()
+        active = len(active_vehicles_by_branch.get(b.id, set()))
         branch_stats.append({'name': str(b), 'total': total, 'active': active})
 
     group_dist = list(
         reservations_qs()
-        .filter(start_date__gte=group_start, start_date__lte=group_end)
+        .filter(start_date__lte=group_end, end_date__gte=group_start)
         .values('vehicle_group')
         .annotate(count=Count('id'))
         .order_by('vehicle_group')
