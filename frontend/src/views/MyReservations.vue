@@ -53,7 +53,7 @@
             <td>
               <span :class="'badge badge-' + displayStatusKey(r)">{{ displayStatus(r) }}</span>
               <div v-if="r.assigned_vehicle_info" class="vehicle-info">
-                {{ r.assigned_vehicle_info.brand }} {{ r.assigned_vehicle_info.model }} · {{ r.assigned_vehicle_info.plate }}
+                {{ r.assigned_vehicle_info.brand }} {{ r.assigned_vehicle_info.model }}<template v-if="r.assigned_vehicle_info.plate"> · {{ r.assigned_vehicle_info.plate }}</template>
               </div>
             </td>
             <td class="actions-cell">

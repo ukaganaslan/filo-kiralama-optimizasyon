@@ -257,8 +257,11 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if not request.user.is_staff and not is_rep_of_branch:
             raise PermissionDenied('Bu rezervasyona erişim yetkiniz yok.')
 
-        if reservation.status != 'assigned' or reservation.start_datetime <= datetime.now():
-            raise ValidationError('Sadece henüz başlamamış, onaylı rezervasyonlar taşınabilir.')
+        teslim_edildi = DeliveryLog.objects.filter(
+            reservation=reservation, event_type='delivered', stage='approved'
+        ).exists()
+        if reservation.status != 'assigned' or teslim_edildi:
+            raise ValidationError('Sadece henüz teslim edilmemiş, onaylı rezervasyonlar taşınabilir.')
 
         target_vehicle_id = request.data.get('vehicle_id')
         try:
@@ -449,11 +452,11 @@ def _sync_delivery_logs():
         DeliveryLog.objects.get_or_create(reservation=r, event_type='returned')
 
 def _run_optimization():
-    now = datetime.now()
-    today = now.date()
+    delivered_ids = list(DeliveryLog.objects.filter(
+        event_type='delivered', stage='approved'
+    ).values_list('reservation_id', flat=True))
     locked = list(Reservation.objects.filter(
-        Q(status='assigned', start_date__lt=today) |
-        Q(status='assigned', start_date=today, start_time__lte=now.time()) |
+        Q(status='assigned', id__in=delivered_ids) |
         Q(manually_locked=True)
     ))
     locked_ids = [r.id for r in locked]
@@ -615,6 +618,7 @@ def availability(request):
     tüm aktif araç modellerine bakar: en az bir modelde o gün için hem fiyat
     hem müsait araç varsa gün açık sayılır."""
     branch_id = request.query_params.get('branch')
+    sec_start = _parse_time(request.query_params.get('start_time')) or time(10, 0)
 
     if not branch_id:
         return Response({'error': 'branch gerekli'}, status=400)
@@ -648,22 +652,23 @@ def availability(request):
         fiyatli_gunler.setdefault(vm_id, set()).add(gun)
 
     rezervasyonlar = {}
-    for vm_id, s, e in Reservation.objects.filter(
+    for vm_id, s, s_time, e, e_time in Reservation.objects.filter(
         branch_id=branch_id,
         preferred_vehicle_model_id__in=kapasiteler.keys(),
         status__in=['pending', 'assigned'],
         start_date__lte=son_gun, end_date__gte=bugun,
-    ).values_list('preferred_vehicle_model_id', 'start_date', 'end_date'):
-        rezervasyonlar.setdefault(vm_id, []).append((s, e))
+    ).values_list('preferred_vehicle_model_id', 'start_date', 'start_time', 'end_date', 'end_time'):
+        rezervasyonlar.setdefault(vm_id, []).append((s, s_time, e, e_time))
 
     musait_gunler = []
     for i in range(gun_sayisi):
         gun = bugun + timedelta(days=i)
+        gun_baslangic = datetime.combine(gun, sec_start)
+        gun_bitis = datetime.combine(gun + timedelta(days=1), sec_start)
         for vm_id, kapasite in kapasiteler.items():
             if gun not in fiyatli_gunler.get(vm_id, set()):
                 continue
-            dolu = sum(1 for s, e in rezervasyonlar.get(vm_id, []) if s <= gun <= e)
-            if dolu < kapasite:
+            if _sweep_has_capacity(rezervasyonlar.get(vm_id, []), kapasite, gun_baslangic, gun_bitis):
                 musait_gunler.append(str(gun))
                 break
 
@@ -1028,20 +1033,21 @@ def guest_reservation_detail(request):
         m = reservation.preferred_vehicle_model
         preferred_info = {'brand': m.brand, 'model': m.model, 'sipp_code': m.sipp_code}
 
+    logs = {log.event_type: log for log in reservation.delivery_logs.all()}
+    delivered = logs.get('delivered')
+    returned = logs.get('returned')
+    delivered_ok = bool(delivered) and delivered.stage == 'approved'
+
     vehicle_info = None
-    if reservation.status == 'assigned' and reservation.start_datetime <= datetime.now():
+    if reservation.status == 'assigned':
         result = reservation.assignmentresult_set.order_by('-run__created_at').first()
         if result:
             v = result.vehicle
             vehicle_info = {
-                'plate': v.plate, 'brand': v.brand, 'model': v.model,
+                'plate': v.plate if delivered_ok else None, 'brand': v.brand, 'model': v.model,
                 'sipp_code': v.catalog.sipp_code if v.catalog else None,
                 'is_model_substitute': bool(reservation.preferred_vehicle_model_id and v.catalog_id != reservation.preferred_vehicle_model_id),
             }
-
-    logs = {log.event_type: log for log in reservation.delivery_logs.all()}
-    delivered = logs.get('delivered')
-    returned = logs.get('returned')
     delivery_info = {
         'delivered': bool(delivered),
         'delivered_at': delivered.logged_at.isoformat() if delivered else None,

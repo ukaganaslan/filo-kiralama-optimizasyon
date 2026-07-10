@@ -190,8 +190,9 @@
             </p>
             <div class="vehicle-head">
               <div class="vehicle-name">{{ res.assigned_vehicle_info.brand }} {{ res.assigned_vehicle_info.model }}</div>
-              <div class="vehicle-plate">{{ res.assigned_vehicle_info.plate }}</div>
+              <div class="vehicle-plate" v-if="res.assigned_vehicle_info.plate">{{ res.assigned_vehicle_info.plate }}</div>
             </div>
+            <p v-if="!res.assigned_vehicle_info.plate" class="empty-note">Plaka, araç size teslim edildiğinde görüntülenecektir.</p>
             <div class="info-grid one-col">
               <div class="info-item">
                 <span class="ilabel">Araç Grubu</span>
@@ -205,7 +206,7 @@
           </div>
           <div class="card" v-else>
             <div class="card-title">Atanan Araç</div>
-            <p class="empty-note">Araç bilgisi, kiralama başlangıç gününde görüntülenebilir.</p>
+            <p class="empty-note">Aracınız henüz atanmadı.</p>
           </div>
 
           <!-- Belgeler -->

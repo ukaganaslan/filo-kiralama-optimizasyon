@@ -42,7 +42,7 @@
             </div>
             <div class="gd-item" v-if="res.assigned_vehicle_info">
               <span class="gd-label">Araç</span>
-              <span class="gd-value">{{ res.assigned_vehicle_info.brand }} {{ res.assigned_vehicle_info.model }} · {{ res.assigned_vehicle_info.plate }}</span>
+              <span class="gd-value">{{ res.assigned_vehicle_info.brand }} {{ res.assigned_vehicle_info.model }}<template v-if="res.assigned_vehicle_info.plate"> · {{ res.assigned_vehicle_info.plate }}</template></span>
             </div>
             <p v-if="res.assigned_vehicle_info?.is_model_substitute" class="substitute-note">
               Talep ettiğiniz {{ res.preferred_vehicle_model_info?.brand }} {{ res.preferred_vehicle_model_info?.model }} o an müsait olmadığı için aynı sınıftan bu araç size atandı.

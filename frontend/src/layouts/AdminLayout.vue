@@ -40,7 +40,7 @@
           <i class="pi pi-building nav-icon"></i>
           <span class="nav-label">Şubeler</span>
         </router-link>
-        <router-link to="/operator/kullanıcılar" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Kullanıcılar' : ''" @click="mobileOpen = false">
+        <router-link to="/operator/kullanicilar" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Kullanıcılar' : ''" @click="mobileOpen = false">
           <i class="pi pi-users nav-icon"></i>
           <span class="nav-label">Kullanıcılar</span>
         </router-link>
@@ -68,7 +68,7 @@
           <i class="pi pi-bullseye nav-icon"></i>
           <span class="nav-label">Sonuçlar</span>
         </router-link>
-        <router-link to="/operator/karsılanamayan-rez" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Karşılanamayan' : ''" @click="mobileOpen = false">
+        <router-link to="/operator/karsilanamayan-rez" class="nav-item" active-class="nav-item--active" :title="collapsed ? 'Karşılanamayan' : ''" @click="mobileOpen = false">
           <i class="pi pi-exclamation-triangle nav-icon"></i>
           <span class="nav-label">Karşılanamayan</span>
         </router-link>
@@ -149,10 +149,10 @@ const pageTitles = {
   '/operator/araclar': 'Araç Yönetimi',
   '/operator/arac-modelleri': 'Araç Modelleri',
   '/operator/subeler': 'Şube Yönetimi',
-  '/operator/kullanıcılar': 'Kullanıcı Yönetimi',
+  '/operator/kullanicilar': 'Kullanıcı Yönetimi',
   '/operator/transfer-ucretleri': 'Transfer Ücretleri',
   '/operator/optimizasyon-sonuc': 'Optimizasyon Sonucu',
-  '/operator/karsılanamayan-rez': 'Karşılanamayan Rezervasyonlar',
+  '/operator/karsilanamayan-rez': 'Karşılanamayan Rezervasyonlar',
   '/operator/profil': 'Profil Ayarları',
   '/operator/logs': 'Teslimat Kayıtları',
   '/operator/maintenance': 'Bakım Kayıtları',

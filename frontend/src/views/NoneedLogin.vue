@@ -147,7 +147,7 @@
             <div class="time-grid">
               <div class="loc-field">
                 <div class="loc-label"><span>Alış Saati</span></div>
-                <input v-model="form.start_time" type="time" class="filled" />
+                <input v-model="form.start_time" type="time" class="filled" @change="refreshAvailableDates" />
               </div>
               <div class="loc-field">
                 <div class="loc-label"><span>İade Saati</span></div>
@@ -324,7 +324,8 @@
                 </div>
               </div>
 
-              <p v-if="formError" class="form-error">{{ formError }}</p>
+              <p v-if="billingTouched && billingStepError" class="form-error">{{ billingStepError }}</p>
+              <p v-else-if="formError" class="form-error">{{ formError }}</p>
             </div>
 
             <!-- Step 5: Ödeme -->
@@ -412,6 +413,7 @@ import Step from 'primevue/step'
 import StepPanel from 'primevue/steppanel'
 import axios from 'axios'
 import { ILLER, getIlceler } from '../utils/address'
+import { isValidTCKN, isValidVKN } from '../utils/validators'
 import MockPaymentForm from '../components/MockPaymentForm.vue'
 import { CATEGORY_ORDER, CATEGORY_COLORS, categoryLabel } from '@/constants/sipp'
 
@@ -457,11 +459,32 @@ const totalPrice = computed(() => selectedModel.value ? Number(selectedModel.val
 
 const transitionName = computed(() => direction.value === 'forward' ? 'step-fwd' : 'step-back')
 
+const billingTouched = computed(() => {
+  const g = guest.value
+  return !!(g.name || g.phone || g.email || g.billing_tckn || g.billing_tax_no || g.billing_name || g.billing_tax_office || g.billing_address)
+})
+
+const billingStepError = computed(() => {
+  const g = guest.value
+  if (!g.name || !g.phone || !g.email) return 'Ad soyad, telefon ve e-posta zorunludur.'
+  if (g.billing_type === 'kurumsal') {
+    if (!g.billing_name || !g.billing_tax_office || !g.billing_tax_no) {
+      return 'Firma unvanı, vergi dairesi ve vergi kimlik no zorunludur.'
+    }
+    if (!isValidVKN(g.billing_tax_no)) return 'Vergi Kimlik No 10 haneli rakamdan oluşmalıdır.'
+  } else {
+    if (!g.billing_tckn) return 'TC Kimlik No zorunludur.'
+    if (!isValidTCKN(g.billing_tckn)) return 'TC Kimlik No geçersiz. Lütfen kontrol edin.'
+  }
+  if (!g.billing_address || !g.billing_city || !g.billing_district) return 'Fatura adresi, il ve ilçe zorunludur.'
+  return ''
+})
+
 const canAdvance = computed(() => {
   if (currentStep.value === 1) return !!form.value.branch
   if (currentStep.value === 2) return !!(dateRange.value.start && dateRange.value.end)
   if (currentStep.value === 3) return !!form.value.preferred_vehicle_model
-  if (currentStep.value === 4) return true
+  if (currentStep.value === 4) return !billingStepError.value
   return false
 })
 
@@ -546,7 +569,18 @@ async function fetchAvailability() {
   availableDates.value = []
   dateRange.value = { start: null, end: null }
   try {
-    const res = await axios.get('/api/availability/', { params: { branch: form.value.branch } })
+    const res = await axios.get('/api/availability/', { params: { branch: form.value.branch, start_time: form.value.start_time } })
+    availableDates.value = res.data.available_dates
+  } finally {
+    availabilityLoading.value = false
+  }
+}
+
+async function refreshAvailableDates() {
+  if (!form.value.branch) return
+  availabilityLoading.value = true
+  try {
+    const res = await axios.get('/api/availability/', { params: { branch: form.value.branch, start_time: form.value.start_time } })
     availableDates.value = res.data.available_dates
   } finally {
     availabilityLoading.value = false
