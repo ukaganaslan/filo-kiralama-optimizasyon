@@ -39,6 +39,30 @@
           <option value="">Tüm Sınıflar</option>
           <option v-for="g in CATEGORY_ORDER" :key="g" :value="g">{{ categoryLabel(g) }}</option>
         </select>
+        <div v-if="activeView === 'calendar'" class="sipp-multiselect" ref="sippDropdownRef">
+          <button type="button" class="filter-select sipp-multiselect-btn" @click="sippDropdownOpen = !sippDropdownOpen">
+            {{ sippFilterLabel }}
+          </button>
+          <div v-if="sippDropdownOpen" class="sipp-multiselect-panel">
+            <label v-if="availableSippCodes.length === 0" class="sipp-multiselect-empty">Kod yok</label>
+            <label v-for="code in availableSippCodes" :key="code" class="sipp-multiselect-option">
+              <input type="checkbox" :value="code" v-model="calendarSippFilter" />
+              {{ code }}
+            </label>
+          </div>
+        </div>
+        <div v-if="activeView === 'calendar'" class="sipp-multiselect" ref="branchDropdownRef">
+          <button type="button" class="filter-select sipp-multiselect-btn" @click="branchDropdownOpen = !branchDropdownOpen">
+            {{ branchFilterLabel }}
+          </button>
+          <div v-if="branchDropdownOpen" class="sipp-multiselect-panel">
+            <label v-if="branches.length === 0" class="sipp-multiselect-empty">Bayi yok</label>
+            <label v-for="b in branches" :key="b.id" class="sipp-multiselect-option">
+              <input type="checkbox" :value="b.id" v-model="calendarBranchFilter" />
+              {{ b.title || b.name }}
+            </label>
+          </div>
+        </div>
       </div>
       <div class="toolbar-view">
         <span class="toolbar-divider"></span>
@@ -298,6 +322,33 @@ const vehiclePlateMap = computed(() => {
 
 const calendarGroupFilter = ref('')
 const calendarVehicleSearch = ref('')
+const calendarSippFilter = ref([])
+const sippDropdownOpen = ref(false)
+const sippDropdownRef = ref(null)
+
+const availableSippCodes = computed(() => {
+  const codes = new Set(vehicles.value.map(v => v.sipp_code).filter(Boolean))
+  return [...codes].sort()
+})
+
+const sippFilterLabel = computed(() => {
+  if (calendarSippFilter.value.length === 0) return 'Tüm SIPP Kodları'
+  if (calendarSippFilter.value.length === 1) return calendarSippFilter.value[0]
+  return `${calendarSippFilter.value.length} SIPP kodu seçili`
+})
+
+const calendarBranchFilter = ref([])
+const branchDropdownOpen = ref(false)
+const branchDropdownRef = ref(null)
+
+const branchFilterLabel = computed(() => {
+  if (calendarBranchFilter.value.length === 0) return 'Tüm Bayiler'
+  if (calendarBranchFilter.value.length === 1) {
+    const b = branches.value.find(b => b.id === calendarBranchFilter.value[0])
+    return b ? (b.title || b.name) : 'Tüm Bayiler'
+  }
+  return `${calendarBranchFilter.value.length} bayi seçili`
+})
 
 const filteredCalendarVehicles = computed(() => {
   let list = vehicles.value
@@ -308,6 +359,12 @@ const filteredCalendarVehicles = computed(() => {
       (v.vehicle_id || '').toLowerCase().includes(q) ||
       (v.plate || '').toLowerCase().includes(q)
     )
+  }
+  if (calendarSippFilter.value.length > 0) {
+    list = list.filter(v => calendarSippFilter.value.includes(v.sipp_code))
+  }
+  if (calendarBranchFilter.value.length > 0) {
+    list = list.filter(v => calendarBranchFilter.value.includes(v.branch))
   }
   return list
 })
@@ -522,6 +579,12 @@ function clearCustomer() {
 function handleOutsideClick(e) {
   if (customerSearchRef.value && !customerSearchRef.value.contains(e.target)) {
     customerDropdownOpen.value = false
+  }
+  if (sippDropdownRef.value && !sippDropdownRef.value.contains(e.target)) {
+    sippDropdownOpen.value = false
+  }
+  if (branchDropdownRef.value && !branchDropdownRef.value.contains(e.target)) {
+    branchDropdownOpen.value = false
   }
 }
 onMounted(() => document.addEventListener('click', handleOutsideClick))
@@ -831,6 +894,12 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; }
 .field select { padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; background: white; color: #1e293b; transition: border-color 0.15s, box-shadow 0.15s; }
 .field select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+.sipp-multiselect { position: relative; }
+.sipp-multiselect-btn { min-width: 160px; text-align: left; }
+.sipp-multiselect-panel { position: absolute; top: calc(100% + 4px); left: 0; min-width: 160px; max-height: 260px; overflow-y: auto; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); z-index: 300; padding: 6px; }
+.sipp-multiselect-option { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px; font-size: 13px; color: #1e293b; cursor: pointer; }
+.sipp-multiselect-option:hover { background: #f1f5f9; }
+.sipp-multiselect-empty { display: block; padding: 7px 8px; font-size: 13px; color: #94a3b8; }
 .customer-search { position: relative; }
 .customer-input { width: 100%; padding: 10px 36px 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; color: #1e293b; transition: border-color 0.15s, box-shadow 0.15s; }
 .customer-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
