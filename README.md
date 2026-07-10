@@ -47,7 +47,7 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 - Profil bilgilerini düzenleme (kullanıcı adı, ad soyad, e-posta, telefon, şifre)
 
 ### Temsilci
-- Kendi şubesine ait rezervasyonları liste veya Gantt takviminde görme (kaynak etiketleri: marka/model · plaka · SIPP kodu)
+- Kendi şubesine ait rezervasyonları liste veya Gantt takviminde görme (kaynak etiketleri: marka/model · plaka · SIPP kodu); takvim görünümünde SIPP koduna göre çoklu seçim filtresi
 - Takvimde araç satırına sürükleyerek tarih + araç grubu otomatik dolu rezervasyon oluşturma
 - Müşteri adına rezervasyon oluşturma (searchable dropdown ile müşteri seçimi, katalogdan araç modeli seçimi zorunlu)
 - Şubesine ait araçları listeleme — gerçek zamanlı durum gösterimi (Müsait / Kiralandı / Bakımda / Serviste); araç eklerken/düzenlerken katalog modeli seçilir, marka/model/grup otomatik gelir
@@ -62,7 +62,7 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 - Profil bilgilerini düzenleme
 
 ### Admin (Operatör)
-- Tüm şubelerdeki rezervasyonları liste veya Gantt takviminde görme (kaynak etiketleri: marka/model · plaka · SIPP kodu)
+- Tüm şubelerdeki rezervasyonları liste veya Gantt takviminde görme (kaynak etiketleri: marka/model · plaka · SIPP kodu); takvim görünümünde SIPP koduna ve şubeye göre çoklu seçim filtresi
 - İstatistik kartları: Aktif Rezervasyon, Bekleyen, Atandı, Araç Filosu
 - Tek tıkla greedy optimizasyonu çalıştırma
 - Optimizasyon sonuçlarını (skor, atamalar, karşılanamayan rezervasyonlar) inceleme
