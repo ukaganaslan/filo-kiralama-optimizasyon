@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Branch, TransferCost, Vehicle, Reservation, Assignment, MaintenanceLog, VehicleModel
+from .models import Branch, TransferCost, Vehicle, Reservation, Assignment, MaintenanceLog, VehicleModel, VehicleTypeCode
 
 
 @admin.register(Branch)
@@ -15,3 +15,9 @@ admin.site.register(Reservation)
 admin.site.register(Assignment)
 admin.site.register(MaintenanceLog)
 admin.site.register(VehicleModel)
+
+
+@admin.register(VehicleTypeCode)
+class VehicleTypeCodeAdmin(admin.ModelAdmin):
+    list_display = ['marka_adi', 'tip_adi', 'marka_kodu', 'tip_kodu']
+    search_fields = ['marka_adi', 'tip_adi']

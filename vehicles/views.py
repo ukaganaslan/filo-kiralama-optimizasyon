@@ -16,8 +16,8 @@ from django.conf import settings
 from django.utils import timezone
 from io import BytesIO
 from xhtml2pdf import pisa
-from .models import Branch, Vehicle, VehicleModel, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment, ReservationExtension, Payment, Notification
-from .serializers import BranchSerializer, VehicleSerializer, VehicleModelSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer, ReservationExtensionSerializer, validate_billing_payload, NotificationSerializer
+from .models import Branch, Vehicle, VehicleModel, VehicleTypeCode, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment, ReservationExtension, Payment, Notification
+from .serializers import BranchSerializer, VehicleSerializer, VehicleModelSerializer, VehicleTypeCodeSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer, ReservationExtensionSerializer, validate_billing_payload, NotificationSerializer
 from .pricing import price_for_range
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
@@ -37,8 +37,28 @@ class TransferCostViewSet(viewsets.ModelViewSet):
     serializer_class = TransferCostSerializer
     permission_classes = [permissions.IsAdminUser]
 
+@api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
+def type_code_search(request):
+    q = request.query_params.get('q', '').strip()
+    if len(q) < 2:
+        return Response([])
+    words = q.split()
+    query = Q()
+    for word in words:
+        query &= (Q(marka_adi__icontains=word) | Q(tip_adi__icontains=word))
+    results = VehicleTypeCode.objects.filter(query).order_by('marka_adi', 'tip_adi')[:30]
+    return Response(VehicleTypeCodeSerializer(results, many=True).data)
+
+
 class VehicleModelViewSet(viewsets.ModelViewSet):
     serializer_class = VehicleModelSerializer
+
+    def perform_update(self, serializer):
+        old_group = serializer.instance.group
+        instance = serializer.save()
+        if instance.group != old_group:
+            _cascade_category_change(instance, old_group)
 
     def get_queryset(self):
         qs = VehicleModel.objects.all()
@@ -146,6 +166,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        _sync_category_change_timeouts()
         user = self.request.user
         if user.is_staff:
             return Reservation.objects.all()
@@ -450,6 +471,57 @@ def _sync_delivery_logs():
     for r in completed:
         DeliveryLog.objects.get_or_create(reservation=r, event_type='delivered')
         DeliveryLog.objects.get_or_create(reservation=r, event_type='returned')
+
+def _cascade_category_change(vehicle_model, old_group):
+    Vehicle.objects.filter(catalog=vehicle_model).update(group=vehicle_model.group)
+
+    now = datetime.now()
+    etkilenen = Reservation.objects.filter(
+        preferred_vehicle_model=vehicle_model,
+        status__in=['pending', 'assigned'],
+    ).exclude(start_date__lt=now.date()).exclude(
+        start_date=now.date(), start_time__lte=now.time()
+    )
+    etkilenen_ids = [r.id for r in etkilenen]
+    for reservation in etkilenen:
+        reservation.preferred_vehicle_model = None
+        reservation.manually_locked = False
+        reservation.save(update_fields=['preferred_vehicle_model', 'manually_locked'])
+    if not etkilenen_ids:
+        return
+
+    run, assignments, unassigned = _run_optimization()
+    unassigned_ids = {r.id for r in unassigned}
+    for reservation in etkilenen:
+        if reservation.id in unassigned_ids:
+            notify(
+                reservation.customer,
+                'Aracınızın sınıfı değişti',
+                f'{reservation.reservation_id} numaralı rezervasyonunuz için ayırdığımız araç modeli farklı bir sınıfa taşındı ve şu an aynı sınıfta boş araç yok. '
+                'Başlangıç tarihine kadar uygun araç bulunamazsa rezervasyonunuz otomatik iptal edilecektir.',
+                link='/dashboard/rezervasyonlar',
+                notif_type='reservation',
+            )
+
+
+def _sync_category_change_timeouts():
+    now = datetime.now()
+    overdue = Reservation.objects.filter(
+        status='pending',
+        preferred_vehicle_model__isnull=True,
+    ).exclude(start_date__gt=now.date()).exclude(
+        start_date=now.date(), start_time__gt=now.time()
+    )
+    for reservation in overdue:
+        reservation.status = 'cancelled'
+        reservation.save(update_fields=['status'])
+        notify(
+            reservation.customer,
+            'Rezervasyonunuz iptal edildi',
+            f'{reservation.reservation_id} numaralı rezervasyonunuz için tercih ettiğiniz araç sınıfı değişti ve zamanında uygun araç bulunamadı, rezervasyonunuz otomatik iptal edilmiştir.',
+            link='/dashboard/rezervasyonlar',
+            notif_type='reservation',
+        )
 
 def _run_optimization():
     delivered_ids = list(DeliveryLog.objects.filter(

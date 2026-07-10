@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog, DailyPrice, ReservationExtension, Payment, Notification, VehicleModel
+from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog, DailyPrice, ReservationExtension, Payment, Notification, VehicleModel, VehicleTypeCode
 from .pricing import price_for_range
 from datetime import date
 
@@ -37,10 +37,17 @@ class BranchSerializer(serializers.ModelSerializer):
         model = Branch
         fields = ['id', 'name', 'title']
 
+class VehicleTypeCodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VehicleTypeCode
+        fields = ['id', 'marka_kodu', 'tip_kodu', 'marka_adi', 'tip_adi', 'ilk_yil', 'son_yil']
+
+
 class VehicleModelSerializer(serializers.ModelSerializer):
     available_count = serializers.IntegerField(read_only=True, default=None)
     total_price = serializers.SerializerMethodField()
     sipp_code = serializers.ReadOnlyField()
+    type_code_info = VehicleTypeCodeSerializer(source='type_code', read_only=True)
 
     def get_total_price(self, obj):
         request = self.context.get('request')
@@ -56,7 +63,7 @@ class VehicleModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = VehicleModel
         fields = [
-            'id', 'brand', 'model', 'group', 'fuel_type', 'transmission', 'body_type', 'is_4wd', 'has_ac',
+            'id', 'brand', 'model', 'type_code', 'type_code_info', 'group', 'fuel_type', 'transmission', 'body_type', 'is_4wd', 'has_ac',
             'sipp_code', 'image', 'is_active', 'available_count', 'total_price',
         ]
 

@@ -20,6 +20,28 @@ class TransferCost(models.Model):
     def __str__(self):
         return f"{self.from_branch} → {self.to_branch}: {self.cost}"
 
+class VehicleTypeCode(models.Model):
+    """Resmi marka/tip kodu referans listesi (yıllık TSB tip kodu dosyasından
+    içe aktarılır, bkz. import_type_codes komutu). Katalog girişinde marka/model
+    seçimini serbest metin yerine bu listeden yaptırıp yazım hatalarını önlemek
+    ve tip kodunu saklamak için kullanılır."""
+    marka_kodu = models.IntegerField()
+    tip_kodu = models.IntegerField()
+    marka_adi = models.CharField(max_length=50)
+    tip_adi = models.CharField(max_length=150)
+    ilk_yil = models.IntegerField(null=True, blank=True)
+    son_yil = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('marka_kodu', 'tip_kodu')
+        indexes = [
+            models.Index(fields=['marka_adi']),
+        ]
+
+    def __str__(self):
+        return f"{self.marka_adi} {self.tip_adi} ({self.tip_kodu})"
+
+
 class VehicleModel(models.Model):
     GROUP_CHOICES = SIPP_CATEGORY_CHOICES
 
@@ -32,6 +54,9 @@ class VehicleModel(models.Model):
 
     brand = models.CharField(max_length=50)
     model = models.CharField(max_length=50)
+    type_code = models.ForeignKey(
+        VehicleTypeCode, on_delete=models.SET_NULL, null=True, blank=True, related_name='vehicle_models',
+    )
     group = models.CharField(max_length=20, choices=GROUP_CHOICES)
     fuel_type = models.CharField(max_length=20, choices=FUEL_CHOICES)
     transmission = models.CharField(max_length=20, choices=TRANSMISSION_CHOICES)
