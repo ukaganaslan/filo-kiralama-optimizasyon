@@ -10,6 +10,7 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 - PostgreSQL
 - xhtml2pdf (sunucu taraflı PDF üretimi — teslim/iade belgeleri)
 - Pillow (araç fotoğrafı `ImageField` desteği)
+- openpyxl (resmi marka/tip kodu xlsx içe aktarımı)
 - Gunicorn + WhiteNoise + dj-database-url (production/Railway)
 
 **Frontend**
@@ -65,7 +66,7 @@ Araç kiralama şirketleri için geliştirilmiş, rezervasyon yönetimi ve filo 
 - İstatistik kartları: Aktif Rezervasyon, Bekleyen, Atandı, Araç Filosu
 - Tek tıkla greedy optimizasyonu çalıştırma
 - Optimizasyon sonuçlarını (skor, atamalar, karşılanamayan rezervasyonlar) inceleme
-- **Araç Modelleri (katalog):** marka, model, grup, yakıt, vites, kaporta tipi, çekiş, klima, resim tanımlama; her modelin SIPP kodu (örn. `EDMN`) otomatik hesaplanır
+- **Araç Modelleri (katalog):** marka/model serbest metin yerine resmi tip kodu referans listesinden aranıp seçilir (yazım hatasını önler, tip kodu saklanır); grup, yakıt, vites, kaporta tipi, çekiş, klima, resim tanımlama; her modelin SIPP kodu (örn. `EDMN`) otomatik hesaplanır
 - Araç yönetimi: ekleme, düzenleme, silme (plaka / şasi / katalog modeli / şube / durum — marka/model/grup artık katalogdan otomatik gelir, elle girilmez)
 - Araç gerçek zamanlı durum takibi (`current_status`: Müsait / Kiralandı / Bakımda / Serviste)
 - Araç geçmişi modalı (rezervasyon + bakım logları)
@@ -88,6 +89,18 @@ Fiziksel araçlar (`Vehicle`, plaka bazlı) bir **katalog kaydına** (`VehicleMo
 **Overbook / eşleştirme önceliği** (`greedy_solver_güncel.py::score_vehicle`): talep edilen model her zaman öncelenir (skor 0). Müsait değilse sırasıyla: aynı SIPP koduna sahip başka bir marka/model (skor 0.5 — örn. aynı kaporta+şanzıman+yakıt/klima kombinasyonuna sahip iki farklı marka birbirinin yerine geçebilir), aynı sınıftaki (grup) herhangi bir araç (skor 1), üst sınıfa yükseltme (skor 10). Rezervasyon oluşturma anındaki kapasite kontrolü kasıtlı olarak **grup bazlı** kalır (belirli bir plaka kilitlenmez) — asıl model eşleştirmesi atama zamanında yapılır; bu, sistemin bilinçli bir "overbook payı"dır.
 
 **Fiyatlandırma tamamen model bazlıdır** (`DailyPrice.vehicle_model`) — aynı gruptaki farklı modeller farklı günlük fiyata sahip olabilir.
+
+### Resmi Tip Kodu Referans Listesi
+
+Katalog kaydı (`VehicleModel`) oluşturulurken marka/model artık serbest metinle yazılmaz — Türkiye'nin resmi marka/tip kodu listesinden (`VehicleTypeCode`, `python manage.py import_type_codes data/<xlsx>` ile içe aktarılır) aranıp seçilir. Bu hem yazım hatalarını önler hem de her katalog kaydına ileride (sigorta/ekspertiz gibi) işe yarayabilecek resmi **tip kodunu** ve modelin üretildiği **yıl aralığını** (`ilk_yil`/`son_yil`, xlsx'teki yıllık değer kolonlarından türetilir) bağlar. Arama `/api/type-codes/search/?q=` üzerinden kelime bazlı yapılır (marka ve modelin farklı sırada/ayrı yazılmasına izin verir, örn. "toyota corolla").
+
+### Segment (Grup) Değişikliği Cascade
+
+Bir katalog modelinin (`VehicleModel.group`) SIPP segmenti sonradan değiştirilirse (örn. Corolla Orta'dan Standart'a taşınırsa), o modeli tercih eden ve henüz başlamamış rezervasyonlar (`_cascade_category_change`, `vehicles/views.py`) otomatik ele alınır:
+
+1. Modele bağlı fiziksel araçların (`Vehicle.group`) segment bilgisi senkronize edilir.
+2. Etkilenen rezervasyonların model tercihi kaldırılır ve optimizer yeniden çalıştırılır — öncelik her zaman rezervasyonun **orijinal segmentinde** başka bir araç bulmaktır (yön fark etmez, hem "alt" hem "üst" segmente taşınma aynı akışı izler).
+3. Orijinal segmentte o tarihler için uygun araç bulunamazsa müşteriye bildirim gönderilir; başlangıç tarihine kadar çözülemezse rezervasyon otomatik iptal edilir (`_sync_category_change_timeouts`).
 
 ## Araç Teslim / İade Akışı
 
@@ -153,6 +166,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py loaddata vehicles/fixtures/initial_data.json
+python manage.py import_type_codes data/202606R2.xlsx
 python manage.py runserver
 ```
 
@@ -193,13 +207,18 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 │   ├── settings.py
 │   └── urls.py
 ├── vehicles/
-│   ├── models.py           # Branch, Vehicle, VehicleModel (katalog + SIPP kodu), Reservation, DeliveryLog (stage/photo dahil), MaintenanceLog, DailyPrice (model bazlı)...
+│   ├── models.py           # Branch, Vehicle, VehicleModel (katalog + SIPP kodu), VehicleTypeCode (resmi tip kodu referansı), Reservation, DeliveryLog (stage/photo dahil), MaintenanceLog, DailyPrice (model bazlı)...
 │   ├── constants.py        # SIPP kategori/kaporta tipi sabitleri (SIPP_CATEGORY_CHOICES, SIPP_CATEGORY_RANK, ...)
 │   ├── pricing.py          # price_for_range() — model bazlı ortak fiyat hesaplama
 │   ├── serializers.py      # current_status, delivery_info, sipp_code dahil tüm serializer'lar
-│   ├── views.py            # Tüm API endpoint'leri
+│   ├── views.py            # Tüm API endpoint'leri (segment değişikliği cascade dahil)
+│   ├── management/commands/
+│   │   ├── import_type_codes.py   # Resmi marka/tip kodu xlsx'ini VehicleTypeCode tablosuna aktarır
+│   │   └── seed_vehicles.py       # Test verisi üretir
 │   └── fixtures/
 │       └── initial_data.json
+├── data/
+│   └── 202606R2.xlsx       # Resmi marka/tip kodu referans dosyası (import_type_codes girdisi)
 ├── templates/
 │   └── pdfs/
 │       ├── teslim_belgesi.html    # xhtml2pdf ile üretilen teslim belgesi
@@ -230,7 +249,8 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 | GET/PATCH | `/api/profile/` | Profil görüntüle / güncelle | Auth |
 | GET/POST/PATCH/DELETE | `/api/branches/` | Şube CRUD | Okuma: Herkese açık, Yazma: Admin |
 | GET/POST/PATCH/DELETE | `/api/vehicles/` | Araç CRUD (katalog modeli zorunlu, marka/model/grup oradan senkronlanır) | Okuma: Auth, Yazma: Admin |
-| GET/POST/PATCH/DELETE | `/api/vehicle-models/` | Araç kataloğu CRUD — marka/model/yakıt/vites/kaporta/çekiş/klima/resim, SIPP kodu otomatik hesaplanır; `branch`/`group`/`fuel_type`/`transmission`/`start_date`/`end_date` filtreleri | Okuma: Herkese açık, Yazma: Admin |
+| GET/POST/PATCH/DELETE | `/api/vehicle-models/` | Araç kataloğu CRUD — marka/model/yakıt/vites/kaporta/çekiş/klima/resim, SIPP kodu otomatik hesaplanır; grup değişikliği etkilenen rezervasyonları cascade'e sokar; `branch`/`group`/`fuel_type`/`transmission`/`start_date`/`end_date` filtreleri | Okuma: Herkese açık, Yazma: Admin |
+| GET | `/api/type-codes/search/?q=` | Resmi marka/tip kodu referans listesinde kelime bazlı arama (katalog formunda marka/model seçimi için) | Admin |
 | GET | `/api/vehicles/{id}/history/` | Araç rezervasyon + bakım geçmişi | Auth |
 | GET/POST/DELETE | `/api/reservations/` | Rezervasyon listesi / oluşturma / silme (`preferred_vehicle_model` zorunlu) | Auth |
 | POST | `/api/reservations/{reservation_id}/cancel/` | Rezervasyon iptali | Auth |
@@ -242,7 +262,7 @@ Superuser oluşturduktan sonra `/api/admin/` panelinden kullanıcılara `admin` 
 | POST | `/api/reservations/{id}/return/photo/` | İade 3. aşama — araç fotoğrafı yükleme + onay | Temsilci / Admin |
 | GET | `/api/reservations/{id}/pdf/{teslim\|iade}/` | Teslim/iade PDF belgesi indirme | Auth |
 | GET | `/api/admin-stats/` | İstatistik verisi (ciro, doluluk, grup dağılımı) — `start`/`end`/`branch` filtreleri | Admin (tüm şubeler) / Temsilci (kendi şubesiyle sınırlı) |
-| GET | `/api/availability/` | Şube bazlı müsait günler (şubedeki tüm katalog modelleri taranır) | Herkese açık |
+| GET | `/api/availability/` | Şube bazlı müsait günler (şubedeki tüm katalog modelleri taranır); `start_time` parametresiyle günün penceresi seçilen alış saatinden başlar (gece yarısı yerine) | Herkese açık |
 | GET | `/api/transfer-cost/` | İki şube arası transfer ücreti | Auth |
 | GET/POST/PATCH/DELETE | `/api/transfer-costs/` | Transfer ücreti CRUD | Admin |
 | GET | `/api/daily-prices/` | Günlük fiyat listesi (araç modeli bazlı) | Auth |
