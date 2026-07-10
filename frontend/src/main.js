@@ -27,7 +27,6 @@ app.use(PrimeVue, {
 })
 app.use(ToastService)
 app.use(VueApexCharts)
-app.component('apexchart', VueApexCharts)
 const auth = useAuthStore()
 auth.init()
 

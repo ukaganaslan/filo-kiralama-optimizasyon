@@ -10,7 +10,7 @@
         </div>
         <div class="upcoming-vehicle">
           <template v-if="upcomingReservation.assigned_vehicle_info">
-            {{ upcomingReservation.assigned_vehicle_info.brand }} {{ upcomingReservation.assigned_vehicle_info.model }} · {{ upcomingReservation.assigned_vehicle_info.plate }}
+            {{ upcomingReservation.assigned_vehicle_info.brand }} {{ upcomingReservation.assigned_vehicle_info.model }}<template v-if="upcomingReservation.assigned_vehicle_info.plate"> · {{ upcomingReservation.assigned_vehicle_info.plate }}</template>
           </template>
           <template v-else>
             {{ groupLabel(upcomingReservation.vehicle_group) }}
@@ -125,6 +125,16 @@
               is-expanded
               :columns = 2
             />
+            <div class="time-grid">
+              <div class="loc-field">
+                <div class="loc-label"><span>Alış Saati</span></div>
+                <input v-model="form.start_time" type="time" class="filled" @change="refreshAvailableDates" />
+              </div>
+              <div class="loc-field">
+                <div class="loc-label"><span>İade Saati</span></div>
+                <input v-model="form.end_time" type="time" class="filled" />
+              </div>
+            </div>
           </template>
 
           <div v-else class="no-avail">
@@ -268,6 +278,8 @@
               <input v-model="form.billing_neighborhood" type="text" placeholder="Mahalle" />
             </div>
           </div>
+
+          <p v-if="billingStepError" class="form-error">{{ billingStepError }}</p>
         </div>
 
         <!-- Step 5: Onay -->
@@ -293,12 +305,12 @@
               <div class="summary-val">{{ selectedModel ? `${selectedModel.brand} ${selectedModel.model}` : groupLabel(form.vehicle_group) }}</div>
             </div>
             <div class="summary-item">
-              <div class="summary-key">Başlangıç</div>
-              <div class="summary-val">{{ toLocalDateStr(dateRange.start) }}</div>
+              <div class="summary-key">Alış</div>
+              <div class="summary-val">{{ toLocalDateStr(dateRange.start) }} · {{ form.start_time }}</div>
             </div>
             <div class="summary-item">
-              <div class="summary-key">Bitiş</div>
-              <div class="summary-val">{{ toLocalDateStr(dateRange.end) }}</div>
+              <div class="summary-key">İade</div>
+              <div class="summary-val">{{ toLocalDateStr(dateRange.end) }} · {{ form.end_time }}</div>
             </div>
             <div v-if="transferCost !== null && differentReturn" class="summary-item">
               <div class="summary-key">Transfer Ücreti</div>
@@ -358,6 +370,7 @@ import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import { ILLER, getIlceler } from '../utils/address'
+import { isValidTCKN, isValidVKN } from '../utils/validators'
 import MockPaymentForm from '../components/MockPaymentForm.vue'
 import { CATEGORY_ORDER, CATEGORY_COLORS, categoryLabel } from '@/constants/sipp'
 
@@ -375,6 +388,7 @@ const formError = ref('')
 const formSuccess = ref('')
 const form = ref({
   branch: '', vehicle_group: '', preferred_vehicle_model: '', return_branch: '',
+  start_time: '10:00', end_time: '10:00',
   billing_type: 'bireysel', billing_name: '', billing_tckn: '', billing_tax_office: '', billing_tax_no: '',
   billing_address: '', billing_neighborhood: '', billing_district: '', billing_city: '', billing_phone: '',
 })
@@ -392,12 +406,22 @@ const groups = CATEGORY_ORDER.map(value => ({ value, label: categoryLabel(value)
 
 const transitionName = computed(() => direction.value === 'forward' ? 'step-fwd' : 'step-back')
 
+const billingStepError = computed(() => {
+  const f = form.value
+  if (f.billing_type === 'kurumsal') {
+    if (f.billing_tax_no && !isValidVKN(f.billing_tax_no)) return 'Vergi Kimlik No 10 haneli rakamdan oluşmalıdır.'
+  } else {
+    if (f.billing_tckn && !isValidTCKN(f.billing_tckn)) return 'TC Kimlik No geçersiz. Lütfen kontrol edin.'
+  }
+  return ''
+})
+
 const canAdvance = computed(() => {
   if (currentStep.value === 1) return !!form.value.branch
   if (currentStep.value === 2) return !!(dateRange.value.start && dateRange.value.end)
   if (currentStep.value === 3) return !!form.value.preferred_vehicle_model
-  if (currentStep.value === 4) return true
-  if (currentStep.value === 5) return  true 
+  if (currentStep.value === 4) return !billingStepError.value
+  if (currentStep.value === 5) return  true
   return false
 })
 
@@ -503,7 +527,18 @@ async function fetchAvailability() {
   availableDates.value = []
   dateRange.value = { start: null, end: null }
   try {
-    const res = await axios.get('/api/availability/', { params: { branch: form.value.branch } })
+    const res = await axios.get('/api/availability/', { params: { branch: form.value.branch, start_time: form.value.start_time } })
+    availableDates.value = res.data.available_dates
+  } finally {
+    availabilityLoading.value = false
+  }
+}
+
+async function refreshAvailableDates() {
+  if (!form.value.branch) return
+  availabilityLoading.value = true
+  try {
+    const res = await axios.get('/api/availability/', { params: { branch: form.value.branch, start_time: form.value.start_time } })
     availableDates.value = res.data.available_dates
   } finally {
     availabilityLoading.value = false
@@ -524,6 +559,8 @@ async function fetchModels() {
       branch: form.value.branch,
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
+      start_time: form.value.start_time,
+      end_time: form.value.end_time,
     }
     if (modelFilterGroup.value) params.group = modelFilterGroup.value
     if (modelFilterFuel.value) params.fuel_type = modelFilterFuel.value
@@ -569,6 +606,8 @@ async function handleCreate() {
       preferred_vehicle_model: form.value.preferred_vehicle_model,
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
+      start_time: form.value.start_time,
+      end_time: form.value.end_time,
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
       billing_type: form.value.billing_type,
       billing_name: form.value.billing_name,
@@ -594,6 +633,7 @@ function resetForm() {
   direction.value = 'forward'
   form.value = {
     branch: '', vehicle_group: '', return_branch: '',
+    start_time: '10:00', end_time: '10:00',
     billing_type: form.value.billing_type,
     billing_name: form.value.billing_name,
     billing_tckn: form.value.billing_tckn,
@@ -990,6 +1030,7 @@ function resetForm() {
 
 /* ── Step 3: Tarih ── */
 .date-hint { font-size: 13px; color: #64748B; margin-bottom: 16px; }
+.time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
 
 .loading-state {
   display: flex;

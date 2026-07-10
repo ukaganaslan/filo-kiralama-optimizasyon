@@ -44,8 +44,8 @@
             <td class="res-id">#{{ r.reservation_id }}</td>
             <td>{{ r.branch_title }}</td>
             <td>{{ groupLabel(r.vehicle_group) }}</td>
-            <td>{{ r.start_date }}</td>
-            <td>{{ r.end_date }}</td>
+            <td>{{ r.start_date }} <span class="time-tag">{{ formatTime(r.start_time) }}</span></td>
+            <td>{{ r.end_date }} <span class="time-tag">{{ formatTime(r.end_time) }}</span></td>
             <td>
               <span v-if="r.total_price" class="price-badge">{{ Number(r.total_price).toLocaleString('tr-TR') }} ₺</span>
               <span v-else class="price-na">—</span>
@@ -53,7 +53,7 @@
             <td>
               <span :class="'badge badge-' + displayStatusKey(r)">{{ displayStatus(r) }}</span>
               <div v-if="r.assigned_vehicle_info" class="vehicle-info">
-                {{ r.assigned_vehicle_info.brand }} {{ r.assigned_vehicle_info.model }} · {{ r.assigned_vehicle_info.plate }}
+                {{ r.assigned_vehicle_info.brand }} {{ r.assigned_vehicle_info.model }}<template v-if="r.assigned_vehicle_info.plate"> · {{ r.assigned_vehicle_info.plate }}</template>
               </div>
             </td>
             <td class="actions-cell">
@@ -79,6 +79,7 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useTableSort } from '@/composables/useTableSort'
 import { categoryLabel as groupLabel } from '@/constants/sipp'
+import { formatTime } from '@/utils/datetime'
 
 const router = useRouter()
 const reservations = ref([])
@@ -207,6 +208,7 @@ tr:hover td { background: #fafbff; }
 .btn-cancel:hover { background: #fff1f2; border-color: #dc2626; }
 .error-msg { color: #dc2626; font-size: 13px; margin-top: 12px; background: #fff1f2; padding: 10px 14px; border-radius: 8px; }
 .vehicle-info { margin-top: 4px; font-size: 12px; color: #000000; font-weight: 600; }
+.time-tag { color: #94a3b8; font-size: 12px; }
 .price-badge { font-size: 13px; font-weight: 700; color: #000000; }
 .price-na { color: #94a3b8; }
 

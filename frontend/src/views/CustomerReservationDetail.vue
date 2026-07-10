@@ -69,11 +69,11 @@
               </div>
               <div class="info-item">
                 <span class="ilabel">Başlangıç Tarihi</span>
-                <span class="ival">{{ formatDate(res.start_date) }}</span>
+                <span class="ival">{{ formatDate(res.start_date) }} <span class="time-tag">{{ formatTime(res.start_time) }}</span></span>
               </div>
               <div class="info-item">
                 <span class="ilabel">Bitiş Tarihi</span>
-                <span class="ival">{{ formatDate(res.end_date) }}</span>
+                <span class="ival">{{ formatDate(res.end_date) }} <span class="time-tag">{{ formatTime(res.end_time) }}</span></span>
               </div>
               <div class="info-item">
                 <span class="ilabel">Süre</span>
@@ -190,8 +190,9 @@
             </p>
             <div class="vehicle-head">
               <div class="vehicle-name">{{ res.assigned_vehicle_info.brand }} {{ res.assigned_vehicle_info.model }}</div>
-              <div class="vehicle-plate">{{ res.assigned_vehicle_info.plate }}</div>
+              <div class="vehicle-plate" v-if="res.assigned_vehicle_info.plate">{{ res.assigned_vehicle_info.plate }}</div>
             </div>
+            <p v-if="!res.assigned_vehicle_info.plate" class="empty-note">Plaka, araç size teslim edildiğinde görüntülenecektir.</p>
             <div class="info-grid one-col">
               <div class="info-item">
                 <span class="ilabel">Araç Grubu</span>
@@ -205,7 +206,7 @@
           </div>
           <div class="card" v-else>
             <div class="card-title">Atanan Araç</div>
-            <p class="empty-note">Araç bilgisi, kiralama başlangıç gününde görüntülenebilir.</p>
+            <p class="empty-note">Aracınız henüz atanmadı.</p>
           </div>
 
           <!-- Belgeler -->
@@ -361,6 +362,7 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import CarDamageMap from '@/components/CarDamageMap.vue'
 import { categoryLabel as groupLabel } from '@/constants/sipp'
+import { formatTime } from '@/utils/datetime'
 
 const route = useRoute()
 const router = useRouter()
@@ -645,6 +647,7 @@ async function submitExtension() {
 .ilabel { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
 .ival { font-size: 14px; font-weight: 600; color: #1e293b; overflow-wrap: break-word; }
 .ival.price { font-weight: 800; color: #0f172a; }
+.time-tag { color: #94a3b8; font-weight: 500; }
 
 .fuel-item { grid-column: span 2; }
 .info-grid.one-col .fuel-item { grid-column: span 1; }

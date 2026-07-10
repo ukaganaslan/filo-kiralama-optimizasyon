@@ -57,8 +57,8 @@
           <td>{{ r.assigned_vehicle_id }}</td>
           <td>{{ r.customer_username }}</td>
           <td>{{ categoryLabel(r.vehicle_group) }}</td>
-          <td>{{ r.start_date }}</td>
-          <td>{{ r.end_date }}</td>
+          <td>{{ r.start_date }} <span class="time-tag">{{ formatTime(r.start_time) }}</span></td>
+          <td>{{ r.end_date }} <span class="time-tag">{{ formatTime(r.end_time) }}</span></td>
           <td>{{ r.return_branch ? (r.return_branch_title || r.return_branch_name) : (r.branch_title || r.branch_name) }}</td>
           <td><span v-if="r.total_price" class="price-badge">{{ Number(r.total_price).toLocaleString('tr-TR') }} ₺</span><span v-else class="price-na">—</span></td>
           <td><span :class="'badge ' + reservationStatus(r).cls">{{ reservationStatus(r).label }}</span></td>
@@ -103,6 +103,17 @@
         <div class="info-item">
           <span class="info-label">TARİH</span>
           <span class="info-value">{{ toLocalDateStr(dateRange.start) }} → {{ toLocalDateStr(dateRange.end) }}</span>
+        </div>
+      </div>
+
+      <div v-if="calendarMode" class="time-fields">
+        <div class="field">
+          <label>Alış Saati</label>
+          <input v-model="form.start_time" type="time" />
+        </div>
+        <div class="field">
+          <label>İade Saati</label>
+          <input v-model="form.end_time" type="time" />
         </div>
       </div>
 
@@ -193,6 +204,16 @@
             color="indigo"
             is-expanded
           />
+          <div class="time-fields">
+            <div class="field">
+              <label>Alış Saati</label>
+              <input v-model="form.start_time" type="time" />
+            </div>
+            <div class="field">
+              <label>İade Saati</label>
+              <input v-model="form.end_time" type="time" />
+            </div>
+          </div>
         </div>
 
         <div v-if="form.vehicle_group && availableDates.length === 0 && !availabilityLoading" class="no-avail">
@@ -220,6 +241,7 @@ import trLocale from '@fullcalendar/core/locales/tr'
 import interactionPlugin from '@fullcalendar/interaction'
 import { useRouter } from 'vue-router'
 import { CATEGORY_ORDER, categoryLabel } from '@/constants/sipp'
+import { formatTime } from '@/utils/datetime'
 
 const router = useRouter()
 const reservations = ref([])
@@ -366,7 +388,7 @@ async function iptalEt(r) {
 
 const createModal = ref(false)
 const calendarMode = ref(false)
-const form = ref({ customer_id: '', vehicle_group: '', preferred_vehicle_model: '', branch: '', return_branch: '' })
+const form = ref({ customer_id: '', vehicle_group: '', preferred_vehicle_model: '', branch: '', return_branch: '', start_time: '10:00', end_time: '10:00' })
 const differentReturn = ref(false)
 const transferCost = ref(null)
 const dateRange = ref({ start: null, end: null })
@@ -517,11 +539,11 @@ function reservationStatus(r) {
   if (r.delivery_info?.returned) return { label: 'İade Alındı', cls: 'badge-returned' }
   if (r.delivery_info?.returned_stage) return { label: 'İade İşlemde', cls: 'badge-processing' }
   if(r.delivery_info?.delivered){
-    if(r.end_date == bugun) return { label: 'İade Günü', cls: 'badge-iade'}
+    if(r.end_date == bugun) return { label: 'İade Günü · ' + formatTime(r.end_time), cls: 'badge-iade'}
     return { label: 'Teslim Edildi', cls: 'badge-delivered' }
   }
   if (r.delivery_info?.delivered_stage) return { label: 'Teslim İşlemde', cls: 'badge-processing' }
-  if(r.status == 'assigned' && r.start_date == bugun) return { label: 'Teslim Günü', cls: 'badge-teslimat'}
+  if(r.status == 'assigned' && r.start_date == bugun) return { label: 'Teslim Günü · ' + formatTime(r.start_time), cls: 'badge-teslimat'}
   return { label: 'Onaylandı', cls: 'badge-assigned' }
 }
 
@@ -567,7 +589,7 @@ function toLocalDateStr(date) {
 }
 
 async function openCreate({ startDate = null, endDate = null, vehicleGroup = '' } = {}) {
-  form.value = { customer_id: '', vehicle_group: vehicleGroup, preferred_vehicle_model: '', branch: '', return_branch: '' }
+  form.value = { customer_id: '', vehicle_group: vehicleGroup, preferred_vehicle_model: '', branch: '', return_branch: '', start_time: '10:00', end_time: '10:00' }
   dateRange.value = { start: null, end: null }
   availableDates.value = []
   preferredModels.value = []
@@ -607,13 +629,15 @@ async function handleCreate() {
       preferred_vehicle_model: form.value.preferred_vehicle_model,
       start_date: toLocalDateStr(dateRange.value.start),
       end_date: toLocalDateStr(dateRange.value.end),
+      start_time: form.value.start_time,
+      end_time: form.value.end_time,
       customer_id: form.value.customer_id,
       return_branch: differentReturn.value && form.value.return_branch ? form.value.return_branch : null,
     })
     formSuccess.value = 'Rezervasyon oluşturuldu.'
     const res = await axios.get('/api/reservations/')
     reservations.value = res.data
-    form.value = { customer_id: '', vehicle_group: '', preferred_vehicle_model: '', branch: '', return_branch: '' }
+    form.value = { customer_id: '', vehicle_group: '', preferred_vehicle_model: '', branch: '', return_branch: '', start_time: '10:00', end_time: '10:00' }
     dateRange.value = { start: null, end: null }
     availableDates.value = []
     preferredModels.value = []
@@ -685,6 +709,9 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .field label { font-size: 11px; font-weight: 700; color: #6366f1; letter-spacing: 0.08em; }
 .field select { padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; background: white; color: #1e293b; transition: border-color 0.15s, box-shadow 0.15s; }
 .field select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+.field input[type="time"] { padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; background: white; color: #1e293b; transition: border-color 0.15s, box-shadow 0.15s; }
+.field input[type="time"]:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+.time-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .customer-search { position: relative; }
 .customer-input { width: 100%; padding: 10px 36px 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; color: #1e293b; transition: border-color 0.15s, box-shadow 0.15s; }
 .customer-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
@@ -721,6 +748,7 @@ td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child
 .info-value { display: block; font-size: 14px; font-weight: 700; color: #1e293b; }
 .price-badge { font-size: 13px; font-weight: 700; color: #000000; }
 .price-na { color: #94a3b8; }
+.time-tag { color: #94a3b8; font-size: 12px; }
 .actions { text-align: center; width: 48px; }
 .action-menu { position: relative; display: inline-block; }
 .btn-dots { background: none; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px 8px; font-size: 16px; color: #64748b; cursor: pointer; line-height: 1.4; transition: background 0.15s, border-color 0.15s; }

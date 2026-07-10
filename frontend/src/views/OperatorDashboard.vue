@@ -75,8 +75,8 @@
           <td>{{ r.branch_title }}</td>
           <td>{{ r.return_branch ? (r.return_branch_title || r.return_branch_name) : (r.branch_title || r.branch_name) }}</td>
           <td>{{ categoryLabel(r.vehicle_group) }}</td>
-          <td>{{ r.start_date }}</td>
-          <td>{{ r.end_date }}</td>
+          <td>{{ r.start_date }} <span class="time-tag">{{ formatTime(r.start_time) }}</span></td>
+          <td>{{ r.end_date }} <span class="time-tag">{{ formatTime(r.end_time) }}</span></td>
           <td><span v-if="r.total_price" class="price-badge">{{ Number(r.total_price).toLocaleString('tr-TR') }} ₺</span><span v-else class="price-na">—</span></td>
           <td><span :class="'badge ' + reservationStatus(r).cls">{{ reservationStatus(r).label }}</span></td>
           <td class="actions">
@@ -234,6 +234,7 @@ import interactionPlugin from '@fullcalendar/interaction'
 import trLocale from '@fullcalendar/core/locales/tr'
 import { useRouter } from 'vue-router'
 import { CATEGORY_ORDER, categoryLabel } from '@/constants/sipp'
+import { formatTime } from '@/utils/datetime'
 
 
 const reservations = ref([])
@@ -380,11 +381,11 @@ function reservationStatus(r) {
   if (r.delivery_info?.returned) return { label: 'İade Alındı', cls: 'badge-returned' }
   if (r.delivery_info?.returned_stage) return { label: 'İade İşlemde', cls: 'badge-processing' }
   if (r.delivery_info?.delivered) {
-    if (r.end_date == bugun) return { label: 'İade Günü', cls: 'badge-iade' }
+    if (r.end_date == bugun) return { label: 'İade Günü · ' + formatTime(r.end_time), cls: 'badge-iade' }
     return { label: 'Teslim Edildi', cls: 'badge-delivered' }
   }
   if (r.delivery_info?.delivered_stage) return { label: 'Teslim İşlemde', cls: 'badge-processing' }
-  if (r.status == 'assigned' && r.start_date == bugun) return { label: 'Teslim Günü', cls: 'badge-teslimat' }
+  if (r.status == 'assigned' && r.start_date == bugun) return { label: 'Teslim Günü · ' + formatTime(r.start_time), cls: 'badge-teslimat' }
   return { label: 'Onaylandı', cls: 'badge-assigned' }
 }
 
@@ -812,6 +813,7 @@ td { border-top: 1px solid #f1f5f9; }
 .action-dropdown button.danger:hover { background: #fee2e2; }
 .price-badge { font-size: 13px; font-weight: 700; color: #000000; }
 .price-na { color: #94a3b8; }
+.time-tag { color: #94a3b8; font-size: 12px; }
 td:nth-child(1), th:nth-child(1), td:nth-child(2), th:nth-child(2), td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4), td:nth-child(5), th:nth-child(5), td:nth-child(6), th:nth-child(6), td:nth-child(7), th:nth-child(7), td:nth-child(8), th:nth-child(8), td:nth-child(9), th:nth-child(9), td:nth-child(10), th:nth-child(10) { text-align: center; }
 .badge-delivered { background: #d1fae5; color: #065f46; }
 .badge-returned { background: #e9d5ff; color: #6b21a8; }

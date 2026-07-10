@@ -1,7 +1,7 @@
 import json
 import re
 import uuid
-from datetime import date, timedelta
+from datetime import date, time, datetime, timedelta
 from rest_framework import viewsets, status, permissions
 from django.db.models import Q, Max, Count
 from django.db import transaction
@@ -16,8 +16,8 @@ from django.conf import settings
 from django.utils import timezone
 from io import BytesIO
 from xhtml2pdf import pisa
-from .models import Branch, Vehicle, VehicleModel, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment, ReservationExtension, Payment, Notification
-from .serializers import BranchSerializer, VehicleSerializer, VehicleModelSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer, ReservationExtensionSerializer, validate_billing_payload, NotificationSerializer
+from .models import Branch, Vehicle, VehicleModel, VehicleTypeCode, Reservation, CustomerProfile, OptimizationRun, AssignmentResult, PenaltyConfig, TransferCost, DeliveryLog, MaintenanceLog, DailyPrice, Assignment, ReservationExtension, Payment, Notification
+from .serializers import BranchSerializer, VehicleSerializer, VehicleModelSerializer, VehicleTypeCodeSerializer, ReservationSerializer, TransferCostSerializer, MaintenanceLogSerializer, DailyPriceSerializer, ReservationExtensionSerializer, validate_billing_payload, NotificationSerializer
 from .pricing import price_for_range
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
@@ -37,8 +37,28 @@ class TransferCostViewSet(viewsets.ModelViewSet):
     serializer_class = TransferCostSerializer
     permission_classes = [permissions.IsAdminUser]
 
+@api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
+def type_code_search(request):
+    q = request.query_params.get('q', '').strip()
+    if len(q) < 2:
+        return Response([])
+    words = q.split()
+    query = Q()
+    for word in words:
+        query &= (Q(marka_adi__icontains=word) | Q(tip_adi__icontains=word))
+    results = VehicleTypeCode.objects.filter(query).order_by('marka_adi', 'tip_adi')[:30]
+    return Response(VehicleTypeCodeSerializer(results, many=True).data)
+
+
 class VehicleModelViewSet(viewsets.ModelViewSet):
     serializer_class = VehicleModelSerializer
+
+    def perform_update(self, serializer):
+        old_group = serializer.instance.group
+        instance = serializer.save()
+        if instance.group != old_group:
+            _cascade_category_change(instance, old_group)
 
     def get_queryset(self):
         qs = VehicleModel.objects.all()
@@ -66,9 +86,11 @@ class VehicleModelViewSet(viewsets.ModelViewSet):
         if branch and start_date and end_date:
             start = date.fromisoformat(start_date)
             end = date.fromisoformat(end_date)
+            start_t = _parse_time(self.request.query_params.get('start_time'))
+            end_t = _parse_time(self.request.query_params.get('end_time'))
             eligible_ids = [
                 m.id for m in qs
-                if _model_has_capacity_for_range(branch, m.id, start, end)
+                if _model_has_capacity_for_range(branch, m.id, start, end, start_t, end_t)
             ]
             qs = qs.filter(id__in=eligible_ids)
         return qs
@@ -144,6 +166,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        _sync_category_change_timeouts()
         user = self.request.user
         if user.is_staff:
             return Reservation.objects.all()
@@ -166,12 +189,21 @@ class ReservationViewSet(viewsets.ModelViewSet):
                     pass
         start_date = serializer.validated_data.get('start_date')
         end_date = serializer.validated_data.get('end_date')
+        start_time = serializer.validated_data.get('start_time') or time(10, 0)
+        end_time = serializer.validated_data.get('end_time') or time(10, 0)
+        serializer.validated_data['start_time'] = start_time
+        serializer.validated_data['end_time'] = end_time
+        start_dt = datetime.combine(start_date, start_time)
+        end_dt = datetime.combine(end_date, end_time)
         overlap = Reservation.objects.filter(
             customer=customer,
             status__in=['pending', 'assigned'],
-            start_date__lt=end_date,
-            end_date__gt=start_date,
-        ).exists()
+            start_date__lte=end_date, end_date__gte=start_date,
+        ).values_list('start_date', 'start_time', 'end_date', 'end_time')
+        overlap = any(
+            datetime.combine(s_date, s_time) < end_dt and start_dt < datetime.combine(e_date, e_time)
+            for s_date, s_time, e_date, e_time in overlap
+        )
         if overlap:
             raise ValidationError({'non_field_errors': ['Seçilen tarih aralığında aktif bir rezervasyon var.']})
         reservation_id = 'R' + uuid.uuid4().hex[:6].upper()
@@ -194,7 +226,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         paid = bool(self.request.data.get('paid'))
         resolved_branch = save_kwargs.get('branch') or serializer.validated_data.get('branch')
         with transaction.atomic():
-            if not _has_capacity_for_range(resolved_branch.id, group, start_date, end_date):
+            if not _has_capacity_for_range(resolved_branch.id, group, start_date, end_date, start_time, end_time):
                 raise ValidationError({'non_field_errors': ['Seçilen tarihler için bu şube ve grupta müsait araç kalmadı.']})
             serializer.save(**save_kwargs)
             Payment.objects.create(
@@ -221,7 +253,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if profile and profile.role == 'representative':
             if instance.branch != profile.branch:
                 raise PermissionDenied('Bu rezervasyona erişim yetkiniz yok.')
-            if instance.start_date.isoformat() <= date.today().isoformat():
+            if instance.start_datetime <= datetime.now():
                 raise ValidationError('Başlamış rezervasyon iptal edilemez.')
         serializer.save()
         notify(
@@ -246,8 +278,11 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if not request.user.is_staff and not is_rep_of_branch:
             raise PermissionDenied('Bu rezervasyona erişim yetkiniz yok.')
 
-        if reservation.status != 'assigned' or reservation.start_date <= date.today():
-            raise ValidationError('Sadece henüz başlamamış, onaylı rezervasyonlar taşınabilir.')
+        teslim_edildi = DeliveryLog.objects.filter(
+            reservation=reservation, event_type='delivered', stage='approved'
+        ).exists()
+        if reservation.status != 'assigned' or teslim_edildi:
+            raise ValidationError('Sadece henüz teslim edilmemiş, onaylı rezervasyonlar taşınabilir.')
 
         target_vehicle_id = request.data.get('vehicle_id')
         try:
@@ -318,11 +353,17 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         if mevcut_bakim:
             raise ValidationError('Bu araç bu tarihler aralğında bakımdadır, önce mevcut bakımının bitmesi gerekir.')
 
+        now = datetime.now()
+        today_now = now.date()
         aktif_atama = AssignmentResult.objects.filter(
             vehicle=vehicle,
-            reservation__start_date__lte=date.today(),
-            reservation__end_date__gte=date.today(),
-            reservation__status='assigned'
+            reservation__status='assigned',
+        ).filter(
+            Q(reservation__start_date__lt=today_now) |
+            Q(reservation__start_date=today_now, reservation__start_time__lte=now.time())
+        ).filter(
+            Q(reservation__end_date__gt=today_now) |
+            Q(reservation__end_date=today_now, reservation__end_time__gte=now.time())
         ).exists()
         if aktif_atama:
             raise ValidationError('Bu araç şu an müşteridedir, önce iade alınmalıdır.')
@@ -355,7 +396,39 @@ def _sync_maintenance():
         log.vehicle.status = 'available'
         log.vehicle.save(update_fields=['status'])
 
-def _has_capacity_for_range(branch_id, vehicle_group, start_date, end_date):
+def _parse_time(value):
+    if not value:
+        return None
+    return time.fromisoformat(value)
+
+
+def _sweep_has_capacity(existing, capacity, start_dt, end_dt):
+    """existing: (start_date, start_time, end_date, end_time) dörtlüleri.
+    Aday [start_dt, end_dt) aralığında, eş zamanlı kullanım hiçbir anda
+    capacity'ye ulaşmıyorsa True döner (dokunan uçlar çakışma sayılmaz)."""
+    if capacity == 0:
+        return False
+    events = []
+    for s_date, s_time, e_date, e_time in existing:
+        s = datetime.combine(s_date, s_time)
+        e = datetime.combine(e_date, e_time)
+        clip_s = max(s, start_dt)
+        clip_e = min(e, end_dt)
+        if clip_s < clip_e:
+            events.append((clip_s, 1))
+            events.append((clip_e, -1))
+    events.sort()
+    running = 0
+    for _, delta in events:
+        running += delta
+        if running >= capacity:
+            return False
+    return True
+
+
+def _has_capacity_for_range(branch_id, vehicle_group, start_date, end_date, start_time=None, end_time=None):
+    start_time = start_time or time(10, 0)
+    end_time = end_time or time(10, 0)
     capacity = len(list(Vehicle.objects.select_for_update().filter(
         branch_id=branch_id, group=vehicle_group, status='available'
     )))
@@ -365,17 +438,15 @@ def _has_capacity_for_range(branch_id, vehicle_group, start_date, end_date):
         branch_id=branch_id, vehicle_group=vehicle_group,
         status__in=['pending', 'assigned'],
         start_date__lte=end_date, end_date__gte=start_date,
-    ).values_list('start_date', 'end_date'))
-    day = start_date
-    while day <= end_date:
-        used = sum(1 for s, e in existing if s <= day <= e)
-        if used >= capacity:
-            return False
-        day += timedelta(days=1)
-    return True
+    ).values_list('start_date', 'start_time', 'end_date', 'end_time'))
+    start_dt = datetime.combine(start_date, start_time)
+    end_dt = datetime.combine(end_date, end_time)
+    return _sweep_has_capacity(existing, capacity, start_dt, end_dt)
 
 
-def _model_has_capacity_for_range(branch_id, vehicle_model_id, start_date, end_date):
+def _model_has_capacity_for_range(branch_id, vehicle_model_id, start_date, end_date, start_time=None, end_time=None):
+    start_time = start_time or time(10, 0)
+    end_time = end_time or time(10, 0)
     capacity = Vehicle.objects.filter(
         branch_id=branch_id, catalog_id=vehicle_model_id, status='available'
     ).count()
@@ -385,14 +456,10 @@ def _model_has_capacity_for_range(branch_id, vehicle_model_id, start_date, end_d
         branch_id=branch_id, preferred_vehicle_model_id=vehicle_model_id,
         status__in=['pending', 'assigned'],
         start_date__lte=end_date, end_date__gte=start_date,
-    ).values_list('start_date', 'end_date'))
-    day = start_date
-    while day <= end_date:
-        used = sum(1 for s, e in existing if s <= day <= e)
-        if used >= capacity:
-            return False
-        day += timedelta(days=1)
-    return True
+    ).values_list('start_date', 'start_time', 'end_date', 'end_time'))
+    start_dt = datetime.combine(start_date, start_time)
+    end_dt = datetime.combine(end_date, end_time)
+    return _sweep_has_capacity(existing, capacity, start_dt, end_dt)
 
 
 def _sync_delivery_logs():
@@ -405,11 +472,64 @@ def _sync_delivery_logs():
         DeliveryLog.objects.get_or_create(reservation=r, event_type='delivered')
         DeliveryLog.objects.get_or_create(reservation=r, event_type='returned')
 
+def _cascade_category_change(vehicle_model, old_group):
+    Vehicle.objects.filter(catalog=vehicle_model).update(group=vehicle_model.group)
+
+    now = datetime.now()
+    etkilenen = Reservation.objects.filter(
+        preferred_vehicle_model=vehicle_model,
+        status__in=['pending', 'assigned'],
+    ).exclude(start_date__lt=now.date()).exclude(
+        start_date=now.date(), start_time__lte=now.time()
+    )
+    etkilenen_ids = [r.id for r in etkilenen]
+    for reservation in etkilenen:
+        reservation.preferred_vehicle_model = None
+        reservation.manually_locked = False
+        reservation.save(update_fields=['preferred_vehicle_model', 'manually_locked'])
+    if not etkilenen_ids:
+        return
+
+    run, assignments, unassigned = _run_optimization()
+    unassigned_ids = {r.id for r in unassigned}
+    for reservation in etkilenen:
+        if reservation.id in unassigned_ids:
+            notify(
+                reservation.customer,
+                'Aracınızın sınıfı değişti',
+                f'{reservation.reservation_id} numaralı rezervasyonunuz için ayırdığımız araç modeli farklı bir sınıfa taşındı ve şu an aynı sınıfta boş araç yok. '
+                'Başlangıç tarihine kadar uygun araç bulunamazsa rezervasyonunuz otomatik iptal edilecektir.',
+                link='/dashboard/rezervasyonlar',
+                notif_type='reservation',
+            )
+
+
+def _sync_category_change_timeouts():
+    now = datetime.now()
+    overdue = Reservation.objects.filter(
+        status='pending',
+        preferred_vehicle_model__isnull=True,
+    ).exclude(start_date__gt=now.date()).exclude(
+        start_date=now.date(), start_time__gt=now.time()
+    )
+    for reservation in overdue:
+        reservation.status = 'cancelled'
+        reservation.save(update_fields=['status'])
+        notify(
+            reservation.customer,
+            'Rezervasyonunuz iptal edildi',
+            f'{reservation.reservation_id} numaralı rezervasyonunuz için tercih ettiğiniz araç sınıfı değişti ve zamanında uygun araç bulunamadı, rezervasyonunuz otomatik iptal edilmiştir.',
+            link='/dashboard/rezervasyonlar',
+            notif_type='reservation',
+        )
+
 def _run_optimization():
-    from datetime import date
-    today = date.today()
+    delivered_ids = list(DeliveryLog.objects.filter(
+        event_type='delivered', stage='approved'
+    ).values_list('reservation_id', flat=True))
     locked = list(Reservation.objects.filter(
-        Q(status='assigned', start_date__lte=today) | Q(manually_locked=True)
+        Q(status='assigned', id__in=delivered_ids) |
+        Q(manually_locked=True)
     ))
     locked_ids = [r.id for r in locked]
     free = list(Reservation.objects.exclude(status='cancelled').exclude(id__in=locked_ids))
@@ -419,7 +539,7 @@ def _run_optimization():
     for r in locked:
         ar = AssignmentResult.objects.filter(reservation=r).order_by('-run__created_at').first()
         if ar:
-            initial_occupied.setdefault(ar.vehicle.vehicle_id, []).append((r.start_date, r.end_date))
+            initial_occupied.setdefault(ar.vehicle.vehicle_id, []).append((r.start_datetime, r.end_datetime))
 
     assignments, unassigned = greedy_solver_güncel.solve(free, vehicles, initial_occupied)
     score = calculate_score(assignments, unassigned, vehicles)
@@ -570,6 +690,7 @@ def availability(request):
     tüm aktif araç modellerine bakar: en az bir modelde o gün için hem fiyat
     hem müsait araç varsa gün açık sayılır."""
     branch_id = request.query_params.get('branch')
+    sec_start = _parse_time(request.query_params.get('start_time')) or time(10, 0)
 
     if not branch_id:
         return Response({'error': 'branch gerekli'}, status=400)
@@ -603,22 +724,23 @@ def availability(request):
         fiyatli_gunler.setdefault(vm_id, set()).add(gun)
 
     rezervasyonlar = {}
-    for vm_id, s, e in Reservation.objects.filter(
+    for vm_id, s, s_time, e, e_time in Reservation.objects.filter(
         branch_id=branch_id,
         preferred_vehicle_model_id__in=kapasiteler.keys(),
         status__in=['pending', 'assigned'],
         start_date__lte=son_gun, end_date__gte=bugun,
-    ).values_list('preferred_vehicle_model_id', 'start_date', 'end_date'):
-        rezervasyonlar.setdefault(vm_id, []).append((s, e))
+    ).values_list('preferred_vehicle_model_id', 'start_date', 'start_time', 'end_date', 'end_time'):
+        rezervasyonlar.setdefault(vm_id, []).append((s, s_time, e, e_time))
 
     musait_gunler = []
     for i in range(gun_sayisi):
         gun = bugun + timedelta(days=i)
+        gun_baslangic = datetime.combine(gun, sec_start)
+        gun_bitis = datetime.combine(gun + timedelta(days=1), sec_start)
         for vm_id, kapasite in kapasiteler.items():
             if gun not in fiyatli_gunler.get(vm_id, set()):
                 continue
-            dolu = sum(1 for s, e in rezervasyonlar.get(vm_id, []) if s <= gun <= e)
-            if dolu < kapasite:
+            if _sweep_has_capacity(rezervasyonlar.get(vm_id, []), kapasite, gun_baslangic, gun_bitis):
                 musait_gunler.append(str(gun))
                 break
 
@@ -631,8 +753,7 @@ def cancel_reservation(request, reservation_id):
         reservation = Reservation.objects.get(reservation_id=reservation_id, customer=request.user)
     except Reservation.DoesNotExist:
         return Response({'error': 'Rezervasyon bulunamadı'}, status=404)
-    from datetime import date
-    if reservation.start_date <= date.today():
+    if reservation.start_datetime <= datetime.now():
         return Response({'error': 'Başlamış rezervasyon iptal edilemez'}, status=400)
     reservation.status = 'cancelled'
     reservation.save()
@@ -864,6 +985,8 @@ def guest_reservation(request):
     vehicle_group = preferred_vehicle_model.group
     start_date = request.data.get('start_date')
     end_date = request.data.get('end_date')
+    start_time = _parse_time(request.data.get('start_time')) or time(10, 0)
+    end_time = _parse_time(request.data.get('end_time')) or time(10, 0)
 
     if not all([guest_name, guest_email, branch_id, vehicle_group, start_date, end_date]):
         return Response({'error': 'Tüm alanları doldurun'}, status=status.HTTP_400_BAD_REQUEST)
@@ -896,7 +1019,7 @@ def guest_reservation(request):
 
     paid = bool(request.data.get('paid'))
     with transaction.atomic():
-        if not _has_capacity_for_range(branch.id, vehicle_group, start, end):
+        if not _has_capacity_for_range(branch.id, vehicle_group, start, end, start_time, end_time):
             return Response({'error': 'Seçilen tarihler için bu şube ve grupta müsait araç kalmadı.'}, status=status.HTTP_400_BAD_REQUEST)
         reservation = Reservation.objects.create(
             reservation_id=reservation_id,
@@ -910,6 +1033,8 @@ def guest_reservation(request):
             preferred_vehicle_model=preferred_vehicle_model,
             start_date=start_date,
             end_date=end_date,
+            start_time=start_time,
+            end_time=end_time,
             status='pending',
             total_price=total or None,
             billing_type=request.data.get('billing_type', 'bireysel'),
@@ -980,20 +1105,21 @@ def guest_reservation_detail(request):
         m = reservation.preferred_vehicle_model
         preferred_info = {'brand': m.brand, 'model': m.model, 'sipp_code': m.sipp_code}
 
+    logs = {log.event_type: log for log in reservation.delivery_logs.all()}
+    delivered = logs.get('delivered')
+    returned = logs.get('returned')
+    delivered_ok = bool(delivered) and delivered.stage == 'approved'
+
     vehicle_info = None
-    if reservation.status == 'assigned' and reservation.start_date <= date.today():
+    if reservation.status == 'assigned':
         result = reservation.assignmentresult_set.order_by('-run__created_at').first()
         if result:
             v = result.vehicle
             vehicle_info = {
-                'plate': v.plate, 'brand': v.brand, 'model': v.model,
+                'plate': v.plate if delivered_ok else None, 'brand': v.brand, 'model': v.model,
                 'sipp_code': v.catalog.sipp_code if v.catalog else None,
                 'is_model_substitute': bool(reservation.preferred_vehicle_model_id and v.catalog_id != reservation.preferred_vehicle_model_id),
             }
-
-    logs = {log.event_type: log for log in reservation.delivery_logs.all()}
-    delivered = logs.get('delivered')
-    returned = logs.get('returned')
     delivery_info = {
         'delivered': bool(delivered),
         'delivered_at': delivered.logged_at.isoformat() if delivered else None,
@@ -1083,6 +1209,8 @@ def delivery_logs(request):
             'customer': log.reservation.customer.username if log.reservation.customer else log.reservation.guest_name,
             'start_date': log.reservation.start_date,
             'end_date': log.reservation.end_date,
+            'start_time': log.reservation.start_time,
+            'end_time': log.reservation.end_time,
             'event_type': log.event_type,
             'logged_at': log.logged_at,
             'assigned_vehicle_plate': plate,

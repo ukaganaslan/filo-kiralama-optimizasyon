@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog, DailyPrice, ReservationExtension, Payment, Notification, VehicleModel
+from .models import Branch, Vehicle, Reservation, Assignment, TransferCost, MaintenanceLog, DailyPrice, ReservationExtension, Payment, Notification, VehicleModel, VehicleTypeCode
 from .pricing import price_for_range
 from datetime import date
 
@@ -11,8 +11,8 @@ def validate_billing_payload(data):
     errors = {}
     tckn = data.get('billing_tckn')
     if tckn:
-        if not tckn.isdigit() or len(tckn) != 11 or tckn[0] == '0':
-            errors['billing_tckn'] = 'TC Kimlik No 11 haneli rakamdan oluşmalı ve 0 ile başlayamaz.'
+        if not tckn.isdigit() or len(tckn) != 11 or int(tckn[-1]) % 2 != 0:
+            errors['billing_tckn'] = 'TC Kimlik No 11 haneli rakamdan oluşmalı ve çift bir rakamla bitmelidir.'
     tax_no = data.get('billing_tax_no')
     if tax_no:
         if not tax_no.isdigit() or len(tax_no) != 10:
@@ -37,10 +37,17 @@ class BranchSerializer(serializers.ModelSerializer):
         model = Branch
         fields = ['id', 'name', 'title']
 
+class VehicleTypeCodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VehicleTypeCode
+        fields = ['id', 'marka_kodu', 'tip_kodu', 'marka_adi', 'tip_adi', 'ilk_yil', 'son_yil']
+
+
 class VehicleModelSerializer(serializers.ModelSerializer):
     available_count = serializers.IntegerField(read_only=True, default=None)
     total_price = serializers.SerializerMethodField()
     sipp_code = serializers.ReadOnlyField()
+    type_code_info = VehicleTypeCodeSerializer(source='type_code', read_only=True)
 
     def get_total_price(self, obj):
         request = self.context.get('request')
@@ -56,7 +63,7 @@ class VehicleModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = VehicleModel
         fields = [
-            'id', 'brand', 'model', 'group', 'fuel_type', 'transmission', 'body_type', 'is_4wd', 'has_ac',
+            'id', 'brand', 'model', 'type_code', 'type_code_info', 'group', 'fuel_type', 'transmission', 'body_type', 'is_4wd', 'has_ac',
             'sipp_code', 'image', 'is_active', 'available_count', 'total_price',
         ]
 
@@ -69,13 +76,20 @@ class VehicleSerializer(serializers.ModelSerializer):
     sipp_code = serializers.SerializerMethodField()
 
     def get_current_status(self, obj):
+        from django.db.models import Q
+        from datetime import datetime
         if obj.status in ('maintenance', 'service', 'inactive'):
             return obj.status
-        today = date.today()
+        now = datetime.now()
+        today = now.date()
         is_rented = obj.assignmentresult_set.filter(
             reservation__status='assigned',
-            reservation__start_date__lte=today,
-            reservation__end_date__gte=today,
+        ).filter(
+            Q(reservation__start_date__lt=today) |
+            Q(reservation__start_date=today, reservation__start_time__lte=now.time())
+        ).filter(
+            Q(reservation__end_date__gt=today) |
+            Q(reservation__end_date=today, reservation__end_time__gte=now.time())
         ).exists()
         return 'rented' if is_rented else 'available'
 
@@ -88,6 +102,11 @@ class VehicleSerializer(serializers.ModelSerializer):
             'id', 'vehicle_id', 'group', 'brand', 'model', 'catalog', 'sipp_code', 'plate', 'sasi', 'branch', 'branch_name', 'branch_title',
             'status', 'current_status', 'total_reservations', 'total_km', 'maintenance_due',
         ]
+        extra_kwargs = {
+            'group': {'read_only': True},
+            'brand': {'read_only': True},
+            'model': {'read_only': True},
+        }
 
 
 class ReservationSerializer(serializers.ModelSerializer):
@@ -123,15 +142,23 @@ class ReservationSerializer(serializers.ModelSerializer):
         }
 
     def get_assigned_vehicle_info(self, obj):
-        from datetime import date
-        if obj.status != 'assigned' or obj.start_date > date.today():
+        if obj.status != 'assigned':
             return None
         result = obj.assignmentresult_set.order_by('-run__created_at').first()
         if not result:
             return None
         v = result.vehicle
+
+        request = self.context.get('request')
+        is_staff_viewer = False
+        if request and request.user and request.user.is_authenticated:
+            profile = getattr(request.user, 'profile', None)
+            is_staff_viewer = request.user.is_staff or (profile and profile.role == 'representative')
+        delivered = obj.delivery_logs.filter(event_type='delivered', stage='approved').exists()
+
         return {
-            'plate': v.plate, 'brand': v.brand, 'model': v.model, 'total_km': v.total_km, 'damage_map': v.damage_map,
+            'plate': v.plate if (is_staff_viewer or delivered) else None,
+            'brand': v.brand, 'model': v.model, 'total_km': v.total_km, 'damage_map': v.damage_map,
             'sipp_code': v.catalog.sipp_code if v.catalog else None,
             'is_model_substitute': bool(obj.preferred_vehicle_model_id and v.catalog_id != obj.preferred_vehicle_model_id),
         }
@@ -172,14 +199,14 @@ class ReservationSerializer(serializers.ModelSerializer):
         }
 
     def get_current_status(self, obj):
-        from datetime import date
-        today = date.today()
+        from datetime import datetime
+        now = datetime.now()
         if obj.status == 'cancelled':
             return 'cancelled'
         if obj.status == 'assigned':
-            if obj.start_date <= today and obj.end_date >= today:
+            if obj.start_datetime <= now <= obj.end_datetime:
                 return 'active'
-            if obj.end_date < today:
+            if obj.end_datetime < now:
                 return 'completed'
         return obj.status
 
@@ -194,7 +221,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'reservation_id', 'branch', 'branch_name', 'branch_title',
             'return_branch', 'return_branch_name', 'return_branch_title',
-            'vehicle_group', 'preferred_vehicle_model', 'preferred_vehicle_model_info', 'start_date', 'end_date', 'status',
+            'vehicle_group', 'preferred_vehicle_model', 'preferred_vehicle_model_info', 'start_date', 'end_date', 'start_time', 'end_time', 'status',
             'customer_username', 'assigned_vehicle_id', 'assigned_vehicle_info', 'current_status',
             'guest_name', 'guest_phone', 'guest_email', 'total_price', 'delivery_info', 'payment_info',
             'billing_type', 'billing_name', 'billing_tckn', 'billing_tax_office', 'billing_tax_no',

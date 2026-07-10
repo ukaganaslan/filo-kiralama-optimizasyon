@@ -51,13 +51,37 @@
   <div v-if="formModal" class="modal-overlay" @click.self="formModal = false">
     <div class="modal">
       <h3>{{ editingId ? 'Model Düzenle' : 'Yeni Model Ekle' }}</h3>
-      <div class="field">
-        <label>Marka</label>
-        <input v-model="form.brand" type="text" placeholder="Örn. Fiat" />
-      </div>
-      <div class="field">
-        <label>Model</label>
-        <input v-model="form.model" type="text" placeholder="Örn. Egea" />
+      <div class="field type-code-field">
+        <label>Marka / Model (Resmi Tip Kodu Listesi)</label>
+        <div v-if="form.brand || form.model" class="type-code-selected">
+          <span><strong>{{ form.brand }}</strong> {{ form.model }}</span>
+          <span v-if="form.type_code" class="type-code-badge">Tip Kodu: {{ selectedTipKodu }}</span>
+          <span v-if="selectedYearRange" class="type-code-badge">{{ selectedYearRange }}</span>
+          <button type="button" class="type-code-clear" @click="clearTypeCode">Değiştir</button>
+        </div>
+        <template v-else>
+          <input
+            v-model="typeCodeQuery"
+            type="text"
+            placeholder="Marka veya model yazın... (örn. Corolla)"
+            autocomplete="off"
+            @input="searchTypeCodes"
+          />
+          <div v-if="typeCodeResults.length" class="type-code-suggestions">
+            <button
+              v-for="tc in typeCodeResults"
+              :key="tc.id"
+              type="button"
+              class="type-code-option"
+              @click="selectTypeCode(tc)"
+            >
+              <strong>{{ tc.marka_adi }}</strong> {{ tc.tip_adi }}
+              <span class="type-code-badge">Tip Kodu: {{ tc.tip_kodu }}</span>
+              <span v-if="yearRangeLabel(tc)" class="type-code-badge">{{ yearRangeLabel(tc) }}</span>
+            </button>
+          </div>
+          <p v-else-if="typeCodeQuery.trim().length >= 2" class="type-code-empty">Sonuç yok.</p>
+        </template>
       </div>
       <div class="field">
         <label>Grup</label>
@@ -146,12 +170,53 @@ const search = ref('')
 const openMenuId = ref(null)
 const formModal = ref(false)
 const editingId = ref(null)
-const form = ref({ brand: '', model: '', group: 'E', fuel_type: 'benzin', transmission: 'manuel', body_type: 'D', is_4wd: false, has_ac: true, is_active: true })
+const form = ref({ brand: '', model: '', type_code: null, group: 'E', fuel_type: 'benzin', transmission: 'manuel', body_type: 'D', is_4wd: false, has_ac: true, is_active: true })
 const imageFile = ref(null)
 const imagePreview = ref('')
 const formError = ref('')
 const deleteModal = ref(false)
 const deletingModel = ref(null)
+const typeCodeQuery = ref('')
+const typeCodeResults = ref([])
+const selectedTipKodu = ref(null)
+const selectedYearRange = ref('')
+let typeCodeSearchTimer = null
+
+function yearRangeLabel(tc) {
+  if (!tc.ilk_yil && !tc.son_yil) return ''
+  if (tc.ilk_yil === tc.son_yil) return `${tc.ilk_yil}`
+  return `${tc.ilk_yil}–${tc.son_yil}`
+}
+
+function searchTypeCodes() {
+  clearTimeout(typeCodeSearchTimer)
+  const q = typeCodeQuery.value.trim()
+  if (q.length < 2) { typeCodeResults.value = []; return }
+  typeCodeSearchTimer = setTimeout(async () => {
+    const res = await axios.get('/api/type-codes/search/', { params: { q } })
+    typeCodeResults.value = res.data
+  }, 300)
+}
+
+function selectTypeCode(tc) {
+  form.value.brand = tc.marka_adi
+  form.value.model = tc.tip_adi
+  form.value.type_code = tc.id
+  selectedTipKodu.value = tc.tip_kodu
+  selectedYearRange.value = yearRangeLabel(tc)
+  typeCodeQuery.value = ''
+  typeCodeResults.value = []
+}
+
+function clearTypeCode() {
+  form.value.brand = ''
+  form.value.model = ''
+  form.value.type_code = null
+  selectedTipKodu.value = null
+  selectedYearRange.value = ''
+  typeCodeQuery.value = ''
+  typeCodeResults.value = []
+}
 
 async function loadData() {
   const res = await axios.get('/api/vehicle-models/')
@@ -174,7 +239,11 @@ const filteredModels = computed(() => {
 
 function openAdd() {
   editingId.value = null
-  form.value = { brand: '', model: '', group: 'E', fuel_type: 'benzin', transmission: 'manuel', body_type: 'D', is_4wd: false, has_ac: true, is_active: true }
+  form.value = { brand: '', model: '', type_code: null, group: 'E', fuel_type: 'benzin', transmission: 'manuel', body_type: 'D', is_4wd: false, has_ac: true, is_active: true }
+  selectedTipKodu.value = null
+  selectedYearRange.value = ''
+  typeCodeQuery.value = ''
+  typeCodeResults.value = []
   imageFile.value = null
   imagePreview.value = ''
   formError.value = ''
@@ -183,7 +252,11 @@ function openAdd() {
 
 function openEdit(m) {
   editingId.value = m.id
-  form.value = { brand: m.brand, model: m.model, group: m.group, fuel_type: m.fuel_type, transmission: m.transmission, body_type: m.body_type, is_4wd: m.is_4wd, has_ac: m.has_ac, is_active: m.is_active }
+  form.value = { brand: m.brand, model: m.model, type_code: m.type_code, group: m.group, fuel_type: m.fuel_type, transmission: m.transmission, body_type: m.body_type, is_4wd: m.is_4wd, has_ac: m.has_ac, is_active: m.is_active }
+  selectedTipKodu.value = m.type_code_info?.tip_kodu ?? null
+  selectedYearRange.value = m.type_code_info ? yearRangeLabel(m.type_code_info) : ''
+  typeCodeQuery.value = ''
+  typeCodeResults.value = []
   imageFile.value = null
   imagePreview.value = m.image || ''
   formError.value = ''
@@ -206,6 +279,7 @@ async function saveForm() {
   const fd = new FormData()
   fd.append('brand', form.value.brand)
   fd.append('model', form.value.model)
+  if (form.value.type_code) fd.append('type_code', form.value.type_code)
   fd.append('group', form.value.group)
   fd.append('fuel_type', form.value.fuel_type)
   fd.append('transmission', form.value.transmission)
@@ -291,4 +365,13 @@ td { padding: 10px 16px; border-top: 1px solid #f1f5f9; color: #374151; }
 .btn-save { padding: 8px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
 .btn-delete-confirm { padding: 8px 20px; background: #dc2626; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
 .error-msg { color: #dc2626; font-size: 13px; margin: 0; }
+.type-code-field { position: relative; }
+.type-code-selected { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; color: #1e293b; background: #f8fafc; }
+.type-code-badge { font-size: 11px; font-weight: 600; color: #4f46e5; background: #eef2ff; padding: 2px 8px; border-radius: 50px; }
+.type-code-clear { margin-left: auto; padding: 4px 10px; background: white; color: #6366f1; border: 1px solid #c7d2fe; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.type-code-suggestions { margin-top: 4px; max-height: 220px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: white; }
+.type-code-option { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 9px 12px; background: none; border: none; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 13px; color: #374151; }
+.type-code-option:last-child { border-bottom: none; }
+.type-code-option:hover { background: #f8fafc; }
+.type-code-empty { font-size: 12px; color: #94a3b8; margin: 4px 0 0; }
 </style>

@@ -33,9 +33,9 @@ def score_vehicle(vehicle, reservation):
     return 1
 
 
-def has_memory_conflict(vehicle, start_date, end_date, occupied):
+def has_memory_conflict(vehicle, start_dt, end_dt, occupied):
     for (s, e) in occupied.get(vehicle.vehicle_id, []):
-        if s <= end_date and start_date <= e:
+        if s < end_dt and start_dt < e:
             return True
     return False
 
@@ -47,9 +47,9 @@ def post_swap(assignments, unassigned, all_vehicles, occupied):
         for assignment in assignments:
             vehicle = assignment['vehicle']
             rez_y = assignment['reservation']
-            rez_y_dates = (rez_y.start_date, rez_y.end_date)
+            rez_y_dates = (rez_y.start_datetime, rez_y.end_datetime)
 
-            
+
             if vehicle.branch_id != rez_x.branch_id:
                 continue
 
@@ -57,7 +57,7 @@ def post_swap(assignments, unassigned, all_vehicles, occupied):
                 continue
 
             temp = [d for d in occupied.get(vehicle.vehicle_id, []) if d != rez_y_dates]
-            if any(s <= rez_x.end_date and rez_x.start_date <= e for s, e in temp):
+            if any(s < rez_x.end_datetime and rez_x.start_datetime < e for s, e in temp):
                 continue
 
             alt_occupied = {k: list(v) for k, v in occupied.items()}
@@ -68,7 +68,7 @@ def post_swap(assignments, unassigned, all_vehicles, occupied):
                 and v.branch_id == rez_y.branch_id
                 and check_group(v.group, rez_y.vehicle_group)
                 and check_status(v)
-                and not has_memory_conflict(v, rez_y.start_date, rez_y.end_date, alt_occupied)
+                and not has_memory_conflict(v, rez_y.start_datetime, rez_y.end_datetime, alt_occupied)
             ]
 
             if not alt_candidates:
@@ -78,7 +78,7 @@ def post_swap(assignments, unassigned, all_vehicles, occupied):
 
             occupied[vehicle.vehicle_id] = temp
             occupied.setdefault(best_alt.vehicle_id, []).append(rez_y_dates)
-            occupied.setdefault(vehicle.vehicle_id, []).append((rez_x.start_date, rez_x.end_date))
+            occupied.setdefault(vehicle.vehicle_id, []).append((rez_x.start_datetime, rez_x.end_datetime))
 
             assignment['vehicle'] = best_alt
             assignment['transfer_cost'] = return_transfer_cost(rez_y)
@@ -101,7 +101,7 @@ def post_swap(assignments, unassigned, all_vehicles, occupied):
 
 
 def solve(reservations, all_vehicles, initial_occupied=None):
-    reservations = sorted(reservations, key=lambda r: r.end_date)
+    reservations = sorted(reservations, key=lambda r: r.end_datetime)
 
     assignments = []
     unassigned = []
@@ -113,7 +113,7 @@ def solve(reservations, all_vehicles, initial_occupied=None):
             if v.branch_id == reservation.branch_id
             and check_group(v.group, reservation.vehicle_group)
             and check_status(v)
-            and not has_memory_conflict(v, reservation.start_date, reservation.end_date, occupied)
+            and not has_memory_conflict(v, reservation.start_datetime, reservation.end_datetime, occupied)
         ]
 
         if not candidates:
@@ -130,7 +130,7 @@ def solve(reservations, all_vehicles, initial_occupied=None):
         })
 
         occupied.setdefault(best.vehicle_id, []).append(
-            (reservation.start_date, reservation.end_date)
+            (reservation.start_datetime, reservation.end_datetime)
         )
 
     assignments, unassigned = post_swap(assignments, unassigned, all_vehicles, occupied)
