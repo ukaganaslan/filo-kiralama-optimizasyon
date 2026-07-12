@@ -5,9 +5,10 @@ from datetime import date, time, datetime, timedelta
 from rest_framework import viewsets, status, permissions
 from django.db.models import Q, Max, Count
 from django.db import transaction
-from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.decorators import api_view, permission_classes, throttle_classes, action
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
+from rest_framework.throttling import AnonRateThrottle
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.template.loader import render_to_string
@@ -21,6 +22,22 @@ from .serializers import BranchSerializer, VehicleSerializer, VehicleModelSerial
 from .pricing import price_for_range
 from core.optimizer.solvers import greedy_solver_güncel
 from core.optimizer.objective import calculate_score
+
+
+class LoginRateThrottle(AnonRateThrottle):
+    """IP başına dakikada 5 giriş denemesiyle sınırlar (brute-force koruması)."""
+    scope = 'login'
+
+
+class RegisterRateThrottle(AnonRateThrottle):
+    """IP başına saatte 10 kayıt denemesiyle sınırlar (spam/otomatik hesap açma koruması)."""
+    scope = 'register'
+
+
+class GuestRateThrottle(AnonRateThrottle):
+    """IP başına dakikada 10 istekle sınırlar (misafir rezervasyon kodu tahmin/brute-force koruması)."""
+    scope = 'guest'
+
 
 class BranchViewSet(viewsets.ModelViewSet):
     queryset = Branch.objects.all()
@@ -940,6 +957,7 @@ def profile_view(request):
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
+@throttle_classes([LoginRateThrottle])
 def login_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
@@ -1064,6 +1082,7 @@ def guest_reservation(request):
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
+@throttle_classes([RegisterRateThrottle])
 def register_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
@@ -1087,6 +1106,7 @@ def register_view(request):
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
+@throttle_classes([GuestRateThrottle])
 def guest_reservation_detail(request):
     code = request.query_params.get('code', '').strip().upper()
     if not code or len(code) != 8:
@@ -1157,6 +1177,7 @@ def guest_reservation_detail(request):
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
+@throttle_classes([GuestRateThrottle])
 def guest_cancel(request):
     code = request.data.get('code', '').strip().upper()
     email = request.data.get('email', '').strip().lower()
@@ -1910,11 +1931,19 @@ def reservation_pdf(request, pk, pdf_type):
         ).prefetch_related('delivery_logs').get(pk=pk)
     except Reservation.DoesNotExist:
         return HttpResponse(status=404)
+    user = request.user
+    profile = getattr(user, 'profile', None)
+    role = profile.role if profile else None
+    is_owner = reservation.customer_id == user.id
+    is_branch_rep = role == 'representative' and profile.branch_id == reservation.branch_id
+    if not (user.is_staff or is_owner or is_branch_rep):
+        return HttpResponse(status=403)
     return _build_reservation_pdf(reservation, pdf_type)
 
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
+@throttle_classes([GuestRateThrottle])
 def guest_reservation_pdf(request, code, pdf_type):
     code = code.strip().upper()
     if len(code) != 8:
