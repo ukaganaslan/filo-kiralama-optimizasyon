@@ -11,11 +11,32 @@ env/
 
 # Django
 db.sqlite3
+*.sqlite
+*.sqlite3
+*.db
 *.log
 media/
 staticfiles/
 local_settings.py
 .env
+.env.*
+!.env.example
+
+# Database backups / exports
+*.dump
+*.backup
+*.sql
+*.sql.gz
+*.pgdump
+.pgpass
+
+# Secrets / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json
 
 # Node / Vue
 node_modules/
@@ -29,6 +50,14 @@ dist/
 # IDE
 .vscode/
 .idea/
+.claude/
+
+# Test / tooling caches
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
 
 # Proje dokümantasyonu
 ILERLEME.md
@@ -40,6 +69,6 @@ günlük.md
 günlük2.md
 plan.md
 *.pdf
-
+rapor.md
 # Django migrations — repoda tutulur, Railway deploy için gerekli
 # */migrations/

@@ -13,20 +13,43 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 
+from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def env_list(name, default=''):
+    """Virgülle ayrılmış ortam değişkenlerini temiz bir listeye dönüştürür."""
+    return [value.strip() for value in os.environ.get(name, default).split(',') if value.strip()]
+
+# Yerel geliştirmede BASE_DIR/.env dosyasını yükler (repoya commit edilmez).
+# Prod'da (Railway vb.) .env dosyası olmaz, ortam değişkenleri platform tarafından sağlanır.
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-w4v1pobqe8h&$9t20-#&@2_^h6ki&ds7zfqcdlqqlt*zlr54lg')
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'django-insecure-dev-only-key-do-not-use-in-production'
+    else:
+        raise ImproperlyConfigured('SECRET_KEY environment variable must be set when DEBUG=False')
+
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+
+# Render, servisin onrender.com alan adını otomatik olarak bu değişkende sunar.
+# Böylece her yeni servis adında kaynak kodu değiştirmek gerekmez.
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 
 # Application definition
@@ -131,7 +154,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
@@ -140,18 +163,24 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    'CORS_ALLOWED_ORIGINS',
-    'http://localhost:5173'
-).split(',')
+CORS_ALLOWED_ORIGINS = env_list('CORS_ALLOWED_ORIGINS', 'http://localhost:5173')
+CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '5/min',
+        'register': '10/hour',
+        'guest': '10/min',
+    },
 }
 
 if not DEBUG:
+    # Render TLS'i edge proxy'de sonlandırıp isteği uygulamaya HTTP ile iletir.
+    # X-Forwarded-Proto sayesinde Django orijinal isteğin HTTPS olduğunu bilir.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
@@ -160,4 +189,8 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT', BASE_DIR / 'media'))
+
+# Kullanıcı yüklemelerini Django üzerinden sunmak küçük/tek instance
+# kurulumları içindir. Render'da bu seçenek kalıcı diskle birlikte kullanılır.
+SERVE_MEDIA_FILES = os.environ.get('SERVE_MEDIA_FILES', str(DEBUG)).lower() == 'true'
